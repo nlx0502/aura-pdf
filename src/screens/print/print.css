@@ -1,0 +1,276 @@
+/* Fenêtre d'impression — reproduit AppBar.dc.html (ab-dlg). */
+
+.pdlg {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+/* Les réglages défilent seuls ; l'aperçu reste en place. */
+.pdlg > .pdlg__settings {
+  overflow-y: auto;
+}
+/* Fenêtre étroite : les deux colonnes s'empilent et défilent ensemble. */
+@media (max-width: 900px) {
+  .pdlg {
+    flex-wrap: wrap;
+    overflow: auto;
+  }
+  .pdlg > .pdlg__settings {
+    overflow: visible;
+  }
+}
+
+/* ---- Aperçu ---- */
+.pdlg__preview {
+  flex: 1 1 380px;
+  background: var(--bg-preview);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 26px;
+  min-height: 460px;
+}
+.pdlg__stage {
+  height: 430px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.psheet {
+  position: relative;
+  background: var(--paper);
+  border-radius: 3px;
+  box-shadow: 0 22px 50px -14px rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+  transition: width var(--dur-slow) var(--ease), height var(--dur-slow) var(--ease), filter 0.35s;
+}
+.psheet--feeding {
+  animation: feed 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes feed {
+  0% { transform: none; opacity: 1; }
+  55% { transform: translateY(-40px); opacity: 0; }
+  56% { transform: translateY(40px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+.pmini {
+  position: absolute;
+  background: #fff;
+  overflow: hidden;
+  animation: rise-sm 0.35s var(--ease) both;
+  transition: left var(--dur-slow) var(--ease), top var(--dur-slow) var(--ease), width var(--dur-slow) var(--ease), height var(--dur-slow) var(--ease), box-shadow 0.3s;
+}
+.pmini--edge {
+  box-shadow: 0 0 0 1px #e6e4dd;
+}
+.ppage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.25s;
+}
+.psheet--poster .ppage {
+  position: absolute;
+  inset: 0;
+}
+.pframe {
+  position: absolute;
+  box-shadow: inset 0 0 0 1px #9a9890;
+  pointer-events: none;
+}
+.pblank {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--fw-medium) 10px/1 var(--font);
+  color: #b9b7ae;
+}
+.ptiles {
+  position: absolute;
+  inset: 0;
+  display: grid;
+}
+.ptile {
+  border: 1px dashed rgba(110, 106, 246, 0.7);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 6px;
+  font: var(--fw-semibold) 10px/1 var(--font);
+  color: var(--accent);
+  animation: fade 0.3s both;
+}
+.psummary {
+  position: absolute;
+  inset: 0;
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-ink);
+  font: var(--fw-semibold) 11px/1.2 var(--font);
+}
+.pln {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--paper-line);
+  display: block;
+}
+
+.pdlg__nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+}
+.pdlg__nav .btn--icon.btn--sm {
+  width: 30px;
+}
+.pdlg__navlabel {
+  font: var(--fw-medium) var(--fs-sm) / 1 var(--font);
+  color: var(--text-2);
+  padding: 0 6px;
+  min-width: 150px;
+  text-align: center;
+}
+.pdlg__note {
+  font: var(--fw-regular) var(--fs-sm) / 1.4 var(--font);
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 420px;
+}
+
+/* ---- Réglages ---- */
+.pdlg__settings {
+  flex: 1 1 380px;
+  padding: 6px 24px 10px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.psec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.psec__h {
+  font: var(--fw-semibold) var(--fs-md) / 1.2 var(--font);
+  color: var(--text);
+  margin: 0;
+}
+.pgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font: var(--fw-regular) var(--fs-md) / 1.3 var(--font);
+  color: var(--text);
+}
+.prow__label {
+  color: var(--text-2);
+}
+.prow__inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.pchips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pchip--sq {
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+}
+.pnote {
+  font: var(--fw-regular) var(--fs-sm) / 1.4 var(--font);
+  color: var(--text-muted);
+}
+.pnote--warn {
+  color: var(--warning-text);
+}
+.pselect {
+  position: relative;
+  display: block;
+}
+.pselect select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 36px;
+}
+.pselect select option {
+  background: var(--bg-dialog);
+  color: var(--text);
+}
+.pselect__chev {
+  position: absolute;
+  right: 12px;
+  top: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.pstatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--fw-regular) var(--fs-sm) / 1 var(--font);
+  color: var(--success);
+}
+.pstatus__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: currentColor;
+}
+.pstatus--warn {
+  color: var(--warning-text);
+}
+.pstatus--error {
+  color: var(--danger-text);
+}
+.pstatus--pdf {
+  color: var(--accent-text);
+}
+
+/* ---- Pied ---- */
+.pdlg__foot {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.pdone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pdone__ok {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--success);
+  color: var(--bg-app);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: popin-fade 0.45s var(--ease-pop) both;
+}

@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Barre d’application</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="display: flex; align-items: center; gap: 18px; min-height: 60px; padding: 10px 16px; flex-wrap: wrap; font-family: Geist, system-ui, sans-serif; color: #ECECEF; background: #0E0F12">
+<a href="Home.dc.html" aria-label="Aura PDF — accueil" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #ECECEF"><span style="width: 28px; height: 28px; border-radius: 8px; background: #6E6AF6; display: flex; align-items: center; justify-content: center; color: #fff"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"></path></svg></span><span style="font: 600 15px/1 Geist, sans-serif; letter-spacing: -.02em">Aura</span></a>
+<nav aria-label="Modules" style="display: flex; gap: 2px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; align-items: center">
+<sc-for list="{{ links }}" as="l" hint-placeholder-count="5">
+<a class="nav" href="{{ l.href }}" aria-current="{{ l.cur }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ l.d }}"></path></svg>{{ l.label }}</a>
+</sc-for>
+<span style="width: 1px; height: 20px; background: rgba(255,255,255,.08); margin: 0 6px"></span>
+<span style="position: relative">
+<button class="ab-tools {{ toolsCls }}" aria-expanded="{{ menuS }}" aria-haspopup="true" onClick="{{ toggleMenu }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2.5 2.5h4.5v4.5H2.5z M9 2.5h4.5v4.5H9z M2.5 9h4.5v4.5H2.5z M11.25 9v4.5 M9 11.25h4.5"></path></svg>{{ toolsLabel }}<svg class="i" width="16" height="16" aria-hidden="true" style="width: 14px; height: 14px; transform: rotate({{ chev }}deg); transition: transform .3s cubic-bezier(.2,.8,.2,1)"><path d="M4 6l4 4 4-4"></path></svg></button>
+<sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}">
+<div class="ab-menu" role="menu" aria-label="Outils">
+<div style="padding: 8px 10px 10px; display: flex; justify-content: space-between; align-items: baseline"><span style="font: 600 13px/1 Geist, sans-serif">Outils</span><span style="font: 400 12px/1 Geist, sans-serif; color: #9A9DA6">5 outils</span></div>
+<sc-for list="{{ tools }}" as="t" hint-placeholder-count="5">
+<sc-if value="{{ t.isLink }}" hint-placeholder-val="{{ true }}">
+<a class="ab-item" role="menuitem" href="{{ t.href }}" aria-current="{{ t.cur }}" style="animation-delay: {{ t.delay }}"><span class="t" style="background: {{ t.bg }}; color: {{ t.fg }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ t.d }}"></path></svg></span><span style="flex: 1; display: flex; flex-direction: column; gap: 4px"><span style="font: 500 13.5px/1.2 Geist, sans-serif">{{ t.label }}</span><span style="font: 400 12px/1.35 Geist, sans-serif; color: #9A9DA6">{{ t.desc }}</span></span></a>
+</sc-if>
+<sc-if value="{{ t.isPrint }}" hint-placeholder-val="{{ false }}">
+<button class="ab-item" role="menuitem" onClick="{{ openPrint }}" style="animation-delay: {{ t.delay }}"><span class="t" style="background: {{ t.bg }}; color: {{ t.fg }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ t.d }}"></path></svg></span><span style="flex: 1; display: flex; flex-direction: column; gap: 4px"><span style="font: 500 13.5px/1.2 Geist, sans-serif">{{ t.label }}</span><span style="font: 400 12px/1.35 Geist, sans-serif; color: #9A9DA6">{{ t.desc }}</span></span><span class="ab-kbd">{{ shortcut }}</span></button>
+</sc-if>
+</sc-for>
+</div>
+</sc-if>
+</span>
+</nav>
+<div style="display: flex; gap: 8px; align-items: center">
+<span class="ab-pbtn"><button class="btn ghost" style="width: 34px; padding: 0" onClick="{{ openPrint }}" aria-label="Imprimer ({{ shortcut }})"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4.5 6V2.5h7V6 M4.5 11.5h-2v-5h11v5h-2 M4.5 9.5h7v4h-7z"></path></svg></button><span class="ab-tip" aria-hidden="true">Imprimer<span class="ab-kbd">{{ shortcut }}</span></span></span>
+<button class="btn primary"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 10V2.5 M5 5l3-3 3 3 M3 9.5v3.5h10V9.5"></path></svg>Exporter</button>
+</div>
+</div>
+
+<sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}"><button class="ab-scrim" onClick="{{ closeMenu }}" aria-label="Fermer le menu" tabIndex="-1"></button></sc-if>
+
+<sc-if value="{{ print }}" hint-placeholder-val="{{ false }}">
+<div class="ab-ov" style="font-family: Geist, system-ui, sans-serif; color: #ECECEF">
+<div class="ab-dlg" role="dialog" aria-modal="true" aria-label="Imprimer">
+<div style="display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,.06)">
+<span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(110,106,246,.16); color: #A9A6FF; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4.5 6V2.5h7V6 M4.5 11.5h-2v-5h11v5h-2 M4.5 9.5h7v4h-7z"></path></svg></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 4px"><span style="font: 600 17px/1.2 Geist, sans-serif; letter-spacing: -.02em">Imprimer</span><span class="ab-l">{{ docName }} · {{ total }} pages</span></span>
+<button class="btn ghost" style="width: 34px; padding: 0" onClick="{{ closePrint }}" aria-label="Fermer"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+</div>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; min-height: 0; overflow: auto">
+<div style="flex: 1 1 380px; background: #101115; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 26px; min-height: 460px">
+<div style="height: 430px; display: flex; align-items: center; justify-content: center">
+<div class="ab-sheet {{ feedCls }}" style="width: {{ sw }}px; height: {{ sh }}px; grid-template-columns: repeat({{ cols }}, minmax(0, 1fr)); grid-template-rows: repeat({{ rows }}, minmax(0, 1fr)); filter: {{ filt }}">
+<sc-for list="{{ minis }}" as="m" hint-placeholder-count="1">
+<div class="ab-mini" style="animation-delay: {{ m.delay }}; box-shadow: {{ m.border }}">
+<div style="display: flex; flex-direction: column; gap: 6%; height: 100%; transform: scale({{ inScale }}); transform-origin: center; transition: transform .4s cubic-bezier(.2,.8,.2,1)">
+<sc-if value="{{ m.blank }}" hint-placeholder-val="{{ false }}"><span style="margin: auto; font: 500 9px/1 Geist, sans-serif; color: #B9B7AE">Page vierge</span></sc-if>
+<sc-if value="{{ m.full }}" hint-placeholder-val="{{ true }}">
+<span class="ab-ln" style="width: 38%; height: 3px; background: #6E6AF6"></span>
+<span class="ab-ln" style="width: 72%; height: 6px; background: #2A2B30"></span>
+<span class="ab-ln" style="width: 100%; margin-top: 4%"></span>
+<span class="ab-ln" style="width: 94%"></span>
+<span class="ab-ln" style="width: 97%; background: {{ annLine }}"></span>
+<span class="ab-ln" style="width: 64%"></span>
+<span style="flex: 1 1 auto; max-height: 26%; background: #EFEDE7; border-radius: 3px; margin-top: 4%"></span>
+<span class="ab-ln" style="width: 90%; margin-top: 4%"></span>
+<span class="ab-ln" style="width: 82%"></span>
+<span style="margin-top: auto; align-self: center; font: 500 8px/1 Geist, sans-serif; color: #8D8B84">{{ m.n }}</span>
+</sc-if>
+</div>
+<sc-if value="{{ showNotes }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: 8%; top: 34%; width: 9px; height: 9px; border-radius: 5px 5px 5px 1px; background: #F2B84B"></span></sc-if>
+<sc-if value="{{ showStamps }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: 8%; top: 7%; font: 700 6px/1 Geist, sans-serif; letter-spacing: .08em; color: #1F9D6A; border: 1px solid #1F9D6A; border-radius: 2px; padding: 2px 3px; transform: rotate(-8deg)">APPROUVÉ</span></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ isPoster }}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position: absolute; inset: 0; display: grid; grid-template-columns: repeat({{ tileCols }}, minmax(0, 1fr)); grid-template-rows: repeat({{ tileCols }}, minmax(0, 1fr))">
+<sc-for list="{{ tiles }}" as="t" hint-placeholder-count="4"><span style="border: 1px dashed rgba(110,106,246,.7); display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px; font: 600 10px/1 Geist, sans-serif; color: #6E6AF6; animation: ab-fade .3s both; animation-delay: {{ t.delay }}">{{ t.n }}</span></sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 6px; padding: 4px; background: #1B1C21; border-radius: 12px">
+<button class="btn ghost" style="width: 30px; height: 30px; padding: 0" onClick="{{ prevSheet }}" disabled="{{ atFirst }}" aria-label="Feuille précédente"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M10 4L6 8l4 4"></path></svg></button>
+<span style="font: 500 12.5px/1 Geist, sans-serif; color: #B9BBC2; padding: 0 6px; font-variant-numeric: tabular-nums; min-width: 150px; text-align: center">Feuille {{ sheetNo }} sur {{ sheetCount }}{{ sideLabel }}</span>
+<button class="btn ghost" style="width: 30px; height: 30px; padding: 0" onClick="{{ nextSheet }}" disabled="{{ atLast }}" aria-label="Feuille suivante"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M6 4l4 4-4 4"></path></svg></button>
+</div>
+<span class="ab-l" style="text-align: center">{{ previewNote }}</span>
+</div>
+
+<div style="flex: 1 1 380px; padding: 6px 24px 10px; display: flex; flex-direction: column">
+<section class="ab-sec" style="border-top: 0">
+<label class="ab-h" for="ab-printer">Imprimante</label>
+<span style="position: relative; display: block"><select class="ab-field" id="ab-printer" value="{{ printer }}" onChange="{{ onPrinter }}"><sc-for list="{{ printers }}" as="p" hint-placeholder-count="3"><option value="{{ p.i }}">{{ p.name }}</option></sc-for></select><svg class="i" width="16" height="16" aria-hidden="true" style="position: absolute; right: 12px; top: 10px; color: #9A9DA6; pointer-events: none"><path d="M4 6l4 4 4-4"></path></svg></span>
+<span style="display: flex; align-items: center; gap: 8px; font: 400 12.5px/1 Geist, sans-serif; color: {{ pStatusColor }}"><span style="width: 7px; height: 7px; border-radius: 4px; background: {{ pStatusColor }}"></span>{{ pStatus }}</span>
+<div class="ab-row" style="margin-top: 4px">
+<span>Copies</span>
+<span style="display: flex; align-items: center; gap: 14px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #B9BBC2">Assembler<button class="ab-sw" role="switch" aria-checked="{{ collateS }}" aria-label="Assembler les copies" onClick="{{ toggleCollate }}"></button></span>
+<span style="display: flex; align-items: center; background: #0E0F12; border-radius: 10px; padding: 3px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05)"><button class="btn ghost" style="width: 28px; height: 28px; padding: 0; border-radius: 7px" onClick="{{ copiesDown }}" aria-label="Moins de copies"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M3 8h10"></path></svg></button><span style="width: 30px; text-align: center; font: 500 13px/1 Geist, sans-serif; font-variant-numeric: tabular-nums">{{ copies }}</span><button class="btn ghost" style="width: 28px; height: 28px; padding: 0; border-radius: 7px" onClick="{{ copiesUp }}" aria-label="Plus de copies"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg></button></span>
+</span>
+</div>
+</section>
+
+<section class="ab-sec">
+<span class="ab-h">Pages à imprimer</span>
+<div class="ab-seg" role="group" aria-label="Pages à imprimer">
+<span class="ab-ind" style="width: calc((100% - 6px) / 3); transform: translateX({{ rangeX }}%)" aria-hidden="true"></span>
+<sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3"><button aria-pressed="{{ r.on }}" onClick="{{ r.pick }}">{{ r.label }}</button></sc-for>
+</div>
+<sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}"><input class="ab-field" style="animation: ab-rise .3s both" value="{{ custom }}" onChange="{{ onCustom }}" placeholder="ex. 1-5, 8, 11-13" aria-label="Pages personnalisées"></sc-if>
+<sc-if value="{{ badRange }}" hint-placeholder-val="{{ false }}"><span class="ab-l" style="color: #F2C064">Plage invalide — pages 1 à {{ total }}.</span></sc-if>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+<sc-for list="{{ subsets }}" as="s" hint-placeholder-count="3"><button class="ab-chip" aria-pressed="{{ s.on }}" onClick="{{ s.pick }}">{{ s.label }}</button></sc-for>
+<span style="flex: 1"></span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #B9BBC2">Ordre inverse<button class="ab-sw" role="switch" aria-checked="{{ reverseS }}" aria-label="Ordre inverse" onClick="{{ toggleReverse }}"></button></span>
+</div>
+</section>
+
+<section class="ab-sec">
+<span class="ab-h">Taille et gestion des pages</span>
+<div class="ab-seg" role="group" aria-label="Gestion des pages">
+<span class="ab-ind" style="width: calc((100% - 6px) / 4); transform: translateX({{ modeX }}%)" aria-hidden="true"></span>
+<sc-for list="{{ modes }}" as="m" hint-placeholder-count="4"><button aria-pressed="{{ m.on }}" onClick="{{ m.pick }}">{{ m.label }}</button></sc-for>
+</div>
+<sc-if value="{{ isSize }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px; animation: ab-rise .3s both">
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{ fits }}" as="f" hint-placeholder-count="4"><button class="ab-chip" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}">{{ f.label }}</button></sc-for></div>
+<sc-if value="{{ isCustomScale }}" hint-placeholder-val="{{ false }}"><label class="ab-row" style="animation: ab-rise .3s both"><input type="range" min="30" max="140" step="5" value="{{ scale }}" onChange="{{ onScale }}" style="flex: 1; accent-color: #6E6AF6" aria-label="Échelle"><span style="width: 48px; text-align: right; font-variant-numeric: tabular-nums">{{ scale }} %</span></label></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ isMulti }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 10px; animation: ab-rise .3s both">
+<div class="ab-row"><span style="color: #B9BBC2">Pages par feuille</span><span style="display: flex; gap: 6px"><sc-for list="{{ pers }}" as="p" hint-placeholder-count="4"><button class="ab-chip" style="width: 40px; padding: 0" aria-pressed="{{ p.on }}" onClick="{{ p.pick }}">{{ p.n }}</button></sc-for></span></div>
+<div class="ab-row"><span style="color: #B9BBC2">Bordure autour des pages</span><button class="ab-sw" role="switch" aria-checked="{{ bordersS }}" aria-label="Bordure autour des pages" onClick="{{ toggleBorders }}"></button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isBooklet }}" hint-placeholder-val="{{ false }}">
+<div class="ab-row" style="animation: ab-rise .3s both"><span style="color: #B9BBC2">Reliure</span><span style="display: flex; gap: 6px"><button class="ab-chip" aria-pressed="{{ bindL }}" onClick="{{ setBindL }}">Gauche</button><button class="ab-chip" aria-pressed="{{ bindR }}" onClick="{{ setBindR }}">Droite</button></span></div>
+</sc-if>
+<sc-if value="{{ isPoster }}" hint-placeholder-val="{{ false }}">
+<label class="ab-row" style="animation: ab-rise .3s both"><span style="color: #B9BBC2; white-space: nowrap">Agrandissement</span><input type="range" min="125" max="300" step="25" value="{{ tile }}" onChange="{{ onTile }}" style="flex: 1; accent-color: #6E6AF6" aria-label="Agrandissement"><span style="width: 48px; text-align: right; font-variant-numeric: tabular-nums">{{ tile }} %</span></label>
+</sc-if>
+<div class="ab-row" style="margin-top: 2px"><span style="color: #B9BBC2">Papier</span><span style="display: flex; gap: 6px"><sc-for list="{{ papers }}" as="p" hint-placeholder-count="3"><button class="ab-chip" aria-pressed="{{ p.on }}" onClick="{{ p.pick }}">{{ p.label }}</button></sc-for></span></div>
+<div class="ab-row"><span style="color: #B9BBC2">Orientation</span>
+<div class="ab-seg" role="group" aria-label="Orientation" style="width: 250px">
+<span class="ab-ind" style="width: calc((100% - 6px) / 3); transform: translateX({{ orientX }}%)" aria-hidden="true"></span>
+<sc-for list="{{ orients }}" as="o" hint-placeholder-count="3"><button aria-pressed="{{ o.on }}" onClick="{{ o.pick }}">{{ o.label }}</button></sc-for>
+</div></div>
+</section>
+
+<section class="ab-sec">
+<div class="ab-row"><span class="ab-h">Recto verso</span><button class="ab-sw" role="switch" aria-checked="{{ duplexS }}" aria-label="Recto verso" onClick="{{ toggleDuplex }}"></button></div>
+<sc-if value="{{ duplex }}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 6px; animation: ab-rise .3s both"><button class="ab-chip" aria-pressed="{{ flipLong }}" onClick="{{ setLong }}">Retourner sur le bord long</button><button class="ab-chip" aria-pressed="{{ flipShort }}" onClick="{{ setShort }}">Bord court</button></div></sc-if>
+<div class="ab-row"><span style="color: #B9BBC2">Couleur</span>
+<div class="ab-seg" role="group" aria-label="Couleur" style="width: 250px">
+<span class="ab-ind" style="width: calc((100% - 6px) / 2); transform: translateX({{ colorX }}%)" aria-hidden="true"></span>
+<button aria-pressed="{{ isColor }}" onClick="{{ setColor }}">Couleur</button><button aria-pressed="{{ isGray }}" onClick="{{ setGray }}">Niveaux de gris</button>
+</div></div>
+</section>
+
+<section class="ab-sec">
+<span class="ab-h">Commentaires et formulaires</span>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{ comments }}" as="c" hint-placeholder-count="3"><button class="ab-chip" aria-pressed="{{ c.on }}" onClick="{{ c.pick }}">{{ c.label }}</button></sc-for></div>
+<div class="ab-row"><span style="color: #B9BBC2">Ajouter un résumé des commentaires</span><button class="ab-sw" role="switch" aria-checked="{{ summaryS }}" aria-label="Résumé des commentaires" onClick="{{ toggleSummary }}"></button></div>
+</section>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-top: 1px solid rgba(255,255,255,.06); flex-wrap: wrap">
+<sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><span class="ab-l" style="flex: 1; font-variant-numeric: tabular-nums">{{ summaryLine }}</span></sc-if>
+<sc-if value="{{ printing }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; flex-direction: column; gap: 7px; animation: ab-rise .3s both"><span class="ab-l" style="font-variant-numeric: tabular-nums">{{ progressLabel }}</span><span style="height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden"><span style="display: block; height: 100%; width: {{ pct }}%; background: #6E6AF6; border-radius: 3px; transition: width .2s linear"></span></span></div>
+</sc-if>
+<sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; align-items: center; gap: 10px; animation: ab-rise .3s both"><span class="ab-ok" style="width: 26px; height: 26px; border-radius: 13px; background: #4FCB91; color: #0E0F12; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" style="width: 13px; height: 13px; stroke-width: 2.4" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span><span style="font: 500 13.5px/1.3 Geist, sans-serif">{{ doneLabel }}</span></div>
+</sc-if>
+<button class="btn ghost" onClick="{{ closePrint }}">Annuler</button>
+<button class="btn primary" style="min-width: 120px" onClick="{{ doPrint }}" disabled="{{ cantPrint }}">{{ printBtn }}</button>
+</div>
+</div>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":null,"default":"lire"},"doc":{"editor":null,"default":"Document.pdf"},"pages":{"editor":null,"default":"14"},"$preview":{"width":1440,"height":60}}'>
+const D = {
+  lire: "M2 3.5h4a2 2 0 0 1 2 2v8a1.5 1.5 0 0 0-1.5-1.5H2z M14 3.5h-4a2 2 0 0 0-2 2v8a1.5 1.5 0 0 1 1.5-1.5H14z",
+  annoter: "M10 2.5l3.5 3.5-6.5 6.5H3.5V9z M2 14.5h12",
+  editer: "M2.5 2.5h4.5v4.5H2.5z M9 2.5h4.5v4.5H9z M2.5 9h4.5v4.5H2.5z M9 9h4.5v4.5H9z",
+  signer: "M2 11.5c2-3 3.5-7 5-7s-1 7 1 7 2.5-3 3.5-3 1 2 2.5 2 M2 14h12",
+  securite: "M8 1.5l5 2v4c0 3.2-2.2 5.6-5 7-2.8-1.4-5-3.8-5-7v-4z M5.8 8l1.6 1.6 3-3.2",
+  fusion: "M3.5 2.5v2.5a3.5 3.5 0 0 0 3.5 3.5h2a3.5 3.5 0 0 0 3.5-3.5V2.5 M8 8.5v5.5 M5.5 11.5 8 14l2.5-2.5",
+  forms: "M3 2.5h10v11H3z M5.5 5.5h5 M5.5 8h5 M5.5 10.5h3",
+  compress: "M8 1.5v4 M5.5 3.5 8 6l2.5-2.5 M8 14.5v-4 M5.5 12.5 8 10l2.5 2.5 M2.5 8h11",
+  convert: "M3 5.5h9.5 M10 3l2.5 2.5L10 8 M13 10.5H3.5 M6 8l-2.5 2.5L6 13",
+  print: "M4.5 6V2.5h7V6 M4.5 11.5h-2v-5h11v5h-2 M4.5 9.5h7v4h-7z"
+};
+const LINKS = [
+  { id: "lire", label: "Lire", href: "Main.dc.html" }, { id: "annoter", label: "Annoter", href: "Annotate.dc.html" },
+  { id: "editer", label: "Éditer", href: "Organize.dc.html" }, { id: "signer", label: "Signer", href: "Sign.dc.html" },
+  { id: "securite", label: "Sécurité", href: "Security.dc.html" }
+];
+const TOOLS = [
+  { id: "fusion", label: "Fusionner et diviser", desc: "Combiner plusieurs PDF ou en découper un", href: "Merge.dc.html", bg: "rgba(110,106,246,.16)", fg: "#A9A6FF" },
+  { id: "forms", label: "Formulaires", desc: "Remplir, créer des champs, aplatir", href: "Forms.dc.html", bg: "rgba(91,192,235,.15)", fg: "#7FCDEE" },
+  { id: "compress", label: "Compresser", desc: "Réduire la taille du fichier", href: "Compress.dc.html", bg: "rgba(79,203,145,.15)", fg: "#4FCB91" },
+  { id: "convert", label: "Convertir et OCR", desc: "Word, Excel, images, texte reconnu", href: "Convert.dc.html", bg: "rgba(242,184,75,.15)", fg: "#F2C064" },
+  { id: "print", label: "Imprimer", desc: "Aperçu, mise en page, recto verso", print: true, bg: "rgba(240,122,154,.15)", fg: "#F59AB4" }
+];
+const PRINTERS = [
+  { name: "HP LaserJet Pro — Bureau", status: "Prête", color: "#4FCB91" },
+  { name: "Canon imageRUNNER — 2e étage", status: "Prête · toner faible", color: "#F2C064" },
+  { name: "Enregistrer au format PDF", status: "Crée un fichier PDF", color: "#A9A6FF", pdf: true }
+];
+const RANGES = [{ id: "all", label: "Toutes" }, { id: "current", label: "Page actuelle" }, { id: "custom", label: "Personnalisé" }];
+const SUBSETS = [{ id: "all", label: "Toutes les pages" }, { id: "odd", label: "Impaires" }, { id: "even", label: "Paires" }];
+const MODES = [{ id: "size", label: "Taille" }, { id: "poster", label: "Affiche" }, { id: "multi", label: "Multiple" }, { id: "booklet", label: "Brochure" }];
+const FITS = [{ id: "fit", label: "Ajuster", s: 1 }, { id: "actual", label: "Taille réelle", s: 0.93 }, { id: "shrink", label: "Réduire si trop grande", s: 0.97 }, { id: "custom", label: "Échelle personnalisée", s: 1 }];
+const ORIENTS = [{ id: "auto", label: "Auto" }, { id: "portrait", label: "Portrait" }, { id: "landscape", label: "Paysage" }];
+const PAPERS = [{ id: "A4", label: "A4", r: 1.414 }, { id: "A3", label: "A3", r: 1.414 }, { id: "Letter", label: "Lettre US", r: 1.294 }];
+const COMMENTS = [{ id: "doc", label: "Document" }, { id: "docann", label: "Document et annotations" }, { id: "stamps", label: "Document et tampons" }];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      menu: false, print: false, printer: 0, copies: 1, collate: true, range: "all", custom: "1-4, 7", subset: "all", reverse: false,
+      mode: "size", fit: "fit", scale: 100, per: 4, borders: true, bind: "left", tile: 200, paper: "A4", orient: "auto",
+      duplex: false, flip: "long", color: "color", comments: "docann", summary: false, sheet: 0, printing: false, pct: 0, done: false
+    };
+    this.onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "p" || e.key === "P")) { e.preventDefault(); this.setState({ print: true, menu: false, done: false }); }
+      else if (e.key === "Escape") { if (this.state.print && !this.state.printing) this.setState({ print: false }); else if (this.state.menu) this.setState({ menu: false }); }
+    };
+    this.onEvt = () => this.setState({ print: true, menu: false, done: false });
+  }
+  componentDidMount() { window.addEventListener("keydown", this.onKey); window.addEventListener("aura:print", this.onEvt); }
+  componentWillUnmount() { window.removeEventListener("keydown", this.onKey); window.removeEventListener("aura:print", this.onEvt); clearInterval(this.iv); clearTimeout(this.ct); }
+  pageList(N) {
+    const st = this.state; let list = []; let bad = false;
+    if (st.range === "all") for (let i = 1; i <= N; i++) list.push(i);
+    else if (st.range === "current") list = [1];
+    else {
+      st.custom.split(",").map((s) => s.trim()).filter(Boolean).forEach((s) => {
+        const m = s.match(/^(\d+)\s*[-–]\s*(\d+)$/) || s.match(/^(\d+)$/);
+        if (!m) { bad = true; return; }
+        const a = +m[1], b = +(m[2] || m[1]);
+        if (a < 1 || b > N || a > b) { bad = true; return; }
+        for (let i = a; i <= b; i++) list.push(i);
+      });
+    }
+    if (st.subset === "odd") list = list.filter((n) => n % 2 === 1);
+    if (st.subset === "even") list = list.filter((n) => n % 2 === 0);
+    if (st.reverse) list = list.slice().reverse();
+    return { list, bad: bad || (st.range === "custom" && !list.length) };
+  }
+  renderVals() {
+    const st = this.state; const p = this.props;
+    const active = p.active || "lire"; const N = Math.max(1, parseInt(p.pages, 10) || 14);
+    const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
+    const shortcut = mac ? "⌘ P" : "Ctrl + P";
+    const curTool = TOOLS.find((t) => t.id === active);
+    const pl = this.pageList(N);
+    // sheets
+    let per = 1, cols = 1, rows = 1;
+    let sheets = [];
+    let land = st.orient === "landscape";
+    if (st.mode === "multi") {
+      per = st.per;
+      const autoLand = per === 2 || per === 6;
+      if (st.orient === "auto") land = autoLand;
+      const g = { 2: land ? [2, 1] : [1, 2], 4: [2, 2], 6: land ? [3, 2] : [2, 3], 9: [3, 3] }[per];
+      cols = g[0]; rows = g[1];
+      for (let i = 0; i < pl.list.length; i += per) sheets.push(pl.list.slice(i, i + per));
+    } else if (st.mode === "booklet") {
+      if (st.orient === "auto") land = true;
+      cols = land ? 2 : 1; rows = land ? 1 : 2; per = 2;
+      const pages = pl.list.slice(); while (pages.length % 4) pages.push(0);
+      const n = pages.length;
+      for (let i = 0; i < n / 2; i++) { const pair = i % 2 === 0 ? [pages[n - 1 - i], pages[i]] : [pages[i], pages[n - 1 - i]]; sheets.push(st.bind === "right" ? pair.reverse() : pair); }
+    } else {
+      sheets = pl.list.map((n) => [n]);
+    }
+    const tileCols = st.tile >= 250 ? 3 : 2;
+    const sides = st.mode === "poster" ? sheets.length * tileCols * tileCols : sheets.length;
+    const phys = Math.ceil(sides / (st.duplex ? 2 : 1)) * st.copies;
+    const sheetCount = Math.max(1, sheets.length);
+    const si = Math.min(st.sheet, sheetCount - 1);
+    const cur = sheets[si] || [];
+    const paper = PAPERS.find((x) => x.id === st.paper);
+    const long = st.paper === "A3" ? 410 : 400; const short = Math.round(long / paper.r);
+    const fitS = st.mode === "size" ? (st.fit === "custom" ? Math.max(.3, Math.min(1.4, st.scale / 100)) : FITS.find((f) => f.id === st.fit).s) : (st.mode === "poster" ? 1 : 0.98);
+    const printer = PRINTERS[st.printer];
+    const total = st.copies;
+    return {
+      links: LINKS.map((l) => ({ ...l, d: D[l.id], cur: l.id === active ? "page" : undefined })),
+      tools: TOOLS.map((t, i) => ({ ...t, d: D[t.id], isLink: !t.print, isPrint: !!t.print, cur: t.id === active ? "page" : undefined, delay: 30 + i * 35 + "ms" })),
+      toolsLabel: curTool ? "Outils · " + curTool.label : "Outils", toolsCls: curTool ? "cur" : "",
+      menu: st.menu, menuS: st.menu ? "true" : "false", chev: st.menu ? 180 : 0,
+      toggleMenu: () => this.setState({ menu: !st.menu }), closeMenu: () => this.setState({ menu: false }),
+      shortcut, openPrint: () => this.setState({ print: true, menu: false, done: false }),
+      print: st.print, docName: p.doc || "Document.pdf", total: N,
+      closePrint: () => { clearInterval(this.iv); this.setState({ print: false, printing: false, pct: 0, done: false }); },
+      printers: PRINTERS.map((x, i) => ({ ...x, i: String(i) })), printer: String(st.printer), onPrinter: (e) => this.setState({ printer: +e.target.value }),
+      pStatus: printer.status, pStatusColor: printer.color,
+      copies: st.copies, copiesUp: () => this.setState({ copies: Math.min(99, st.copies + 1) }), copiesDown: () => this.setState({ copies: Math.max(1, st.copies - 1) }),
+      collateS: st.collate ? "true" : "false", toggleCollate: () => this.setState({ collate: !st.collate }),
+      ranges: RANGES.map((r) => ({ ...r, on: r.id === st.range ? "true" : "false", pick: () => this.setState({ range: r.id, sheet: 0 }) })), rangeX: RANGES.findIndex((r) => r.id === st.range) * 100,
+      isCustom: st.range === "custom", custom: st.custom, onCustom: (e) => this.setState({ custom: e.target.value, sheet: 0 }), badRange: pl.bad,
+      subsets: SUBSETS.map((s) => ({ ...s, on: s.id === st.subset ? "true" : "false", pick: () => this.setState({ subset: s.id, sheet: 0 }) })),
+      reverseS: st.reverse ? "true" : "false", toggleReverse: () => this.setState({ reverse: !st.reverse }),
+      modes: MODES.map((m) => ({ ...m, on: m.id === st.mode ? "true" : "false", pick: () => this.setState({ mode: m.id, sheet: 0 }) })), modeX: MODES.findIndex((m) => m.id === st.mode) * 100,
+      isSize: st.mode === "size", isMulti: st.mode === "multi", isBooklet: st.mode === "booklet", isPoster: st.mode === "poster",
+      fits: FITS.map((f) => ({ ...f, on: f.id === st.fit ? "true" : "false", pick: () => this.setState({ fit: f.id }) })),
+      isCustomScale: st.fit === "custom", scale: st.scale, onScale: (e) => this.setState({ scale: +e.target.value }),
+      pers: [2, 4, 6, 9].map((n) => ({ n, on: n === st.per ? "true" : "false", pick: () => this.setState({ per: n, sheet: 0 }) })),
+      bordersS: st.borders ? "true" : "false", toggleBorders: () => this.setState({ borders: !st.borders }),
+      bindL: st.bind === "left" ? "true" : "false", bindR: st.bind === "right" ? "true" : "false", setBindL: () => this.setState({ bind: "left" }), setBindR: () => this.setState({ bind: "right" }),
+      tile: st.tile, onTile: (e) => this.setState({ tile: +e.target.value }), tileCols,
+      tiles: Array.from({ length: tileCols * tileCols }, (_, i) => ({ n: i + 1, delay: i * 40 + "ms" })),
+      papers: PAPERS.map((x) => ({ ...x, on: x.id === st.paper ? "true" : "false", pick: () => this.setState({ paper: x.id }) })),
+      orients: ORIENTS.map((o) => ({ ...o, on: o.id === st.orient ? "true" : "false", pick: () => this.setState({ orient: o.id }) })), orientX: ORIENTS.findIndex((o) => o.id === st.orient) * 100,
+      duplex: st.duplex, duplexS: st.duplex ? "true" : "false", toggleDuplex: () => this.setState({ duplex: !st.duplex }),
+      flipLong: st.flip === "long" ? "true" : "false", flipShort: st.flip === "short" ? "true" : "false", setLong: () => this.setState({ flip: "long" }), setShort: () => this.setState({ flip: "short" }),
+      isColor: st.color === "color" ? "true" : "false", isGray: st.color === "gray" ? "true" : "false", colorX: st.color === "color" ? 0 : 100,
+      setColor: () => this.setState({ color: "color" }), setGray: () => this.setState({ color: "gray" }),
+      comments: COMMENTS.map((c) => ({ ...c, on: c.id === st.comments ? "true" : "false", pick: () => this.setState({ comments: c.id }) })),
+      summaryS: st.summary ? "true" : "false", toggleSummary: () => this.setState({ summary: !st.summary }),
+      showNotes: st.comments === "docann", showStamps: st.comments !== "doc", annLine: st.comments === "docann" ? "#EBCB7A" : "#D3D1C9",
+      sw: land ? long : short, sh: land ? short : long, cols, rows, filt: st.color === "gray" ? "grayscale(1)" : "none", inScale: fitS,
+      minis: (st.mode === "poster" ? cur.slice(0, 1) : cur).map((n, i) => ({ n, blank: n === 0, full: n !== 0, delay: i * 45 + "ms", border: st.mode === "multi" && !st.borders ? "none" : "0 0 0 1px #E6E4DD" })),
+      sheetNo: si + 1, sheetCount, atFirst: si === 0, atLast: si >= sheetCount - 1,
+      sideLabel: st.duplex ? (si % 2 ? " · verso" : " · recto") : "",
+      prevSheet: () => this.setState({ sheet: Math.max(0, si - 1) }), nextSheet: () => this.setState({ sheet: Math.min(sheetCount - 1, si + 1) }),
+      previewNote: st.mode === "poster" ? "Chaque page est imprimée sur " + tileCols * tileCols + " feuilles à assembler" : (st.mode === "booklet" ? "Pliez les feuilles au centre pour former la brochure" : (st.mode === "multi" ? st.per + " pages par face de feuille" : "Aperçu à l’échelle du papier " + paper.label)),
+      feedCls: st.printing ? "ab-feeding" : "",
+      summaryLine: phys + " feuille" + (phys > 1 ? "s" : "") + " · " + total + " copie" + (total > 1 ? "s" : "") + " · " + pl.list.length + " page" + (pl.list.length > 1 ? "s" : "") + (st.duplex ? " · recto verso" : ""),
+      idle: !st.printing && !st.done, printing: st.printing, done: st.done, pct: st.pct,
+      progressLabel: printer.pdf ? "Création du fichier PDF… " + st.pct + " %" : "Envoi de la feuille " + Math.max(1, Math.ceil(st.pct / 100 * phys)) + " sur " + phys + "…",
+      doneLabel: printer.pdf ? "Fichier PDF enregistré" : "Envoyé à " + printer.name.split(" — ")[0],
+      cantPrint: pl.bad || st.printing || st.done || !pl.list.length,
+      printBtn: st.printing ? "Impression…" : (printer.pdf ? "Enregistrer" : "Imprimer"),
+      doPrint: () => {
+        if (pl.bad || st.printing) return;
+        this.setState({ printing: true, pct: 0, done: false });
+        clearInterval(this.iv);
+        const step = Math.max(2, Math.round(100 / Math.min(40, Math.max(8, phys))));
+        this.iv = setInterval(() => {
+          const v = Math.min(100, this.state.pct + step);
+          if (v >= 100) {
+            clearInterval(this.iv); this.setState({ pct: 100, printing: false, done: true });
+            this.ct = setTimeout(() => this.setState({ print: false, done: false, pct: 0 }), 1600);
+          } else this.setState({ pct: v });
+        }, 110);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

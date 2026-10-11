@@ -1,0 +1,134 @@
+/*
+ * Aura PDF — design tokens (fichier de thème unique).
+ *
+ * Toutes les couleurs, rayons, ombres, typographies et courbes d'animation de
+ * l'interface sont définis ici. Les composants n'utilisent que ces variables :
+ * aucune valeur en dur ailleurs.
+ */
+:root {
+  /* ---- Surfaces ---- */
+  --bg-app: #0e0f12;
+  --bg-panel: #16171b;
+  --bg-center: #121317;
+  --bg-card: #1b1c21;
+  --bg-card-hover: #212228;
+  --bg-card-alt: #1a1b20;
+  --bg-row-hover: rgba(255, 255, 255, 0.035);
+  --bg-control: #1f2026;
+  --bg-control-hover: #282930;
+  --bg-control-selected: #2a2b33;
+  --bg-control-dialog: #22232a;
+  --bg-nav-current: #24252c;
+  --bg-inset: #0e0f12;
+  --bg-dialog: #18191e;
+  --bg-preview: #101115;
+  --bg-menu: rgba(26, 27, 32, 0.97);
+  --bg-float: rgba(28, 29, 35, 0.82);
+  --bg-tooltip: #2a2b33;
+  --bg-ghost-hover: rgba(255, 255, 255, 0.06);
+  --bg-scrim: rgba(8, 9, 11, 0.62);
+
+  /* ---- Bordures (blanc à 5–8 %) ---- */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.08);
+  --border-dashed: rgba(255, 255, 255, 0.14);
+
+  /* ---- Texte ---- */
+  --text: #ececef;
+  --text-strong: #ffffff;
+  --text-2: #b9bbc2;
+  --text-muted: #9a9da6; /* 6,6:1 sur --bg-panel */
+  --text-faint: #8a8d96; /* 5,3:1 sur --bg-panel (min. 4,5:1) */
+  --text-ink: #1a1b1e;
+
+  /* ---- Accent (couleur unique) ---- */
+  --accent: #6e6af6;
+  --accent-hover: #7e7af8;
+  --accent-text: #a9a6ff;
+  --accent-text-strong: #d2d0ff;
+  --accent-soft: rgba(110, 106, 246, 0.18);
+  --accent-soft-hover: rgba(110, 106, 246, 0.26);
+  --accent-softer: rgba(110, 106, 246, 0.12);
+  --accent-halo: rgba(110, 106, 246, 0.18);
+  --accent-outline: rgba(110, 106, 246, 0.5);
+  --accent-glow: 0 8px 20px -8px rgba(110, 106, 246, 0.8);
+  --focus-ring: #a9a6ff;
+
+  /* ---- États ---- */
+  --success: #4fcb91;
+  --success-soft: rgba(79, 203, 145, 0.16);
+  --warning: #f2b84b;
+  --warning-text: #f2c064;
+  --warning-soft: rgba(242, 184, 75, 0.15);
+  --danger: #ef6b6b;
+  --danger-text: #ff8c8c;
+  --danger-soft: rgba(239, 107, 107, 0.14);
+  --info: #5bc0eb;
+  --info-text: #7fcdee;
+  --info-soft: rgba(91, 192, 235, 0.15);
+  --pink-text: #f59ab4;
+  --pink-soft: rgba(240, 122, 154, 0.15);
+  --violet-text: #cda8f7;
+  --violet-soft: rgba(196, 155, 245, 0.15);
+  --search-hit: #f6d06b;
+  --search-hit-dark: rgba(242, 197, 92, 0.45);
+  --search-hit-text: #f2c55c;
+
+  /* ---- Papier ---- */
+  --paper: #fbfaf7;
+  --paper-dark: #1b1c21;
+  --paper-thumb: #f2f1ed;
+  --paper-line: #d3d1c9;
+
+  /* ---- Typographie (Geist, SIL OFL) ---- */
+  --font: "Geist Sans", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-xs: 11.5px;
+  --fs-sm: 12.5px; /* secondaire */
+  --fs-md: 13px; /* interface */
+  --fs-lg: 14px; /* titres de panneau */
+  --fs-xl: 17px; /* titres d'écran */
+  --fs-2xl: 22px;
+  --fs-hero: 26px; /* accueil */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* ---- Rayons ---- */
+  --r-xs: 5px;
+  --r-sm: 8px;
+  --r-md: 10px; /* boutons, champs */
+  --r-lg: 12px;
+  --r-xl: 14px; /* cartes */
+  --r-panel: 16px; /* panneaux */
+  --r-dialog: 20px; /* dialogues */
+  --r-pill: 999px;
+
+  /* ---- Ombres ---- */
+  --shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.3), 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+  --shadow-float: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+  --shadow-menu: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 60px -18px rgba(0, 0, 0, 0.85);
+  --shadow-dialog: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 40px 90px -20px rgba(0, 0, 0, 0.85);
+  --shadow-toast: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 44px -12px rgba(0, 0, 0, 0.75);
+  --shadow-card-hover: 0 14px 30px -16px rgba(0, 0, 0, 0.8);
+  --shadow-thumb: 0 6px 14px -6px rgba(0, 0, 0, 0.6);
+  --shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --inset-border: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --inset-border-subtle: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  /* ---- Espacements ---- */
+  --gap-panels: 8px;
+
+  /* ---- Mouvement ---- */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --ease-pop: cubic-bezier(0.3, 1.6, 0.5, 1);
+  --dur-fast: 150ms;
+  --dur: 200ms;
+  --dur-mid: 300ms;
+  --dur-slow: 450ms;
+
+  /* ---- Flous ---- */
+  --blur-scrim: blur(8px);
+  --blur-glass: blur(20px) saturate(170%);
+}

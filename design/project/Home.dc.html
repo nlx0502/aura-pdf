@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Accueil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F12}
+*{box-sizing:border-box}
+a{color:#A9A6FF}a:hover{color:#C8C6FF}
+button,input,select{font:inherit;color:inherit}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{appearance:none;border:0;background:#1F2026;color:#ECECEF;font:500 13px/1 Geist,sans-serif;height:34px;padding:0 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,transform .12s,color .2s,box-shadow .2s,opacity .2s;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);text-decoration:none}
+.btn:hover{background:#282930;color:#fff}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.primary{background:#6E6AF6;color:#fff;box-shadow:0 8px 20px -8px rgba(110,106,246,.8)}
+.primary:hover{background:#7E7AF8;color:#fff}
+.ghost{background:transparent;box-shadow:none;color:#B9BBC2}
+.ghost:hover{background:rgba(255,255,255,.07);color:#fff}
+.panel{background:#16171B;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.title{font:600 14px/1.2 Geist,sans-serif;color:#ECECEF;margin:0;letter-spacing:-.01em}
+.muted{color:#9A9DA6;font:400 12.5px/1.45 Geist,sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
+.kbd{font:500 11px/1 Geist,sans-serif;color:#B9BBC2;background:rgba(255,255,255,.08);padding:4px 6px;border-radius:5px;white-space:nowrap}
+.side{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;color:#B9BBC2;text-decoration:none;font:500 13px/1 Geist,sans-serif;border:0;background:transparent;width:100%;cursor:pointer;text-align:left;transition:background .2s,color .2s}
+.side:hover{background:rgba(255,255,255,.05);color:#fff}
+.side[aria-current="true"]{background:#24252C;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.side .cnt{margin-left:auto;font-size:11.5px;color:#7C7F88}
+.seg{display:inline-flex;position:relative;background:#0E0F12;border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;font:500 12px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg .ind{position:absolute;top:3px;left:3px;height:28px;border-radius:7px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.chip{appearance:none;border:0;background:#1F2026;height:30px;padding:0 12px;border-radius:999px;font:500 12px/1 Geist,sans-serif;color:#B9BBC2;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s;white-space:nowrap}
+.chip:hover{background:#282930;color:#fff}
+.chip[aria-pressed="true"]{background:rgba(110,106,246,.18);color:#D2D0FF;box-shadow:inset 0 0 0 1px rgba(110,106,246,.5)}
+.sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.sw[aria-checked="true"]{background:#6E6AF6}
+.sw[aria-checked="true"]::after{transform:translateX(14px)}
+.field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+.field::placeholder{color:#7C7F88}
+.drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px 24px;border-radius:18px;border:1.5px dashed rgba(255,255,255,.14);background:#16171B;cursor:pointer;transition:border-color .3s,background .3s,transform .3s;text-align:center;min-height:240px}
+.drop:hover,.drop.over{border-color:#6E6AF6;background:rgba(110,106,246,.07)}
+.drop.over{transform:scale(1.015)}
+.drop .bub{width:56px;height:56px;border-radius:18px;background:#6E6AF6;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px -10px rgba(110,106,246,.9);animation:bob 3s ease-in-out infinite}
+.drop.over .bub{animation:bob .8s ease-in-out infinite}
+.create{appearance:none;border:0;background:#1B1C21;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;transition:background .2s,transform .25s,box-shadow .25s;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+.create:hover{background:#222329;transform:translateY(-2px);box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}
+.create .t{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.create:hover .t{transform:rotate(-6deg) scale(1.08)}
+.rrow{display:flex;align-items:center;gap:14px;padding:8px 10px;border-radius:12px;transition:background .2s,opacity .3s,transform .3s,max-height .35s,padding .35s,margin .35s;max-height:84px;overflow:hidden;animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.rrow:hover{background:rgba(255,255,255,.035)}
+.rrow.leaving{opacity:0;transform:translateX(-16px);max-height:0;padding-top:0;padding-bottom:0}
+.rrow.fresh{background:rgba(110,106,246,.1);box-shadow:inset 0 0 0 1px rgba(110,106,246,.35)}
+.open{display:flex;align-items:center;gap:14px;flex:1;min-width:0;text-decoration:none;color:#ECECEF}
+.open:hover{color:#fff}
+.thumb{width:38px;height:50px;border-radius:5px;background:#F2F1ED;padding:7px 6px;display:flex;flex-direction:column;gap:3px;flex:none;box-shadow:0 6px 14px -6px rgba(0,0,0,.6);transition:transform .25s cubic-bezier(.3,1.5,.5,1)}
+.open:hover .thumb{transform:rotate(-4deg) scale(1.05)}
+.ln{height:2px;border-radius:1px;background:#D3D1C9;flex:none}
+.star{appearance:none;border:0;background:transparent;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#5E616A;transition:color .2s,background .2s}
+.star:hover{background:rgba(255,255,255,.06);color:#B9BBC2}
+.star[aria-pressed="true"]{color:#F2B84B}
+.star[aria-pressed="true"] svg{fill:#F2B84B;animation:popin .4s cubic-bezier(.3,1.6,.5,1)}
+.card{display:flex;flex-direction:column;gap:10px;text-decoration:none;color:#ECECEF;padding:10px;border-radius:14px;background:#17181C;transition:background .2s,transform .25s;animation:rise .4s cubic-bezier(.2,.8,.2,1) both;position:relative}
+.card:hover{background:#1E1F25;transform:translateY(-3px);color:#fff}
+.card .big{aspect-ratio:4/3;border-radius:9px;background:#24252C;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card .pg{width:46%;aspect-ratio:3/4;background:#F2F1ED;border-radius:3px;padding:9% 7%;display:flex;flex-direction:column;gap:5%;box-shadow:0 12px 24px -10px rgba(0,0,0,.7);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.card:hover .pg{transform:translateY(-4px) rotate(-2deg)}
+.ov{position:absolute;inset:0;z-index:50;background:rgba(8,9,11,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;animation:fade .2s ease both}
+.dlg{width:900px;max-width:100%;max-height:100%;background:#18191E;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 90px -20px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden;animation:pop .3s cubic-bezier(.2,.8,.2,1) both}
+.src{appearance:none;border:0;background:transparent;width:100%;display:flex;align-items:center;gap:12px;padding:10px;border-radius:11px;cursor:pointer;text-align:left;color:#B9BBC2;font:500 13px/1.2 Geist,sans-serif;transition:background .2s,color .2s}
+.src:hover{background:rgba(255,255,255,.05);color:#fff}
+.src[aria-pressed="true"]{background:rgba(110,106,246,.14);color:#fff}
+.src .t{width:32px;height:32px;border-radius:9px;background:#24252C;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
+.src[aria-pressed="true"] .t{background:#6E6AF6;color:#fff}
+.sheet{background:#FBFAF7;border-radius:4px;box-shadow:0 22px 50px -14px rgba(0,0,0,.75);transition:width .45s cubic-bezier(.2,.8,.2,1),height .45s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+.btn:focus-visible,.side:focus-visible,.seg button:focus-visible,.chip:focus-visible,.sw:focus-visible,.create:focus-visible,.open:focus-visible,.star:focus-visible,.card:focus-visible,.src:focus-visible,.drop:focus-within{outline:2px solid #A9A6FF;outline-offset:2px}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes popin{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes scanbar{0%{top:-10%}100%{top:100%}}
+.rise{animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; display: flex; flex-direction: column; background: #0E0F12; color: #ECECEF; font-family: Geist, system-ui, sans-serif; overflow: hidden">
+
+<header style="display: flex; align-items: center; gap: 18px; min-height: 60px; padding: 10px 16px; flex-wrap: wrap">
+<a href="Home.dc.html" aria-label="Aura PDF — accueil" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #ECECEF; width: 232px"><span style="width: 28px; height: 28px; border-radius: 8px; background: #6E6AF6; display: flex; align-items: center; justify-content: center; color: #fff"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"></path></svg></span><span style="font: 600 15px/1 Geist, sans-serif; letter-spacing: -.02em">Aura</span></a>
+<div style="flex: 1 1 280px; display: flex; justify-content: center">
+<div style="position: relative; width: 100%; max-width: 480px">
+<svg class="i" width="16" height="16" aria-hidden="true" style="position: absolute; left: 13px; top: 11px; color: #7C7F88"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
+<input class="field" style="padding-left: 38px; border-radius: 999px" placeholder="Rechercher dans vos documents" value="{{ q }}" onChange="{{ onQ }}" aria-label="Rechercher dans vos documents">
+</div>
+</div>
+<div style="display: flex; gap: 6px; align-items: center">
+<button class="btn ghost" style="width: 34px; padding: 0" aria-label="Paramètres"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M8 1.5v1.5 M8 13v1.5 M1.5 8H3 M13 8h1.5 M3.4 3.4l1 1 M11.6 11.6l1 1 M3.4 12.6l1-1 M11.6 4.4l1-1"></path></svg></button>
+<span style="width: 30px; height: 30px; border-radius: 15px; background: #2A2B33; display: flex; align-items: center; justify-content: center; font: 600 12px/1 Geist, sans-serif">O</span>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 8px; min-height: 0">
+<aside class="panel" style="flex: 1 1 232px; max-width: 100%; padding: 14px 10px; display: flex; flex-direction: column; gap: 4px">
+<button class="btn primary" style="height: 40px; margin: 0 2px 12px; justify-content: flex-start; padding: 0 14px" onClick="{{ openCreate }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg>Créer un PDF<span class="kbd" style="margin-left: auto; background: rgba(255,255,255,.18); color: #fff">{{ modKey }}N</span></button>
+<sc-for list="{{ views }}" as="v" hint-placeholder-count="3">
+<button class="side" aria-current="{{ v.on }}" onClick="{{ v.pick }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ v.d }}"></path></svg>{{ v.label }}<span class="cnt tnum">{{ v.count }}</span></button>
+</sc-for>
+<span class="muted" style="padding: 18px 10px 6px; font-size: 11.5px; font-weight: 500">Emplacements</span>
+<sc-for list="{{ places }}" as="p" hint-placeholder-count="3">
+<button class="side" aria-current="{{ p.on }}" onClick="{{ p.pick }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M1.5 4.5v8.5h13V5.5H7.5L6 3.5H1.5z"></path></svg>{{ p.label }}<span class="cnt tnum">{{ p.count }}</span></button>
+</sc-for>
+<div style="margin-top: auto; padding: 14px 10px 4px; display: flex; flex-direction: column; gap: 8px">
+<span class="muted" style="font-size: 11.5px">Raccourcis</span>
+<span style="display: flex; justify-content: space-between; font-size: 12.5px; color: #B9BBC2">Ouvrir un fichier<span class="kbd">{{ modKey }}O</span></span>
+<span style="display: flex; justify-content: space-between; font-size: 12.5px; color: #B9BBC2">Créer un PDF<span class="kbd">{{ modKey }}N</span></span>
+</div>
+</aside>
+
+<main class="panel" style="flex: 999 1 560px; min-width: 0; overflow: auto; background: #121317; padding: 30px 34px 44px">
+<div style="max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px">
+<div class="rise" style="display: flex; flex-direction: column; gap: 6px"><h1 style="margin: 0; font: 600 26px/1.2 Geist, sans-serif; letter-spacing: -.035em">{{ greeting }}</h1><span class="muted" style="font-size: 14px">Ouvrez un document, reprenez votre lecture ou créez un nouveau PDF.</span></div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+<label class="drop {{ dropCls }}" for="home-file" onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}">
+<input id="home-file" type="file" accept="application/pdf,.pdf,image/*,.doc,.docx" ref="{{ setFileEl }}" onChange="{{ onFile }}" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none">
+<span class="bub"><svg class="i" width="16" height="16" style="width: 24px; height: 24px; stroke-width: 1.6" aria-hidden="true"><path d="M1.5 4.5v8.5h13V5.5H7.5L6 3.5H1.5z M8 7v4.5 M6 9l2-2 2 2"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font: 600 17px/1.2 Geist, sans-serif; letter-spacing: -.02em">{{ dropTitle }}</span><span class="muted">ou glissez un PDF, une image ou un document Word ici</span></span>
+<span class="btn primary" style="pointer-events: none">Ouvrir un fichier<span class="kbd" style="background: rgba(255,255,255,.18); color: #fff">{{ modKey }}O</span></span>
+</label>
+
+<div class="rise" style="position: relative; display: flex; gap: 18px; padding: 20px; border-radius: 18px; background: #1A1B20; overflow: hidden; animation-delay: .06s">
+<span style="width: 110px; flex: none; aspect-ratio: 3/4; align-self: center; background: #F2F1ED; border-radius: 5px; padding: 14px 11px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 18px 34px -12px rgba(0,0,0,.8); transform: rotate(-3deg)"><span class="ln" style="width: 40%; height: 3px; background: #6E6AF6"></span><span class="ln" style="width: 80%; height: 6px; background: #2A2B30"></span><span class="ln" style="width: 100%; margin-top: 6px"></span><span class="ln" style="width: 94%"></span><span class="ln" style="width: 70%; background: #EBCB7A; height: 3px"></span><span style="height: 26px; background: #E4E2DB; border-radius: 2px; margin-top: 4px"></span><span class="ln" style="width: 88%"></span></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; justify-content: center">
+<span style="font: 500 11.5px/1 Geist, sans-serif; color: #A9A6FF; letter-spacing: .04em; text-transform: uppercase">Reprendre la lecture</span>
+<span style="font: 600 17px/1.25 Geist, sans-serif; letter-spacing: -.02em">{{ resume.name }}</span>
+<span class="muted tnum">Page {{ resume.page }} sur {{ resume.pages }} · {{ resume.when }}</span>
+<span style="height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden"><span style="display: block; height: 100%; width: {{ resume.pct }}; background: #6E6AF6; border-radius: 2px; transform-origin: left; animation: growx .9s .2s cubic-bezier(.2,.8,.2,1) both"></span></span>
+<a class="btn" href="Main.dc.html" style="align-self: flex-start; margin-top: 4px">Reprendre<svg class="i" width="16" height="16" aria-hidden="true"><path d="M3 8h10 M9 4l4 4-4 4"></path></svg></a>
+</div>
+</div>
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="title" style="font-size: 15px">Créer</h2><button class="btn ghost" style="height: 30px" onClick="{{ openCreate }}">Toutes les options</button></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px">
+<sc-for list="{{ creates }}" as="c" hint-placeholder-count="6">
+<sc-if value="{{ c.isBtn }}" hint-placeholder-val="{{ true }}"><button class="create" style="animation-delay: {{ c.delay }}" onClick="{{ c.pick }}"><span class="t" style="background: {{ c.bg }}; color: {{ c.fg }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ c.d }}"></path></svg></span><span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font: 500 13.5px/1.2 Geist, sans-serif">{{ c.label }}</span><span class="muted" style="font-size: 12px">{{ c.hint }}</span></span></button></sc-if>
+<sc-if value="{{ c.isLink }}" hint-placeholder-val="{{ false }}"><a class="create" href="{{ c.href }}" style="animation-delay: {{ c.delay }}; color: #ECECEF; text-decoration: none"><span class="t" style="background: {{ c.bg }}; color: {{ c.fg }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ c.d }}"></path></svg></span><span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span style="font: 500 13.5px/1.2 Geist, sans-serif">{{ c.label }}</span><span class="muted" style="font-size: 12px">{{ c.hint }}</span></span></a></sc-if>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+<div style="display: flex; align-items: baseline; gap: 10px"><h2 class="title" style="font-size: 15px">{{ listTitle }}</h2><span class="muted tnum">{{ listCount }}</span></div>
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4"><button class="chip" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}">{{ f.label }}</button></sc-for>
+<div class="seg" role="group" aria-label="Affichage">
+<span class="ind" style="width: 34px; transform: translateX({{ layoutX }}px)" aria-hidden="true"></span>
+<button style="width: 34px" aria-pressed="{{ isListA }}" onClick="{{ toList }}" aria-label="Liste"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2.5 4h11 M2.5 8h11 M2.5 12h11"></path></svg></button>
+<button style="width: 34px" aria-pressed="{{ isGridA }}" onClick="{{ toGrid }}" aria-label="Grille"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2.5 2.5h4.5v4.5H2.5z M9 2.5h4.5v4.5H9z M2.5 9h4.5v4.5H2.5z M9 9h4.5v4.5H9z"></path></svg></button>
+</div>
+</div>
+</div>
+
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span class="muted rise" style="font-size: 12px; font-weight: 500; padding: 0 10px 6px">{{ g.label }}</span>
+<sc-for list="{{ g.items }}" as="r" hint-placeholder-count="2">
+<div class="rrow {{ r.cls }}" style="animation-delay: {{ r.delay }}">
+<a class="open" href="Main.dc.html" aria-label="Ouvrir {{ r.name }}">
+<span class="thumb"><span class="ln" style="width: 45%; height: 3px; background: {{ r.accent }}"></span><span class="ln" style="width: 80%; height: 4px; background: #3A3B40"></span><span class="ln" style="width: 100%; margin-top: 3px"></span><span class="ln" style="width: 90%"></span><span class="ln" style="width: 70%"></span></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px">
+<span style="display: flex; align-items: center; gap: 8px; min-width: 0"><span style="font: 500 14px/1.2 Geist, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ r.name }}</span><sc-if value="{{ r.hasTag }}" hint-placeholder-val="{{ false }}"><span style="flex: none; font: 500 11px/1 Geist, sans-serif; color: {{ r.tagFg }}; background: {{ r.tagBg }}; padding: 4px 7px; border-radius: 999px">{{ r.tag }}</span></sc-if></span>
+<span class="muted tnum" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ r.folder }} · {{ r.pages }} pages · {{ r.size }}</span>
+</span>
+<span style="width: 130px; flex: none; display: flex; flex-direction: column; gap: 6px">
+<span class="muted tnum" style="font-size: 11.5px">Page {{ r.page }} sur {{ r.pages }}</span>
+<span style="height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden"><span style="display: block; height: 100%; width: {{ r.pct }}; background: {{ r.barC }}; border-radius: 2px"></span></span>
+</span>
+<span class="muted tnum" style="width: 92px; flex: none; text-align: right">{{ r.when }}</span>
+</a>
+<button class="star" aria-pressed="{{ r.fav }}" onClick="{{ r.toggleFav }}" aria-label="Favori : {{ r.name }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.2L8 11.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"></path></svg></button>
+<button class="star" onClick="{{ r.remove }}" aria-label="Retirer {{ r.name }} de la liste"><svg class="i" width="16" height="16" style="width: 13px; height: 13px" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isGrid }}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px">
+<sc-for list="{{ flat }}" as="r" hint-placeholder-count="8">
+<div style="position: relative">
+<a class="card" href="Main.dc.html" style="animation-delay: {{ r.delay }}">
+<span class="big"><span class="pg"><span class="ln" style="width: 45%; height: 3px; background: {{ r.accent }}"></span><span class="ln" style="width: 80%; height: 5px; background: #3A3B40"></span><span class="ln" style="width: 100%; margin-top: 4px"></span><span class="ln" style="width: 90%"></span><span class="ln" style="width: 96%"></span><span class="ln" style="width: 60%"></span></span></span>
+<span style="font: 500 13.5px/1.25 Geist, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 30px">{{ r.name }}</span>
+<span class="muted tnum" style="margin-top: -6px">{{ r.when }} · p. {{ r.page }}/{{ r.pages }}</span>
+<span style="height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden"><span style="display: block; height: 100%; width: {{ r.pct }}; background: {{ r.barC }}"></span></span>
+</a>
+<button class="star" style="position: absolute; right: 8px; bottom: 34px" aria-pressed="{{ r.fav }}" onClick="{{ r.toggleFav }}" aria-label="Favori : {{ r.name }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.2L8 11.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div class="rise" style="padding: 40px; text-align: center; border-radius: 14px; background: #17181C"><span class="muted" style="font-size: 13.5px">Aucun document ne correspond.</span></div></sc-if>
+</section>
+</div>
+</main>
+</div>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 12px; background: #1F2026; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 20px 44px -12px rgba(0,0,0,.75); font: 400 13px/1.4 Geist, sans-serif; z-index: 20; animation: rise .35s cubic-bezier(.2,.8,.2,1) both">
+<sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}"><span style="width: 18px; height: 18px; border-radius: 9px; border: 2px solid rgba(110,106,246,.25); border-top-color: #6E6AF6; animation: spin .7s linear infinite"></span></sc-if>
+<sc-if value="{{ loaded }}" hint-placeholder-val="{{ true }}"><span style="width: 24px; height: 24px; border-radius: 12px; background: rgba(79,203,145,.18); color: #4FCB91; display: flex; align-items: center; justify-content: center; animation: popin .4s both"><svg class="i" width="16" height="16" style="width: 13px; height: 13px; stroke-width: 2.2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span></sc-if>
+<span style="color: #D8DAE0">{{ toast }}</span>
+<sc-if value="{{ loaded }}" hint-placeholder-val="{{ true }}"><a class="btn primary" href="Main.dc.html" style="height: 30px">Ouvrir</a></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ creating }}" hint-placeholder-val="{{ false }}">
+<div class="ov">
+<div class="dlg" role="dialog" aria-modal="true" aria-label="Créer un PDF">
+<div style="display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,.06)">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 4px"><span style="font: 600 17px/1.2 Geist, sans-serif; letter-spacing: -.02em">Créer un PDF</span><span class="muted">{{ srcHint }}</span></span>
+<button class="btn ghost" style="width: 34px; padding: 0" onClick="{{ closeCreate }}" aria-label="Fermer"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+</div>
+<div style="display: flex; flex-wrap: wrap; min-height: 0; overflow: auto">
+<div style="flex: 1 1 200px; max-width: 100%; padding: 14px; display: flex; flex-direction: column; gap: 2px; border-right: 1px solid rgba(255,255,255,.05)">
+<sc-for list="{{ sources }}" as="s" hint-placeholder-count="5"><button class="src" aria-pressed="{{ s.on }}" onClick="{{ s.pick }}"><span class="t"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ s.d }}"></path></svg></span>{{ s.label }}</button></sc-for>
+</div>
+<div style="flex: 1 1 240px; background: #101115; display: flex; align-items: center; justify-content: center; padding: 26px; min-height: 380px">
+<div class="sheet" style="width: {{ pw }}px; height: {{ ph }}px; background-color: #FBFAF7; background-image: {{ pattern }}; background-size: {{ patternSize }}">
+<sc-if value="{{ isImages }}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 12px; display: grid; grid-template-columns: repeat({{ imgCols }}, minmax(0, 1fr)); gap: 8px; align-content: center"><sc-for list="{{ images }}" as="im" hint-placeholder-count="3"><span style="aspect-ratio: 4/3; border-radius: 3px; background: {{ im.c }}; animation: rise .35s both; animation-delay: {{ im.delay }}"></span></sc-for></div></sc-if>
+<sc-if value="{{ isDoc }}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; padding: 18px 16px; display: flex; flex-direction: column; gap: 6px"><span class="ln" style="width: 40%; height: 3px; background: #2563C9"></span><span class="ln" style="width: 76%; height: 7px; background: #2A2B30"></span><span class="ln" style="width: 100%; margin-top: 8px; height: 3px"></span><span class="ln" style="width: 92%; height: 3px"></span><span class="ln" style="width: 96%; height: 3px"></span><span class="ln" style="width: 60%; height: 3px"></span></div></sc-if>
+<sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; padding: 18px 16px; display: flex; flex-direction: column; gap: 7px; background: #ECE9E0; filter: grayscale(1)"><span class="ln" style="width: 56%; height: 7px; background: #57554F"></span><span class="ln" style="width: 100%; height: 3px; background: #8E8B84; margin-top: 8px"></span><span class="ln" style="width: 92%; height: 3px; background: #8E8B84"></span><span class="ln" style="width: 84%; height: 3px; background: #8E8B84"></span><span class="ln" style="width: 96%; height: 3px; background: #8E8B84"></span></div><sc-if value="{{ scanning }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: 0; right: 0; height: 10%; background: rgba(110,106,246,.25); border-bottom: 2px solid #6E6AF6; animation: scanbar 1.2s cubic-bezier(.45,0,.55,1) infinite"></span></sc-if></sc-if>
+<sc-if value="{{ isClip }}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; padding: 18px 16px; display: flex; flex-direction: column; gap: 8px; font: 400 8px/1.5 Geist, sans-serif; color: #3A3B40"><b style="font-size: 10px">Note de réunion</b><span>Points validés : budget, planning, prochaine revue le 14.</span><span>Actions : envoyer le compte rendu à l’équipe.</span></div></sc-if>
+<span style="position: absolute; right: 8px; bottom: 6px; font: 500 9px/1 Geist, sans-serif; color: #9C9A92">{{ pageCountLabel }}</span>
+</div>
+</div>
+<div style="flex: 1 1 300px; padding: 18px 22px; display: flex; flex-direction: column; gap: 16px">
+<label style="display: flex; flex-direction: column; gap: 7px"><span class="muted">Nom du fichier</span><input class="field" value="{{ newName }}" onChange="{{ onName }}"></label>
+<sc-if value="{{ isBlank }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px; animation: rise .3s both">
+<div style="display: flex; flex-direction: column; gap: 8px"><span class="muted">Fond de page</span><div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{ styles }}" as="s" hint-placeholder-count="4"><button class="chip" aria-pressed="{{ s.on }}" onClick="{{ s.pick }}">{{ s.label }}</button></sc-for></div></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #B9BBC2">Nombre de pages</span><span style="display: flex; align-items: center; background: #0E0F12; border-radius: 10px; padding: 3px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05)"><button class="btn ghost" style="width: 28px; height: 28px; padding: 0; border-radius: 7px" onClick="{{ pagesDown }}" aria-label="Moins de pages"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M3 8h10"></path></svg></button><span class="tnum" style="width: 30px; text-align: center; font-weight: 500">{{ nPages }}</span><button class="btn ghost" style="width: 28px; height: 28px; padding: 0; border-radius: 7px" onClick="{{ pagesUp }}" aria-label="Plus de pages"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg></button></span></div>
+</div>
+</sc-if>
+<sc-if value="{{ isImages }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; animation: rise .3s both">
+<button class="btn" style="height: 40px" onClick="{{ addImage }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg>Ajouter des images ({{ imgCount }})</button>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #B9BBC2">Une image par page</span><button class="sw" role="switch" aria-checked="{{ onePerPageS }}" aria-label="Une image par page" onClick="{{ toggleOnePerPage }}"></button></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #B9BBC2">Rendre le texte recherchable (OCR)</span><button class="sw" role="switch" aria-checked="{{ ocrS }}" aria-label="OCR" onClick="{{ toggleOcr }}"></button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isDoc }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; animation: rise .3s both">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #1F2026"><span style="width: 32px; height: 38px; border-radius: 5px; background: #DCEBFF; color: #2563C9; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; font: 700 8px/1 Geist, sans-serif">DOCX</span><span style="flex: 1; font-size: 13px">Note de service.docx</span><button class="btn ghost" style="height: 30px">Changer</button></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #B9BBC2">Créer des signets depuis les titres</span><button class="sw" role="switch" aria-checked="true" aria-label="Signets depuis les titres"></button></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #B9BBC2">Conserver les liens</span><button class="sw" role="switch" aria-checked="true" aria-label="Conserver les liens"></button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; animation: rise .3s both">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: #1F2026"><span style="width: 8px; height: 8px; border-radius: 4px; background: #4FCB91"></span><span style="flex: 1; font-size: 13px">Epson DS-530 — prêt</span></div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{ dpis }}" as="d" hint-placeholder-count="3"><button class="chip tnum" aria-pressed="{{ d.on }}" onClick="{{ d.pick }}">{{ d.label }}</button></sc-for></div>
+<button class="btn" style="height: 40px" onClick="{{ scan }}" disabled="{{ scanning }}">{{ scanBtn }}</button>
+</div>
+</sc-if>
+<sc-if value="{{ isClip }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0; animation: rise .3s both">Le texte copié dans le presse-papiers sera mis en page dans un nouveau PDF.</p></sc-if>
+<sc-if value="{{ showFormat }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px"><span class="muted">Format</span>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center"><sc-for list="{{ formats }}" as="f" hint-placeholder-count="3"><button class="chip" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}">{{ f.label }}</button></sc-for><span style="flex: 1"></span>
+<div class="seg" role="group" aria-label="Orientation"><span class="ind" style="width: 40px; transform: translateX({{ orientX }}px)" aria-hidden="true"></span><button style="width: 40px" aria-pressed="{{ isPortrait }}" onClick="{{ setPortrait }}" aria-label="Portrait"><span style="width: 9px; height: 12px; border: 1.5px solid currentColor; border-radius: 2px"></span></button><button style="width: 40px" aria-pressed="{{ isLand }}" onClick="{{ setLand }}" aria-label="Paysage"><span style="width: 12px; height: 9px; border: 1.5px solid currentColor; border-radius: 2px"></span></button></div>
+</div></div>
+</sc-if>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+<sc-if value="{{ building }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 7px; animation: rise .3s both"><span class="muted tnum">Création du document… {{ buildPct }} %</span><span style="height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden"><span style="display: block; height: 100%; width: {{ buildPct }}%; background: #6E6AF6; transition: width .15s linear"></span></span></div></sc-if>
+<sc-if value="{{ built }}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(79,203,145,.1); animation: rise .3s both"><span style="width: 28px; height: 28px; border-radius: 14px; background: #4FCB91; color: #0E0F12; display: flex; align-items: center; justify-content: center; animation: popin .4s both"><svg class="i" width="16" height="16" style="stroke-width: 2.2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span><span style="flex: 1; font-size: 13px">{{ newName }} est prêt</span><a class="btn primary" href="Main.dc.html" style="height: 30px">Ouvrir</a></div></sc-if>
+<div style="display: flex; gap: 8px; justify-content: flex-end"><button class="btn ghost" onClick="{{ closeCreate }}">Annuler</button><button class="btn primary" onClick="{{ build }}" disabled="{{ cantBuild }}">Créer le PDF</button></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const RECENTS = [
+  { id: 1, name: "Rapport Q1 2025.pdf", folder: "Documents › Rapports", pages: 14, size: "2,4 Mo", page: 2, when: "Il y a 5 min", g: 0, accent: "#6E6AF6", tag: "", place: "docs" },
+  { id: 2, name: "Bon de commande.pdf", folder: "Téléchargements", pages: 4, size: "380 Ko", page: 1, when: "Il y a 2 h", g: 0, accent: "#F2B84B", tag: "annotated", place: "dl" },
+  { id: 3, name: "Contrat de licence v3.pdf", folder: "Documents › Juridique", pages: 22, size: "1,1 Mo", page: 7, when: "Hier, 17:40", g: 1, accent: "#4FCB91", tag: "signed", place: "docs" },
+  { id: 4, name: "Dossier d’audit Q4.pdf", folder: "Bureau", pages: 12, size: "4,8 Mo", page: 12, when: "Hier, 09:12", g: 1, accent: "#5BC0EB", tag: "", place: "desk" },
+  { id: 5, name: "Demande d’ouverture de compte.pdf", folder: "Téléchargements", pages: 2, size: "210 Ko", page: 1, when: "Lundi", g: 2, accent: "#7FCDEE", tag: "form", place: "dl" },
+  { id: 6, name: "Scan contrat.pdf", folder: "Bureau", pages: 3, size: "6,2 Mo", page: 3, when: "Lundi", g: 2, accent: "#9C9A92", tag: "scan", place: "desk" },
+  { id: 7, name: "Accord de consortium.pdf", folder: "Documents › Juridique", pages: 12, size: "1,9 Mo", page: 12, when: "Dimanche", g: 2, accent: "#4FCB91", tag: "signed", place: "docs" },
+  { id: 8, name: "Rapport annuel 2025.pdf", folder: "Documents › Rapports", pages: 64, size: "48,6 Mo", page: 41, when: "28 sept.", g: 3, accent: "#6E6AF6", tag: "", place: "docs" },
+  { id: 9, name: "Facture avril.pdf", folder: "Téléchargements", pages: 1, size: "96 Ko", page: 1, when: "12 sept.", g: 3, accent: "#F07A9A", tag: "", place: "dl" },
+  { id: 10, name: "Cahier des charges.pdf", folder: "Documents › Projets", pages: 58, size: "3,3 Mo", page: 41, when: "2 sept.", g: 3, accent: "#C49BF5", tag: "", place: "docs" }
+];
+const GROUPS = ["Aujourd’hui", "Hier", "Cette semaine", "Plus ancien"];
+const TAGS = { signed: { label: "Signé", fg: "#6FDCA8", bg: "rgba(79,203,145,.14)" }, form: { label: "Formulaire", fg: "#7FCDEE", bg: "rgba(91,192,235,.14)" }, scan: { label: "Numérisé", fg: "#C9CBD1", bg: "rgba(255,255,255,.08)" }, annotated: { label: "Annoté", fg: "#F2C064", bg: "rgba(242,184,75,.14)" } };
+const D = {
+  home: "M2.5 7.5 8 3l5.5 4.5V13.5h-11z M6.5 13.5V10h3v3.5", clock: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z M8 5v3l2 1.5",
+  star: "M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.2L8 11.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z",
+  blank: "M4 1.5h5l3 3v10H4z M9 1.5v3h3 M8 7.5v4 M6 9.5h4", image: "M2.5 3.5h11v9h-11z M2.5 10.5l3-3 3 3 2-2 3 3 M10.5 6h.01",
+  doc: "M4 1.5h5l3 3v10H4z M9 1.5v3h3 M6 8h4 M6 10.5h4", scan: "M2 5V2h3 M14 5V2h-3 M2 11v3h3 M14 11v3h-3 M2 8h12",
+  merge: "M3.5 2.5v2.5a3.5 3.5 0 0 0 3.5 3.5h2a3.5 3.5 0 0 0 3.5-3.5V2.5 M8 8.5v5.5", clip: "M5.5 2.5h5v2h-5z M4 3.5H3v11h10v-11h-1 M5.5 8h5 M5.5 10.5h3"
+};
+const CREATES = [
+  { id: "blank", label: "PDF vierge", hint: "Page blanche, lignée ou quadrillée", bg: "rgba(110,106,246,.16)", fg: "#A9A6FF" },
+  { id: "image", label: "Depuis des images", hint: "JPG, PNG, HEIC, TIFF", bg: "rgba(240,122,154,.15)", fg: "#F59AB4" },
+  { id: "doc", label: "Depuis un document", hint: "Word, Excel, PowerPoint", bg: "rgba(91,192,235,.15)", fg: "#7FCDEE" },
+  { id: "scan", label: "Depuis le scanner", hint: "Avec reconnaissance de texte", bg: "rgba(242,184,75,.15)", fg: "#F2C064" },
+  { id: "merge", label: "Combiner des fichiers", hint: "Plusieurs fichiers en un PDF", href: "Merge.dc.html", bg: "rgba(79,203,145,.15)", fg: "#4FCB91" },
+  { id: "clip", label: "Depuis le presse-papiers", hint: "Texte ou image copiés", bg: "rgba(196,155,245,.15)", fg: "#CDA8F7" }
+];
+const SOURCES = [{ id: "blank", label: "PDF vierge", d: D.blank, hint: "Un document vide à remplir, annoter ou signer." }, { id: "image", label: "Images", d: D.image, hint: "Assemblez des photos ou captures en un PDF." }, { id: "doc", label: "Document Office", d: D.doc, hint: "Convertissez un fichier Word, Excel ou PowerPoint." }, { id: "scan", label: "Scanner", d: D.scan, hint: "Numérisez des pages papier, texte reconnu automatiquement." }, { id: "clip", label: "Presse-papiers", d: D.clip, hint: "Transformez le contenu copié en PDF." }];
+const STYLES = [{ id: "blank", label: "Vierge" }, { id: "lines", label: "Lignée" }, { id: "grid", label: "Quadrillée" }, { id: "dots", label: "Pointillée" }];
+const FORMATS = [{ id: "A4", label: "A4", r: 1.414 }, { id: "A5", label: "A5", r: 1.414 }, { id: "Letter", label: "Lettre US", r: 1.294 }];
+const IMG_COLORS = ["#C9B8A6", "#9DB4C0", "#B7C4A0", "#D4A5A5", "#A9A3C9", "#E0C9A6"];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: "", view: "home", place: null, filter: "all", layout: "list", favs: [1, 3], removed: [], leaving: [], extra: [], fresh: null, over: false, toast: "", loading: false,
+      creating: false, src: "blank", newName: "Nouveau document.pdf", style: "lines", nPages: 1, format: "A4", land: false, imgs: 3, onePer: true, ocr: true, dpi: 300, scanning: false, scanned: false, buildPct: 0, building: false, built: false };
+    this.onKey = (e) => {
+      const k = (e.key || "").toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && k === "o") { e.preventDefault(); if (this.fileEl) this.fileEl.click(); }
+      else if ((e.ctrlKey || e.metaKey) && k === "n") { e.preventDefault(); this.openCreate("blank"); }
+      else if (k === "escape" && this.state.creating && !this.state.building) this.setState({ creating: false });
+    };
+  }
+  componentDidMount() { window.addEventListener("keydown", this.onKey); }
+  componentWillUnmount() { window.removeEventListener("keydown", this.onKey); clearTimeout(this.t1); clearTimeout(this.t2); clearInterval(this.iv); clearTimeout(this.lt); }
+  openCreate(src) { this.setState({ creating: true, src, built: false, building: false, buildPct: 0, scanned: false, newName: src === "image" ? "Photos.pdf" : (src === "scan" ? "Numérisation.pdf" : (src === "doc" ? "Note de service.pdf" : "Nouveau document.pdf")) }); }
+  openFile(name) {
+    if (!name) return;
+    const id = 100 + this.state.extra.length;
+    const item = { id, name, folder: "Ouvert récemment", pages: 8, size: "—", page: 1, when: "À l’instant", g: 0, accent: "#6E6AF6", tag: "", place: null };
+    this.setState({ extra: [item].concat(this.state.extra), fresh: id, over: false, loading: true, toast: "Ouverture de " + name + "…", view: "recent", filter: "all", q: "" });
+    clearTimeout(this.lt);
+    this.lt = setTimeout(() => this.setState({ loading: false, toast: name + " est prêt" }), 1100);
+    this.t2 = setTimeout(() => this.setState({ fresh: null }), 2600);
+  }
+  renderVals() {
+    const st = this.state;
+    const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
+    const modKey = mac ? "⌘" : "Ctrl+";
+    const all = st.extra.concat(RECENTS).filter((r) => !st.removed.includes(r.id));
+    const q = st.q.trim().toLowerCase();
+    let list = all.filter((r) => !q || r.name.toLowerCase().includes(q) || r.folder.toLowerCase().includes(q));
+    if (st.view === "fav") list = list.filter((r) => st.favs.includes(r.id));
+    if (st.place) list = list.filter((r) => r.place === st.place);
+    if (st.filter !== "all") list = list.filter((r) => r.tag === st.filter);
+    const decorate = (r, i) => {
+      const t = TAGS[r.tag];
+      return { ...r, hasTag: !!t, tag: t ? t.label : "", tagFg: t ? t.fg : "", tagBg: t ? t.bg : "",
+        pct: Math.round(r.page / r.pages * 100) + "%", barC: r.page === r.pages ? "#4FCB91" : "#6E6AF6",
+        fav: st.favs.includes(r.id) ? "true" : "false", delay: Math.min(i, 12) * 40 + "ms",
+        cls: st.leaving.includes(r.id) ? "leaving" : (st.fresh === r.id ? "fresh" : ""),
+        toggleFav: () => this.setState({ favs: st.favs.includes(r.id) ? st.favs.filter((x) => x !== r.id) : st.favs.concat([r.id]) }),
+        remove: () => { this.setState({ leaving: st.leaving.concat([r.id]) }); this.t1 = setTimeout(() => this.setState({ removed: this.state.removed.concat([r.id]), leaving: this.state.leaving.filter((x) => x !== r.id) }), 340); } };
+    };
+    let idx = 0;
+    const groups = GROUPS.map((label, g) => ({ label, items: list.filter((r) => r.g === g).map((r) => decorate(r, idx++)) })).filter((g) => g.items.length);
+    const flat = list.map(decorate);
+    const resume = all[0] || RECENTS[0];
+    const src = SOURCES.find((s) => s.id === st.src);
+    const fmt = FORMATS.find((f) => f.id === st.format);
+    const long = 300, short = Math.round(long / fmt.r);
+    const pat = { blank: ["none", "auto"], lines: ["linear-gradient(transparent 92%, #CFD8EA 92%)", "100% 14px"], grid: ["linear-gradient(#E1E0DA 1px, transparent 1px), linear-gradient(90deg, #E1E0DA 1px, transparent 1px)", "12px 12px"], dots: ["radial-gradient(#C9C7BE 1.2px, transparent 1.4px)", "12px 12px"] }[st.src === "blank" ? st.style : "blank"];
+    const hour = new Date().getHours();
+    const places = [{ id: "docs", label: "Documents" }, { id: "desk", label: "Bureau" }, { id: "dl", label: "Téléchargements" }];
+    return {
+      modKey, q: st.q, onQ: (e) => this.setState({ q: e.target.value }),
+      greeting: (hour < 18 ? "Bonjour" : "Bonsoir") + ", Olivier",
+      views: [{ id: "home", label: "Accueil", d: D.home, count: "" }, { id: "recent", label: "Récents", d: D.clock, count: all.length }, { id: "fav", label: "Favoris", d: D.star, count: st.favs.filter((f) => all.some((r) => r.id === f)).length }].map((v) => ({ ...v, on: v.id === st.view && !st.place ? "true" : "false", pick: () => this.setState({ view: v.id, place: null }) })),
+      places: places.map((p) => ({ ...p, count: all.filter((r) => r.place === p.id).length, on: st.place === p.id ? "true" : "false", pick: () => this.setState({ place: p.id, view: "recent" }) })),
+      dropCls: st.over ? "over" : "", dropTitle: st.over ? "Déposez pour ouvrir" : "Ouvrir un fichier",
+      setFileEl: (el) => { this.fileEl = el; },
+      onFile: (e) => { const f = e.target.files && e.target.files[0]; if (f) this.openFile(f.name); e.target.value = ""; },
+      onDragOver: (e) => { e.preventDefault(); if (!st.over) this.setState({ over: true }); },
+      onDragLeave: () => this.setState({ over: false }),
+      onDrop: (e) => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; this.setState({ over: false }); if (f) this.openFile(f.name); },
+      resume: { name: resume.name, page: resume.page, pages: resume.pages, when: resume.when.toLowerCase(), pct: Math.round(resume.page / resume.pages * 100) + "%" },
+      creates: CREATES.map((c, i) => ({ ...c, d: D[c.id], isLink: !!c.href, isBtn: !c.href, delay: 60 + i * 40 + "ms", pick: () => this.openCreate(c.id) })),
+      openCreate: () => this.openCreate("blank"),
+      listTitle: st.place ? places.find((p) => p.id === st.place).label : (st.view === "fav" ? "Favoris" : "Récemment ouverts"),
+      listCount: list.length + " document" + (list.length > 1 ? "s" : ""),
+      filters: [{ id: "all", label: "Tous" }, { id: "signed", label: "Signés" }, { id: "form", label: "Formulaires" }, { id: "scan", label: "Numérisés" }].map((f) => ({ ...f, on: f.id === st.filter ? "true" : "false", pick: () => this.setState({ filter: f.id }) })),
+      isList: st.layout === "list", isGrid: st.layout === "grid", isListA: st.layout === "list" ? "true" : "false", isGridA: st.layout === "grid" ? "true" : "false",
+      layoutX: st.layout === "list" ? 0 : 34, toList: () => this.setState({ layout: "list" }), toGrid: () => this.setState({ layout: "grid" }),
+      groups, flat, empty: list.length === 0,
+      hasToast: !!st.toast, toast: st.toast, loading: st.loading, loaded: !st.loading,
+      creating: st.creating, closeCreate: () => { clearInterval(this.iv); this.setState({ creating: false, building: false }); },
+      srcHint: src.hint,
+      sources: SOURCES.map((s) => ({ ...s, on: s.id === st.src ? "true" : "false", pick: () => this.openCreate(s.id) })),
+      isBlank: st.src === "blank", isImages: st.src === "image", isDoc: st.src === "doc", isScan: st.src === "scan", isClip: st.src === "clip",
+      showFormat: st.src !== "doc",
+      pw: st.land ? long : short, ph: st.land ? short : long, pattern: pat[0], patternSize: pat[1],
+      pageCountLabel: st.src === "blank" ? "1 / " + st.nPages : (st.src === "image" ? (st.onePer ? "1 / " + st.imgs : "1 / 1") : "1 / 1"),
+      newName: st.newName, onName: (e) => this.setState({ newName: e.target.value }),
+      styles: STYLES.map((s) => ({ ...s, on: s.id === st.style ? "true" : "false", pick: () => this.setState({ style: s.id }) })),
+      nPages: st.nPages, pagesUp: () => this.setState({ nPages: Math.min(500, st.nPages + 1) }), pagesDown: () => this.setState({ nPages: Math.max(1, st.nPages - 1) }),
+      formats: FORMATS.map((f) => ({ ...f, on: f.id === st.format ? "true" : "false", pick: () => this.setState({ format: f.id }) })),
+      orientX: st.land ? 40 : 0, isPortrait: st.land ? "false" : "true", isLand: st.land ? "true" : "false", setPortrait: () => this.setState({ land: false }), setLand: () => this.setState({ land: true }),
+      images: Array.from({ length: st.onePer ? 1 : st.imgs }, (_, i) => ({ c: IMG_COLORS[i % IMG_COLORS.length], delay: i * 60 + "ms" })), imgCols: st.onePer ? 1 : (st.imgs > 4 ? 3 : 2),
+      imgCount: st.imgs, addImage: () => this.setState({ imgs: Math.min(12, st.imgs + 1) }),
+      onePerPageS: st.onePer ? "true" : "false", toggleOnePerPage: () => this.setState({ onePer: !st.onePer }),
+      ocrS: st.ocr ? "true" : "false", toggleOcr: () => this.setState({ ocr: !st.ocr }),
+      dpis: [150, 300, 600].map((d) => ({ label: d + " ppp", on: d === st.dpi ? "true" : "false", pick: () => this.setState({ dpi: d }) })),
+      scanning: st.scanning, scanBtn: st.scanning ? "Numérisation…" : (st.scanned ? "Numériser une autre page" : "Numériser"),
+      scan: () => { this.setState({ scanning: true }); this.t1 = setTimeout(() => this.setState({ scanning: false, scanned: true }), 2400); },
+      building: st.building, built: st.built, buildPct: st.buildPct,
+      cantBuild: st.building || st.built || (st.src === "scan" && !st.scanned) || !st.newName.trim(),
+      build: () => {
+        this.setState({ building: true, buildPct: 0, built: false }); clearInterval(this.iv);
+        this.iv = setInterval(() => {
+          const p = this.state.buildPct + 7;
+          if (p >= 100) {
+            clearInterval(this.iv);
+            const id = 200 + this.state.extra.length;
+            const item = { id, name: this.state.newName, folder: "Documents", pages: this.state.src === "blank" ? this.state.nPages : 1, size: "—", page: 1, when: "À l’instant", g: 0, accent: "#6E6AF6", tag: this.state.src === "scan" ? "scan" : "", place: "docs" };
+            this.setState({ building: false, built: true, buildPct: 100, extra: [item].concat(this.state.extra), fresh: id });
+            this.t2 = setTimeout(() => this.setState({ fresh: null }), 2600);
+          } else this.setState({ buildPct: p });
+        }, 70);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

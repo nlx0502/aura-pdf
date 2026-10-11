@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Lecture</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F12}
+*{box-sizing:border-box}
+a{color:#A9A6FF}a:hover{color:#C8C6FF}
+button,input,textarea,select{font:inherit;color:inherit}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;color:#9A9DA6;text-decoration:none;font:500 13px/1 Geist,sans-serif;transition:color .2s,background .2s;white-space:nowrap}
+.nav:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.nav[aria-current]{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.btn{appearance:none;border:0;background:#1F2026;color:#ECECEF;font:500 13px/1 Geist,sans-serif;height:34px;padding:0 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,transform .12s,color .2s,box-shadow .2s,opacity .2s;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.btn:hover{background:#282930}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.primary{background:#6E6AF6;color:#fff;box-shadow:0 8px 20px -8px rgba(110,106,246,.8)}
+.primary:hover{background:#7E7AF8}
+.ghost{background:transparent;box-shadow:none;color:#B9BBC2}
+.ghost:hover{background:rgba(255,255,255,.06);color:#fff}
+.on{background:rgba(110,106,246,.18);color:#D2D0FF}
+.on:hover{background:rgba(110,106,246,.26);color:#fff}
+.icon{width:34px;padding:0}
+.panel{background:#16171B;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.title{font:600 14px/1.2 Geist,sans-serif;color:#ECECEF;margin:0;letter-spacing:-.01em}
+.muted{color:#9A9DA6;font:400 12.5px/1.45 Geist,sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
+.row{transition:background .18s,color .18s;border-radius:10px}
+.row:hover{background:rgba(255,255,255,.04)}
+.seg{display:inline-flex;position:relative;background:#0E0F12;border-radius:11px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;font:500 12.5px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg .ind{position:absolute;top:3px;left:3px;height:28px;border-radius:8px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.sw[aria-checked="true"]{background:#6E6AF6}
+.sw[aria-checked="true"]::after{transform:translateX(14px)}
+.btn:focus-visible,.nav:focus-visible,.seg button:focus-visible,.sw:focus-visible,.fx:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+.field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:36px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s}
+.field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+.field::placeholder{color:#7C7F88}
+.thumb{appearance:none;border:0;background:transparent;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center}
+.thumb .sheet{width:100%;aspect-ratio:3/4;background:#F2F1ED;border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:5px;box-shadow:0 0 0 2px transparent,0 6px 14px -6px rgba(0,0,0,.6);transition:box-shadow .25s,transform .25s,opacity .25s;opacity:.72}
+.thumb:hover .sheet{opacity:1;transform:translateY(-3px)}
+.thumb[aria-current="true"] .sheet{box-shadow:0 0 0 2px #6E6AF6,0 10px 24px -8px rgba(110,106,246,.55);opacity:1}
+.ln{height:3px;border-radius:2px;background:#D3D1C9}
+.paper{background:#FBFAF7;color:#1A1B1E;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 30px 60px -20px rgba(0,0,0,.7);transition:width .4s cubic-bezier(.2,.8,.2,1),font-size .4s cubic-bezier(.2,.8,.2,1),background .45s,color .45s;position:relative}
+.overlay{position:absolute;inset:0;background:rgba(8,9,11,.55);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding:96px 16px;z-index:20;animation:fade .2s ease both}
+.modal{background:#18191E;border-radius:18px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 80px -20px rgba(0,0,0,.8);animation:pop .26s cubic-bezier(.2,.8,.2,1) both}
+.cmd{appearance:none;border:0;background:transparent;width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;font:400 13.5px/1 Geist,sans-serif;color:#D2D4DA;text-align:left;transition:background .15s,color .15s}
+.cmd:hover{background:rgba(110,106,246,.14);color:#fff}
+.cmd .ic{width:28px;height:28px;border-radius:8px;background:#22232A;display:flex;align-items:center;justify-content:center;color:#B9BBC2;transition:background .15s,color .15s}
+.cmd:hover .ic{background:#6E6AF6;color:#fff}
+.pin{position:absolute;width:22px;height:22px;border-radius:11px;background:#F2B84B;color:#1A1B1E;font:600 11px/22px Geist,sans-serif;text-align:center}
+.pin::before{content:'';position:absolute;inset:0;border-radius:11px;background:#F2B84B;animation:ping 2s cubic-bezier(0,0,.2,1) infinite;z-index:-1}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.95) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes ping{0%{transform:scale(1);opacity:.5}100%{transform:scale(2.3);opacity:0}}
+@keyframes bar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.rise{animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.slide{animation:slideIn .36s cubic-bezier(.2,.8,.2,1) both}
+.ab-tools{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px 0 13px;border-radius:999px;border:0;background:transparent;color:#9A9DA6;font:500 13px/1 Geist,sans-serif;cursor:pointer;transition:color .2s,background .2s;white-space:nowrap}
+.ab-tools:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.ab-tools[aria-expanded="true"],.ab-tools.cur{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.ab-menu{position:absolute;top:calc(100% + 10px);left:0;width:380px;max-width:calc(100vw - 32px);padding:8px;background:rgba(26,27,32,.97);backdrop-filter:blur(20px) saturate(170%);border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px -18px rgba(0,0,0,.85);z-index:40;transform-origin:top left;animation:ab-pop .22s cubic-bezier(.2,.8,.2,1) both}
+.ab-item{display:flex;align-items:center;gap:14px;padding:10px;border-radius:11px;color:#ECECEF;text-decoration:none;border:0;background:transparent;width:100%;text-align:left;cursor:pointer;font:inherit;transition:background .15s;animation:ab-rise .32s cubic-bezier(.2,.8,.2,1) both}
+.ab-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.ab-item[aria-current]{background:rgba(110,106,246,.12)}
+.ab-item .t{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.ab-item:hover .t{transform:scale(1.08) rotate(-5deg)}
+.ab-scrim{position:absolute;inset:0;border:0;padding:0;background:transparent;z-index:30;cursor:default}
+.ab-pbtn{position:relative;display:inline-flex}
+.ab-tip{position:absolute;top:calc(100% + 8px);right:0;background:#2A2B33;color:#fff;font:500 12px/1 Geist,sans-serif;padding:7px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:45;display:flex;gap:8px;align-items:center}
+.ab-pbtn:hover .ab-tip{opacity:1;transform:none}
+.ab-kbd{font:500 11px/1 Geist,sans-serif;color:#B9BBC2;background:rgba(255,255,255,.08);padding:4px 6px;border-radius:5px;white-space:nowrap}
+.ab-ov{position:absolute;inset:0;z-index:50;background:rgba(8,9,11,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;animation:ab-fade .2s ease both}
+.ab-dlg{width:1020px;max-width:100%;height:min(800px,100%);background:#18191E;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 90px -20px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden;animation:ab-pop .3s cubic-bezier(.2,.8,.2,1) both}
+.ab-seg{display:flex;position:relative;background:#0E0F12;border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.ab-seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;flex:1;font:500 12px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;padding:0 6px;white-space:nowrap}
+.ab-seg button[aria-pressed="true"]{color:#fff}
+.ab-seg .ab-ind{position:absolute;top:3px;left:3px;height:28px;border-radius:7px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.ab-chip{appearance:none;border:0;background:#22232A;height:30px;padding:0 12px;border-radius:999px;font:500 12px/1 Geist,sans-serif;color:#B9BBC2;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.ab-chip:hover{background:#2A2B33;color:#fff}
+.ab-chip[aria-pressed="true"]{background:rgba(110,106,246,.18);color:#D2D0FF;box-shadow:inset 0 0 0 1px rgba(110,106,246,.5)}
+.ab-sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.ab-sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.ab-sw[aria-checked="true"]{background:#6E6AF6}
+.ab-sw[aria-checked="true"]::after{transform:translateX(14px)}
+.ab-field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.ab-field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+select.ab-field{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px}
+.ab-sec{display:flex;flex-direction:column;gap:10px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ab-h{font:600 13px/1.2 Geist,sans-serif;color:#ECECEF;margin:0}
+.ab-l{font:400 12.5px/1.4 Geist,sans-serif;color:#9A9DA6}
+.ab-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font:400 13px/1.3 Geist,sans-serif;color:#ECECEF}
+.ab-sheet{background:#FBFAF7;border-radius:3px;box-shadow:0 22px 50px -14px rgba(0,0,0,.75);transition:width .45s cubic-bezier(.2,.8,.2,1),height .45s cubic-bezier(.2,.8,.2,1),filter .35s;position:relative;overflow:hidden;display:grid;gap:10px;padding:14px}
+.ab-feeding{animation:ab-feed 1.1s cubic-bezier(.4,0,.2,1) infinite}
+.ab-mini{background:#fff;border-radius:2px;position:relative;overflow:hidden;min-height:0;padding:10% 9%;animation:ab-rise .35s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
+.ab-ln{height:3px;border-radius:2px;background:#D3D1C9;flex:none}
+.ab-ok{animation:ab-popin .45s cubic-bezier(.3,1.6,.5,1) both}
+.ab-tools:focus-visible,.ab-item:focus-visible,.ab-seg button:focus-visible,.ab-chip:focus-visible,.ab-sw:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+@keyframes ab-pop{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes ab-fade{from{opacity:0}to{opacity:1}}
+@keyframes ab-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ab-popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes ab-feed{0%{transform:none;opacity:1}55%{transform:translateY(-40px);opacity:0}56%{transform:translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; display: flex; flex-direction: column; background: #0E0F12; color: #ECECEF; font-family: Geist, system-ui, sans-serif; overflow: hidden">
+
+<dc-import name="AppBar" active="lire" doc="Rapport Q1 2025.pdf" pages="14" hint-size="100%,60px"></dc-import>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 8px; min-height: 0">
+
+<sc-if value="{{ notFocus }}" hint-placeholder-val="{{ true }}">
+<aside class="panel slide" style="flex: 1 1 250px; max-width: 100%; display: flex; flex-direction: column; gap: 16px; padding: 18px 16px; animation-name: rise">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 class="title">Navigation</h2><span class="muted tnum">14 pages · 2,4 Mo</span></div>
+<div class="seg" role="tablist" aria-label="Panneaux" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))">
+<span class="ind" aria-hidden="true" style="width: calc((100% - 6px) / 5); transform: translateX({{ panelX }}%)"></span>
+<sc-for list="{{ panels }}" as="p" hint-placeholder-count="5">
+<button role="tab" aria-selected="{{ p.on }}" aria-pressed="{{ p.on }}" onClick="{{ p.pick }}" aria-label="{{ p.name }}" title="{{ p.name }}" style="display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ p.d }}"></path></svg></button>
+</sc-for>
+</div>
+<span class="muted" style="margin-top: -6px; font-weight: 500; color: #ECECEF">{{ panelName }}</span>
+
+<sc-if value="{{ isPages }}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px">
+<sc-for list="{{ thumbs }}" as="th" hint-placeholder-count="6">
+<button class="thumb rise" style="animation-delay: {{ th.delay }}" aria-current="{{ th.cur }}" onClick="{{ th.pick }}" aria-label="Aller à la page {{ th.n }}">
+<span class="sheet"><sc-for list="{{ th.lines }}" as="l" hint-placeholder-count="5"><span class="ln" style="width: {{ l.w }}; background: {{ l.c }}"></span></sc-for></span>
+<span class="tnum" style="font: 500 12px/1 Geist, sans-serif; color: {{ th.color }}; transition: color .2s">{{ th.n }}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isToc }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{ toc }}" as="it" hint-placeholder-count="6">
+<button class="row rise fx" onClick="{{ it.pick }}" style="appearance: none; border: 0; background: {{ it.bg }}; cursor: pointer; display: flex; gap: 10px; align-items: baseline; padding: 9px 10px 9px {{ it.pad }}px; text-align: left; font: {{ it.weight }} 13px/1.35 Geist, sans-serif; color: {{ it.color }}; animation-delay: {{ it.delay }}"><span style="flex: 1">{{ it.t }}</span><span class="tnum" style="font-size: 12px; color: #7C7F88">{{ it.p }}</span></button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMarks }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{ marks }}" as="it" hint-placeholder-count="4">
+<button class="row rise fx" onClick="{{ it.pick }}" style="appearance: none; border: 0; background: transparent; cursor: pointer; display: flex; gap: 12px; align-items: center; padding: 10px; text-align: left; font: 400 13px/1.3 Geist, sans-serif; color: #D8DAE0; animation-delay: {{ it.delay }}"><span style="width: 8px; height: 8px; border-radius: 4px; background: {{ it.c }}"></span><span style="flex: 1">{{ it.t }}</span><span class="tnum" style="font-size: 12px; color: #7C7F88">p. {{ it.p }}</span></button>
+</sc-for>
+<button class="btn ghost" style="justify-content: flex-start; margin-top: 6px"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg>Ajouter un signet</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFiles }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{ files }}" as="f" hint-placeholder-count="3">
+<div class="row rise" style="display: flex; gap: 12px; align-items: center; padding: 10px; animation-delay: {{ f.delay }}">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: {{ f.bg }}; color: {{ f.c }}; display: flex; align-items: center; justify-content: center; font: 600 10px/1 Geist, sans-serif">{{ f.ext }}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font: 500 13px/1.2 Geist, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ f.name }}</span><span class="muted">{{ f.size }}</span></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLayers }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{ layerList }}" as="ly" hint-placeholder-count="3">
+<div class="row rise" style="display: flex; align-items: center; gap: 10px; padding: 10px; animation-delay: {{ ly.delay }}">
+<span style="font: 400 13px/1 Geist, sans-serif; color: {{ ly.color }}; flex: 1; transition: color .2s">{{ ly.label }}</span>
+<button class="sw" role="switch" aria-checked="{{ ly.on }}" aria-label="Calque {{ ly.label }}" onClick="{{ ly.toggle }}"></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+
+<main class="panel" style="flex: 999 1 560px; min-width: 0; position: relative; display: flex; flex-direction: column; background: #121317; overflow: hidden">
+<div style="display: flex; align-items: center; gap: 6px; padding: 10px 12px 0; flex-wrap: wrap" role="tablist" aria-label="Documents ouverts">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+<div class="rise" style="display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px 0 12px; border-radius: 10px; background: {{ t.bg }}; transition: background .25s">
+<button role="tab" aria-selected="{{ t.sel }}" onClick="{{ t.pick }}" class="fx" style="appearance: none; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; font: 500 13px/1 Geist, sans-serif; color: {{ t.color }}; padding: 0; transition: color .2s"><svg class="i" width="16" height="16" aria-hidden="true" style="color: {{ t.dot }}"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"></path></svg>{{ t.name }}</button>
+<button class="btn ghost icon" style="width: 26px; height: 26px; border-radius: 7px" onClick="{{ t.close }}" aria-label="Fermer {{ t.name }}"><svg class="i" width="16" height="16" style="width: 12px; height: 12px" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+</div>
+</sc-for>
+<button class="btn ghost icon" style="height: 30px; width: 30px" onClick="{{ openPalette }}" aria-label="Ouvrir un document ou une commande"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg></button>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,.05)">
+<button class="btn ghost icon {{ sideCls }}" onClick="{{ toggleFocus }}" aria-label="Afficher les panneaux" aria-pressed="{{ notFocus }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11z M6.5 3.5v9"></path></svg></button>
+<div class="seg" role="group" aria-label="Mode d’affichage">
+<span class="ind" style="width: 92px; transform: translateX({{ viewX }}px)" aria-hidden="true"></span>
+<sc-for list="{{ views }}" as="v" hint-placeholder-count="3"><button style="width: 92px" aria-pressed="{{ v.on }}" onClick="{{ v.pick }}">{{ v.label }}</button></sc-for>
+</div>
+<div style="display: flex; align-items: center; background: #0E0F12; border-radius: 11px; padding: 3px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05)">
+<button class="btn ghost icon" style="height: 28px; width: 28px; border-radius: 8px" onClick="{{ zoomOut }}" aria-label="Zoom arrière"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M3 8h10"></path></svg></button>
+<button class="btn ghost tnum" style="height: 28px; min-width: 58px; padding: 0 6px; border-radius: 8px" onClick="{{ fit }}" title="Ajuster à la largeur">{{ zoom }} %</button>
+<button class="btn ghost icon" style="height: 28px; width: 28px; border-radius: 8px" onClick="{{ zoomIn }}" aria-label="Zoom avant"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg></button>
+</div>
+<button class="btn ghost icon" onClick="{{ rotate }}" aria-label="Pivoter de 90°" title="Pivoter"><svg class="i" width="16" height="16" aria-hidden="true" style="transform: rotate({{ rot }}deg); transition: transform .5s cubic-bezier(.2,.8,.2,1)"><path d="M13 8a5 5 0 1 1-1.5-3.5 M13 2.5V5h-2.5"></path></svg></button>
+<div style="flex: 1 1 220px; display: flex; justify-content: center; min-width: 0">
+<div style="position: relative; width: 100%; max-width: 360px">
+<svg class="i" width="16" height="16" aria-hidden="true" style="position: absolute; left: 12px; top: 10px; color: #7C7F88"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
+<input class="field" style="width: 100%; padding-left: 36px; padding-right: 90px; border-radius: 999px" placeholder="Rechercher dans le document" value="{{ q }}" onChange="{{ onQ }}" aria-label="Rechercher dans le document">
+<span class="tnum" style="position: absolute; right: 14px; top: 11px; font: 500 12px/1 Geist, sans-serif; color: {{ hitColor }}; transition: color .2s">{{ hitLabel }}</span>
+</div>
+</div>
+<button class="btn ghost icon {{ darkCls }}" onClick="{{ toggleDark }}" aria-pressed="{{ darkPaper }}" aria-label="Mode sombre" title="Mode sombre"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg></button>
+<button class="btn ghost icon {{ focusCls }}" onClick="{{ toggleFocus }}" aria-pressed="{{ focus }}" aria-label="Mode lecture" title="Mode lecture"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M3 6V3h3 M13 6V3h-3 M3 10v3h3 M13 10v3h-3"></path></svg></button>
+<button class="btn ghost icon" onClick="{{ openPrint }}" aria-label="Imprimer" title="Imprimer"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4.5 6V2.5h7V6 M4.5 11.5h-2v-5h11v5h-2 M4.5 9.5h7v4h-7z"></path></svg></button>
+</div>
+
+<div style="flex: 1 1 auto; overflow: auto; padding: 44px 24px 104px; display: flex; justify-content: center; align-items: flex-start; min-height: 600px">
+<div style="display: flex; flex-direction: {{ dir }}; gap: 28px; align-items: flex-start; transform: rotate({{ rot }}deg); transition: transform .55s cubic-bezier(.2,.8,.2,1); transform-origin: center 320px">
+
+<article class="paper" style="width: {{ paperW }}px; font-size: {{ fs }}px; background: {{ paperBg }}; color: {{ ink }}; padding: 4.6em 4.8em 4.2em">
+<sc-if value="{{ wmOn }}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" class="rise" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; overflow: hidden"><span style="font: 600 6em/1 Geist, sans-serif; color: rgba(110,106,246,.08); transform: rotate(-30deg); letter-spacing: .08em">Brouillon</span></div>
+</sc-if>
+<div style="display: flex; justify-content: space-between; font-size: .74em; color: {{ meta }}; margin-bottom: 3em"><span>Aura Global Dynamics</span><span class="tnum">Page {{ page }}</span></div>
+<p style="margin: 0 0 .8em; font-size: .78em; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6E6AF6">Rapport trimestriel</p>
+<h1 style="margin: 0; font: 600 2.2em/1.12 Geist, sans-serif; letter-spacing: -.035em">Q1 2025 — Stratégie &amp; innovation</h1>
+<p style="margin: .8em 0 0; font-size: 1.02em; color: {{ meta }}">Division ingénierie logicielle</p>
+<div style="height: 1px; background: {{ rule }}; margin: 2.2em 0"></div>
+<h2 style="margin: 0 0 .9em; font: 600 1.25em/1.3 Geist, sans-serif; letter-spacing: -.02em">Résumé exécutif</h2>
+<sc-for list="{{ paras }}" as="pa" hint-placeholder-count="3">
+<p style="margin: 0 0 1em; font-size: 1.04em; line-height: 1.72"><sc-for list="{{ pa.parts }}" as="pt" hint-placeholder-count="1"><span style="background: {{ pt.bg }}; border-radius: 3px; transition: background .35s"><sc-for list="{{ pt.segs }}" as="s" hint-placeholder-count="1"><span style="background: {{ s.bg }}; border-radius: 3px; transition: background .25s">{{ s.t }}</span></sc-for></span></sc-for></p>
+</sc-for>
+<div style="position: relative; margin: 1.8em 0; padding: 1.2em 1.4em; border-radius: .7em; background: {{ quoteBg }}; line-height: 1.6; font-size: 1.02em; transition: background .45s">
+<span style="display: block; font-size: .74em; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: {{ meta }}; margin-bottom: .5em">Point d’attention</span>
+<sc-for list="{{ quote }}" as="s" hint-placeholder-count="1"><span style="background: {{ s.bg }}; border-radius: 3px; transition: background .25s">{{ s.t }}</span></sc-for>
+<sc-if value="{{ layers.annotations }}" hint-placeholder-val="{{ true }}"><span class="pin rise" style="right: -11px; top: -11px" aria-label="Commentaire de Sarah C.">1</span></sc-if>
+</div>
+<sc-if value="{{ layers.images }}" hint-placeholder-val="{{ true }}">
+<figure class="rise" style="margin: 1.6em 0; padding: 1.4em 1.4em 1.1em; border-radius: .7em; background: {{ quoteBg }}">
+<div style="display: flex; align-items: flex-end; gap: .7em; height: 6.5em">
+<sc-for list="{{ bars }}" as="b" hint-placeholder-count="6"><span style="flex: 1; height: {{ b.h }}; background: {{ b.c }}; border-radius: .35em .35em .1em .1em; transform-origin: bottom; animation: bar .7s cubic-bezier(.2,.8,.2,1) both; animation-delay: {{ b.delay }}"></span></sc-for>
+</div>
+<figcaption style="margin-top: .9em; font-size: .78em; color: {{ meta }}">Volume de documents traités par mois</figcaption>
+</figure>
+</sc-if>
+<h2 style="margin: 1.8em 0 .8em; font: 600 1.25em/1.3 Geist, sans-serif; letter-spacing: -.02em">Prochaines étapes</h2>
+<ol style="margin: 0; padding: 0 0 0 1.2em; display: flex; flex-direction: column; gap: .5em; font-size: 1.02em; line-height: 1.6">
+<li>Généraliser la validation contractuelle aux filiales.</li>
+<li>Archiver les versions signées au format PDF/A-2b.</li>
+<li>Planifier l’audit externe du deuxième trimestre.</li>
+</ol>
+</article>
+
+<sc-if value="{{ showSecond }}" hint-placeholder-val="{{ true }}">
+<article class="paper rise" aria-label="Page suivante" style="width: {{ paperW }}px; font-size: {{ fs }}px; background: {{ paperBg }}; padding: 4.6em 4.8em; min-height: 40em; display: flex; flex-direction: column; gap: .9em">
+<div style="display: flex; justify-content: flex-end; font-size: .74em; color: {{ meta }}; margin-bottom: 2em" class="tnum">Page {{ nextPage }}</div>
+<span style="height: 1.3em; width: 55%; background: {{ skel }}; border-radius: .3em"></span>
+<span style="height: .6em; width: 100%; background: {{ skel }}; border-radius: .3em; margin-top: 1.2em"></span>
+<span style="height: .6em; width: 94%; background: {{ skel }}; border-radius: .3em"></span>
+<span style="height: .6em; width: 97%; background: {{ skel }}; border-radius: .3em"></span>
+<span style="height: .6em; width: 62%; background: {{ skel }}; border-radius: .3em"></span>
+<span style="height: 8em; width: 100%; background: {{ skel }}; border-radius: .7em; margin-top: 1.2em; opacity: .6"></span>
+<span style="height: .6em; width: 88%; background: {{ skel }}; border-radius: .3em; margin-top: 1.2em"></span>
+<span style="height: .6em; width: 92%; background: {{ skel }}; border-radius: .3em"></span>
+</article>
+</sc-if>
+</div>
+</div>
+
+<div style="position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 5px; background: rgba(28,29,35,.82); backdrop-filter: blur(18px) saturate(170%); border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 18px 40px -12px rgba(0,0,0,.7)">
+<button class="btn ghost icon" style="height: 30px; width: 30px" onClick="{{ prev }}" aria-label="Page précédente"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 10l4-4 4 4"></path></svg></button>
+<span class="tnum" style="font: 500 13px/1 Geist, sans-serif; padding: 0 6px; color: #B9BBC2">Page <span style="color: #fff">{{ page }}</span> sur 14</span>
+<button class="btn ghost icon" style="height: 30px; width: 30px" onClick="{{ next }}" aria-label="Page suivante"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></button>
+<span style="width: 80px; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; margin: 0 10px 0 6px" aria-hidden="true"><span style="display: block; height: 100%; width: {{ progress }}%; background: #6E6AF6; border-radius: 2px; transition: width .45s cubic-bezier(.2,.8,.2,1)"></span></span>
+</div>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ true }}">
+<div class="slide" role="status" style="position: absolute; right: 20px; bottom: 22px; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 12px; background: #1F2026; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 20px 44px -12px rgba(0,0,0,.75); font: 400 13px/1.4 Geist, sans-serif; max-width: 380px">
+<span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(79,203,145,.16); color: #4FCB91; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ toastIcon }}"></path></svg></span>
+<span style="color: #D8DAE0">{{ toastMsg }}</span>
+<button class="btn ghost" style="height: 30px; padding: 0 10px; color: #C8C6FF" onClick="{{ toastAction }}">{{ toastBtn }}</button>
+</div>
+</sc-if>
+</main>
+
+<sc-if value="{{ notFocus }}" hint-placeholder-val="{{ true }}">
+<aside class="panel slide" style="flex: 1 1 290px; max-width: 100%; padding: 18px 16px; display: flex; flex-direction: column; gap: 26px">
+<sc-if value="{{ searching }}" hint-placeholder-val="{{ true }}">
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="title">Résultats</h2><span class="muted">{{ hitCount }}</span></div>
+<sc-for list="{{ results }}" as="r" hint-placeholder-count="2">
+<button class="row rise fx" onClick="{{ r.pick }}" style="appearance: none; border: 0; background: #1C1D22; cursor: pointer; text-align: left; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; animation-delay: {{ r.delay }}">
+<span style="font: 500 12px/1 Geist, sans-serif; color: #A9A6FF">Page 2 · paragraphe {{ r.para }}</span>
+<span style="font: 400 13px/1.5 Geist, sans-serif; color: #B9BBC2"><sc-for list="{{ r.segs }}" as="s" hint-placeholder-count="1"><span style="color: {{ s.fg }}; background: {{ s.rbg }}; border-radius: 3px">{{ s.t }}</span></sc-for></span>
+</button>
+</sc-for>
+<sc-if value="{{ noHits }}" hint-placeholder-val="{{ false }}"><p class="muted rise" style="margin: 0">Aucune occurrence. Les pages numérisées peuvent être rendues recherchables avec l’OCR.</p></sc-if>
+</section>
+</sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 6px">
+<h2 class="title" style="margin-bottom: 6px">Récents</h2>
+<sc-for list="{{ recents }}" as="rc" hint-placeholder-count="4">
+<button class="row fx" onClick="{{ rc.open }}" style="appearance: none; border: 0; background: transparent; cursor: pointer; text-align: left; padding: 10px; display: flex; gap: 12px; align-items: center">
+<span style="width: 34px; height: 42px; border-radius: 5px; background: #F2F1ED; flex: none; padding: 7px 6px; display: flex; flex-direction: column; gap: 3px"><span class="ln" style="width: 70%; background: #3A3B40"></span><span class="ln" style="width: 100%"></span><span class="ln" style="width: 85%"></span></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px">
+<span style="display: flex; justify-content: space-between; gap: 8px; font: 500 13px/1.2 Geist, sans-serif"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ rc.name }}</span><span class="muted" style="flex: none">{{ rc.when }}</span></span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden"><span style="display: block; height: 100%; width: {{ rc.pct }}; background: #6E6AF6; opacity: .7"></span></span><span class="muted tnum" style="font-size: 11.5px">{{ rc.p }}</span></span>
+</span>
+</button>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="title">Propriétés</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font: 400 13px/1.3 Geist, sans-serif">
+<dt class="muted">Auteur</dt><dd style="margin: 0; text-align: right">Division ingénierie</dd>
+<dt class="muted">Pages</dt><dd style="margin: 0; text-align: right" class="tnum">14</dd>
+<dt class="muted">Taille</dt><dd style="margin: 0; text-align: right" class="tnum">2,4 Mo</dd>
+<dt class="muted">Version</dt><dd style="margin: 0; text-align: right">PDF 1.7, balisé</dd>
+<dt class="muted">Pièces jointes</dt><dd style="margin: 0; text-align: right" class="tnum">3</dd>
+</dl>
+</section>
+</aside>
+</sc-if>
+</div>
+
+<sc-if value="{{ palette }}" hint-placeholder-val="{{ false }}">
+<div class="overlay" onClick="{{ closeAll }}">
+<div class="modal" role="dialog" aria-label="Rechercher une commande" onClick="{{ stop }}" style="width: 560px; max-width: 100%; overflow: hidden">
+<div style="display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,.06)">
+<svg class="i" width="16" height="16" aria-hidden="true" style="color: #7C7F88"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg>
+<input autoFocus="{{ true }}" value="{{ pq }}" onChange="{{ onPq }}" placeholder="Que voulez-vous faire ?" aria-label="Commande" style="flex: 1; border: 0; outline: none; background: transparent; font: 400 15px/1 Geist, sans-serif; color: #ECECEF">
+</div>
+<div style="padding: 8px; max-height: 380px; overflow: auto">
+<sc-for list="{{ cmds }}" as="c" hint-placeholder-count="6">
+<button class="cmd rise" style="animation-delay: {{ c.delay }}" onClick="{{ c.run }}"><span class="ic"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ c.d }}"></path></svg></span><span style="flex: 1">{{ c.label }}</span><span class="muted">{{ c.group }}</span></button>
+</sc-for>
+<sc-if value="{{ noCmds }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0; padding: 14px">Aucune commande trouvée.</p></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const PARAS = [
+  [{ t: "L’exercice entamé au premier trimestre 2025 confirme une accélération marquée de l’adoption des architectures documentaires légères. La transition vers des outils à latence quasi nulle a réduit de " }, { t: "42 % le cycle de révision contractuelle", mark: true }, { t: ", plaçant l’équipe au premier rang des environnements de nouvelle génération." }],
+  [{ t: "L’intégration de modèles contextuels permet désormais l’audit sémantique automatique des annexes financières, sans exfiltration de métadonnées sensibles et avec un traitement intégralement local." }],
+  [{ t: "Les annexes techniques restent la principale source de révisions tardives ; un circuit de relecture dédié est proposé pour le prochain trimestre." }]
+];
+const QUOTE = "Revalider les annexes techniques de sécurité avant la signature du closing avec le syndicat bancaire.";
+const TOC = [
+  { t: "Rapport trimestriel Q1 2025", d: 1, p: 1 }, { t: "Résumé exécutif", d: 2, p: 2 }, { t: "Métriques clés", d: 2, p: 4 },
+  { t: "Latence de traitement", d: 3, p: 5 }, { t: "Conformité", d: 3, p: 7 }, { t: "Prochaines étapes", d: 2, p: 9 }, { t: "Annexes", d: 1, p: 11 }
+];
+const MARKS = [{ t: "Synthèse à relire", p: 2, c: "#F2B84B" }, { t: "Tableau des volumes", p: 4, c: "#6E6AF6" }, { t: "Clause de conformité", p: 7, c: "#4FCB91" }, { t: "Annexe B — sécurité", p: 12, c: "#EF6B6B" }];
+const FILES = [{ name: "Annexe A — volumes.xlsx", ext: "XLS", size: "48 Ko", c: "#4FCB91", bg: "rgba(79,203,145,.14)" }, { name: "Audit sécurité.pdf", ext: "PDF", size: "312 Ko", c: "#FF8C8C", bg: "rgba(239,107,107,.14)" }, { name: "Schéma des flux.png", ext: "PNG", size: "1,1 Mo", c: "#A9A6FF", bg: "rgba(110,106,246,.16)" }];
+const RECENTS = [{ name: "Rapport Q1 2025.pdf", when: "Maintenant", p: "2 / 14", pct: "14%" }, { name: "Contrat de licence v3.pdf", when: "Hier", p: "7 / 22", pct: "32%" }, { name: "Cahier des charges.pdf", when: "Il y a 3 j", p: "41 / 58", pct: "70%" }, { name: "Facture avril.pdf", when: "Il y a 1 sem.", p: "1 / 1", pct: "100%" }];
+const IC = {
+  file: "M4 1.5h5l3 3v10H4z M9 1.5v3h3", clock: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z M8 5v3l2 1.5", print: "M4.5 6V2.5h7V6 M4.5 11.5h-2v-5h11v5h-2 M4.5 9.5h7v4h-7z",
+  expand: "M3 6V3h3 M13 6V3h-3 M3 10v3h3 M13 10v3h-3", moon: "M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z", book: "M2 3.5h4a2 2 0 0 1 2 2v8a1.5 1.5 0 0 0-1.5-1.5H2z M14 3.5h-4a2 2 0 0 0-2 2v8a1.5 1.5 0 0 1 1.5-1.5H14z",
+  rotate: "M13 8a5 5 0 1 1-1.5-3.5 M13 2.5V5h-2.5", arrow: "M3 8h10 M9 4l4 4-4 4", check: "M3.5 8.5l3 3 6-7", resume: "M3 8a5 5 0 1 0 1.5-3.5 M3 2.5V5h2.5"
+};
+const CMDS = [
+  { label: "Ouvrir un fichier", group: "Fichier", d: IC.file, id: "open" }, { label: "Documents récents", group: "Fichier", d: IC.clock, id: "recent" },
+  { label: "Imprimer", group: "Fichier", d: IC.print, id: "print" }, { label: "Mode lecture", group: "Affichage", d: IC.expand, id: "focus" },
+  { label: "Plein écran", group: "Affichage", d: IC.expand, id: "focus" }, { label: "Mode sombre", group: "Affichage", d: IC.moon, id: "dark" },
+  { label: "Double page", group: "Affichage", d: IC.book, id: "double" }, { label: "Pivoter la vue", group: "Affichage", d: IC.rotate, id: "rot" },
+  { label: "Aller à la page 7", group: "Navigation", d: IC.arrow, id: "goto" }
+];
+const VIEWS = [{ id: "continu", label: "Continu" }, { id: "page", label: "Page" }, { id: "double", label: "Double" }];
+const PANELS = [
+  { id: "pages", name: "Miniatures", d: "M2.5 2.5h4.5v4.5H2.5z M9 2.5h4.5v4.5H9z M2.5 9h4.5v4.5H2.5z M9 9h4.5v4.5H9z" },
+  { id: "toc", name: "Table des matières", d: "M5.5 4h8 M5.5 8h8 M5.5 12h8 M2.5 4h.5 M2.5 8h.5 M2.5 12h.5" },
+  { id: "marks", name: "Signets", d: "M4 2h8v12l-4-3-4 3z" },
+  { id: "files", name: "Pièces jointes", d: "M13 7.5l-5 5a3 3 0 0 1-4.5-4.5l5.5-5.5a2 2 0 0 1 3 3L6.5 11a1 1 0 0 1-1.5-1.5L10 4.5" },
+  { id: "layers", name: "Calques", d: "M8 2l6 3-6 3-6-3z M2 8l6 3 6-3 M2 11l6 3 6-3" }
+];
+const SCALES = [{ id: "fit", label: "Ajuster", s: 1 }, { id: "real", label: "100 %", s: 0.9 }, { id: "85", label: "85 %", s: 0.78 }];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tabs: [{ name: "Rapport Q1 2025.pdf" }, { name: "Contrat de licence v3.pdf" }], tab: 0,
+      panel: "pages", page: 2, zoom: 100, view: "continu", rot: 0, q: "annexes",
+      focus: false, darkPaper: false, palette: false, pq: "", print: false, scale: "fit",
+      duplex: true, copies: 1, printing: false, printPct: 0,
+      toast: { icon: IC.resume, msg: "Reprise à la dernière page lue", btn: "Revenir au début", act: "start" },
+      layers: { annotations: true, images: true, filigrane: false }
+    };
+  }
+  componentDidMount() { this.tt = setTimeout(() => this.setState({ toast: null }), 7000); }
+  componentWillUnmount() { clearTimeout(this.tt); clearInterval(this.pi); }
+  showToast(t) { clearTimeout(this.tt); this.setState({ toast: t }); this.tt = setTimeout(() => this.setState({ toast: null }), 4000); }
+  segs(text, q, hit, base) {
+    if (!q || q.length < 2) return [{ t: text, bg: "transparent", fg: base, rbg: "transparent" }];
+    const out = []; const lo = text.toLowerCase(); const ql = q.toLowerCase(); let i = 0;
+    while (true) {
+      const j = lo.indexOf(ql, i);
+      if (j < 0) { if (i < text.length) out.push({ t: text.slice(i), bg: "transparent", fg: base, rbg: "transparent" }); break; }
+      if (j > i) out.push({ t: text.slice(i, j), bg: "transparent", fg: base, rbg: "transparent" });
+      out.push({ t: text.slice(j, j + q.length), bg: hit, fg: "#1A1B1E", rbg: "#F2C55C" }); i = j + q.length;
+    }
+    return out;
+  }
+  run(id) {
+    const s = { palette: false, pq: "" };
+    if (id === "print") setTimeout(() => window.dispatchEvent(new Event("aura:print")), 0);
+    if (id === "focus") s.focus = !this.state.focus;
+    if (id === "dark") s.darkPaper = !this.state.darkPaper;
+    if (id === "double") s.view = "double";
+    if (id === "rot") s.rot = this.state.rot + 90;
+    if (id === "goto") s.page = 7;
+    if (id === "open" || id === "recent") this.openDoc("Cahier des charges.pdf");
+    this.setState(s);
+  }
+  openDoc(name) {
+    const tabs = this.state.tabs; const i = tabs.findIndex((t) => t.name === name);
+    if (i >= 0) this.setState({ tab: i }); else this.setState({ tabs: tabs.concat([{ name }]), tab: tabs.length });
+  }
+  renderVals() {
+    const st = this.state; const q = (st.q || "").trim();
+    const dark = st.darkPaper;
+    const ink = dark ? "#DCDCD8" : "#1A1B1E";
+    const hitBg = dark ? "rgba(242,197,92,.45)" : "#F6D06B";
+    const zoomFs = 13 * st.zoom / 100;
+    const double = st.view === "double";
+    let hits = 0; const results = [];
+    const paras = PARAS.map((parts) => ({
+      parts: parts.map((p) => {
+        const segs = this.segs(p.t, q, hitBg, ink);
+        hits += segs.filter((s) => s.rbg !== "transparent").length;
+        const marked = p.mark && st.layers.annotations;
+        return { segs, bg: marked ? (dark ? "rgba(242,184,75,.25)" : "rgba(242,184,75,.35)") : "transparent" };
+      })
+    }));
+    const all = PARAS.map((parts) => parts.map((p) => p.t).join("")).concat([QUOTE]);
+    if (q.length >= 2) {
+      all.forEach((txt, pi) => {
+        const lo = txt.toLowerCase(); let j = lo.indexOf(q.toLowerCase());
+        while (j >= 0) {
+          const a = Math.max(0, j - 38); const b = Math.min(txt.length, j + q.length + 46);
+          const snip = (a > 0 ? "…" : "") + txt.slice(a, b) + (b < txt.length ? "…" : "");
+          results.push({ para: pi + 1, segs: this.segs(snip, q, hitBg, "#B9BBC2"), pick: () => this.setState({ page: 2 }), delay: results.length * 70 + "ms" });
+          j = lo.indexOf(q.toLowerCase(), j + q.length);
+        }
+      });
+    }
+    const quote = this.segs(QUOTE, q, hitBg, ink); hits += quote.filter((s) => s.rbg !== "transparent").length;
+    const vi = VIEWS.findIndex((v) => v.id === st.view);
+    const pIdx = PANELS.findIndex((p) => p.id === st.panel);
+    const si = SCALES.findIndex((s) => s.id === st.scale);
+    const pq = st.pq.trim().toLowerCase();
+    const cmds = CMDS.filter((c) => !pq || c.label.toLowerCase().includes(pq) || c.group.toLowerCase().includes(pq)).map((c, i) => ({ ...c, delay: i * 25 + "ms", run: () => this.run(c.id) }));
+    const toggleLayer = (k) => () => this.setState({ layers: { ...st.layers, [k]: !st.layers[k] } });
+    const thumbLines = [["60%", "100%", "92%", "40%"], ["45%", "100%", "96%", "88%", "70%"], ["70%", "90%", "100%", "50%"], ["55%", "100%", "84%", "92%", "30%"], ["40%", "96%", "100%", "76%"], ["65%", "100%", "90%", "60%", "88%"]];
+    const toast = st.toast;
+    return {
+      q: st.q, page: st.page, focus: st.focus, darkPaper: dark, palette: st.palette, pq: st.pq, print: st.print, copies: st.copies, printing: st.printing, printPct: st.printPct,
+      layers: st.layers, wmOn: st.layers.filigrane,
+      tabs: st.tabs.map((t, i) => ({
+        name: t.name, sel: i === st.tab ? "true" : "false",
+        bg: i === st.tab ? "#1F2026" : "transparent", color: i === st.tab ? "#ECECEF" : "#9A9DA6", dot: i === st.tab ? "#A9A6FF" : "#5E616A",
+        pick: () => this.setState({ tab: i }),
+        close: () => { const tabs = st.tabs.filter((_, k) => k !== i); this.setState({ tabs, tab: Math.max(0, Math.min(st.tab, tabs.length - 1)) }); }
+      })),
+      notFocus: !st.focus, sideCls: st.focus ? "" : "on", focusCls: st.focus ? "on" : "", darkCls: dark ? "on" : "",
+      views: VIEWS.map((v) => ({ ...v, on: v.id === st.view ? "true" : "false", pick: () => this.setState({ view: v.id }) })),
+      viewX: vi * 92,
+      panels: PANELS.map((p) => ({ ...p, on: p.id === st.panel ? "true" : "false", pick: () => this.setState({ panel: p.id }) })),
+      panelX: pIdx * 100, panelName: PANELS[pIdx].name,
+      isPages: st.panel === "pages", isToc: st.panel === "toc", isMarks: st.panel === "marks", isFiles: st.panel === "files", isLayers: st.panel === "layers",
+      thumbs: [1, 2, 3, 4, 5, 6].map((n, i) => ({
+        n, cur: n === st.page ? "true" : "false", color: n === st.page ? "#C8C6FF" : "#7C7F88", delay: i * 45 + "ms",
+        lines: thumbLines[i].map((w, k) => ({ w, c: k === 0 ? "#3A3B40" : (n === 2 && k === 2 ? "#EBCB7A" : "#D3D1C9") })),
+        pick: () => this.setState({ page: n })
+      })),
+      toc: TOC.map((t, i) => ({ ...t, pad: 10 + (t.d - 1) * 14, color: t.p === st.page ? "#fff" : (t.d === 1 ? "#ECECEF" : "#B9BBC2"), bg: t.p === st.page ? "rgba(110,106,246,.16)" : "transparent", weight: t.d === 1 ? 600 : 400, delay: i * 35 + "ms", pick: () => this.setState({ page: t.p }) })),
+      marks: MARKS.map((m, i) => ({ ...m, delay: i * 45 + "ms", pick: () => this.setState({ page: m.p }) })),
+      files: FILES.map((f, i) => ({ ...f, delay: i * 55 + "ms" })),
+      layerList: [{ k: "annotations", label: "Annotations" }, { k: "images", label: "Images et figures" }, { k: "filigrane", label: "Filigrane" }].map((l, i) => ({ label: l.label, on: st.layers[l.k] ? "true" : "false", color: st.layers[l.k] ? "#ECECEF" : "#7C7F88", toggle: toggleLayer(l.k), delay: i * 45 + "ms" })),
+      zoom: st.zoom, rot: st.rot,
+      zoomIn: () => this.setState({ zoom: Math.min(200, st.zoom + 25) }), zoomOut: () => this.setState({ zoom: Math.max(50, st.zoom - 25) }), fit: () => this.setState({ zoom: 100 }),
+      rotate: () => this.setState({ rot: st.rot + 90 }),
+      onQ: (e) => this.setState({ q: e.target.value }),
+      hitLabel: q.length >= 2 ? hits + " trouvé" + (hits > 1 ? "s" : "") : "", hitColor: hits ? "#F2C55C" : "#7C7F88",
+      toggleDark: () => this.setState({ darkPaper: !dark }), toggleFocus: () => this.setState({ focus: !st.focus }),
+      dir: double ? "row" : "column", showSecond: st.view !== "page",
+      paperW: Math.round((double ? 430 : 600) * st.zoom / 100), fs: (double ? zoomFs * 0.72 : zoomFs).toFixed(2),
+      paperBg: dark ? "#1B1C21" : "#FBFAF7", ink, meta: dark ? "#9A9DA6" : "#6B6A64", rule: dark ? "#2E3036" : "#E6E4DD", skel: dark ? "#2A2C32" : "#ECEAE4", quoteBg: dark ? "#23242A" : "#F2F0EA",
+      paras, quote,
+      bars: [38, 52, 46, 70, 64, 88].map((h, i) => ({ h: h + "%", c: i === 5 ? "#6E6AF6" : (dark ? "#3A3D45" : "#D9D6CC"), delay: 150 + i * 70 + "ms" })),
+      nextPage: Math.min(14, st.page + 1), progress: Math.round(st.page / 14 * 100),
+      prev: () => this.setState({ page: Math.max(1, st.page - 1) }), next: () => this.setState({ page: Math.min(14, st.page + 1) }),
+      searching: q.length >= 2, results, hitCount: results.length + " résultat" + (results.length > 1 ? "s" : ""), noHits: q.length >= 2 && results.length === 0,
+      recents: RECENTS.map((r) => ({ ...r, open: () => this.openDoc(r.name) })),
+      hasToast: !!toast, toastIcon: toast ? toast.icon : "", toastMsg: toast ? toast.msg : "", toastBtn: toast ? toast.btn : "",
+      toastAction: () => { if (toast && toast.act === "start") this.setState({ page: 1, toast: null }); else this.setState({ toast: null }); },
+      openPalette: () => this.setState({ palette: true, pq: "" }),
+      onPq: (e) => this.setState({ pq: e.target.value }), cmds, noCmds: cmds.length === 0,
+      openPrint: () => window.dispatchEvent(new Event("aura:print")),
+      closeAll: () => { clearInterval(this.pi); this.setState({ palette: false, print: false, printing: false, printPct: 0 }); },
+      stop: (e) => e.stopPropagation(),
+      scales: SCALES.map((s) => ({ ...s, on: s.id === st.scale ? "true" : "false", pick: () => this.setState({ scale: s.id }) })),
+      scaleX: si * 100, pScale: SCALES[si].s,
+      toggleDuplex: () => this.setState({ duplex: !st.duplex }), duplex: st.duplex ? "true" : "false", duplexOn: st.duplex,
+      sheets: (st.duplex ? 7 : 14) * st.copies,
+      copiesUp: () => this.setState({ copies: Math.min(99, st.copies + 1) }), copiesDown: () => this.setState({ copies: Math.max(1, st.copies - 1) }),
+      doPrint: () => {
+        if (st.printing) return;
+        this.setState({ printing: true, printPct: 0 });
+        this.pi = setInterval(() => {
+          const p = this.state.printPct + 8;
+          if (p >= 100) { clearInterval(this.pi); this.setState({ print: false, printing: false, printPct: 0 }); this.showToast({ icon: IC.check, msg: "Envoyé à l’imprimante" + (this.state.duplex ? " · recto verso" : ""), btn: "OK", act: "close" }); }
+          else this.setState({ printPct: p });
+        }, 90);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

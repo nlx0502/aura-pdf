@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Fusion &amp; division</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F12}
+*{box-sizing:border-box}
+a{color:#A9A6FF}a:hover{color:#C8C6FF}
+button,input{font:inherit;color:inherit}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;color:#9A9DA6;text-decoration:none;font:500 13px/1 Geist,sans-serif;transition:color .2s,background .2s;white-space:nowrap}
+.nav:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.nav[aria-current]{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.btn{appearance:none;border:0;background:#1F2026;color:#ECECEF;font:500 13px/1 Geist,sans-serif;height:34px;padding:0 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,transform .12s,color .2s,box-shadow .2s,opacity .2s;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.btn:hover{background:#282930}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.primary{background:#6E6AF6;color:#fff;box-shadow:0 8px 20px -8px rgba(110,106,246,.8)}
+.primary:hover{background:#7E7AF8}
+.ghost{background:transparent;box-shadow:none;color:#B9BBC2}
+.ghost:hover{background:rgba(255,255,255,.07);color:#fff}
+.icon{width:34px;padding:0}
+.panel{background:#16171B;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.title{font:600 14px/1.2 Geist,sans-serif;color:#ECECEF;margin:0;letter-spacing:-.01em}
+.muted{color:#9A9DA6;font:400 12.5px/1.45 Geist,sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;position:relative;background:#0E0F12;border-radius:12px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:32px;font:500 13px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg .ind{position:absolute;top:3px;left:3px;height:32px;border-radius:9px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.sw[aria-checked="true"]{background:#6E6AF6}
+.sw[aria-checked="true"]::after{transform:translateX(14px)}
+.btn:focus-visible,.nav:focus-visible,.seg button:focus-visible,.sw:focus-visible,.drop:focus-visible,.chk:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+.field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+.file{position:absolute;left:0;right:0;height:72px;display:flex;align-items:center;gap:14px;padding:0 10px 0 8px;border-radius:14px;background:#1B1C21;transition:top .45s cubic-bezier(.2,.8,.2,1),background .2s,box-shadow .3s,opacity .3s;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+.file:hover{background:#202127}
+.file .grip{color:#5E616A;cursor:grab;display:flex}
+.file:hover .grip{color:#9A9DA6}
+.drop{appearance:none;width:100%;border:1.5px dashed rgba(255,255,255,.14);background:transparent;border-radius:16px;padding:26px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;color:#9A9DA6;transition:border-color .25s,background .25s,color .25s}
+.drop:hover{border-color:#6E6AF6;background:rgba(110,106,246,.06);color:#ECECEF}
+.drop .bub{width:42px;height:42px;border-radius:21px;background:#1F2026;display:flex;align-items:center;justify-content:center;color:#A9A6FF;transition:transform .35s cubic-bezier(.3,1.6,.5,1),background .25s}
+.drop:hover .bub{transform:translateY(-4px);background:#6E6AF6;color:#fff}
+.cell{flex:1;height:44px;border-radius:6px;transition:background .4s cubic-bezier(.2,.8,.2,1),transform .3s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font:500 10.5px/1 Geist,sans-serif;color:rgba(14,15,18,.75)}
+.chk{appearance:none;width:20px;height:20px;border-radius:6px;border:0;background:#24252C;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;transition:background .2s,box-shadow .2s;padding:0;flex:none}
+.chk[aria-checked="true"]{background:#6E6AF6;box-shadow:none}
+.chk svg{transform:scale(0);transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.chk[aria-checked="true"] svg{transform:scale(1)}
+.ok{animation:popin .35s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sheen{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.rise{animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.ab-tools{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px 0 13px;border-radius:999px;border:0;background:transparent;color:#9A9DA6;font:500 13px/1 Geist,sans-serif;cursor:pointer;transition:color .2s,background .2s;white-space:nowrap}
+.ab-tools:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.ab-tools[aria-expanded="true"],.ab-tools.cur{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.ab-menu{position:absolute;top:calc(100% + 10px);left:0;width:380px;max-width:calc(100vw - 32px);padding:8px;background:rgba(26,27,32,.97);backdrop-filter:blur(20px) saturate(170%);border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px -18px rgba(0,0,0,.85);z-index:40;transform-origin:top left;animation:ab-pop .22s cubic-bezier(.2,.8,.2,1) both}
+.ab-item{display:flex;align-items:center;gap:14px;padding:10px;border-radius:11px;color:#ECECEF;text-decoration:none;border:0;background:transparent;width:100%;text-align:left;cursor:pointer;font:inherit;transition:background .15s;animation:ab-rise .32s cubic-bezier(.2,.8,.2,1) both}
+.ab-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.ab-item[aria-current]{background:rgba(110,106,246,.12)}
+.ab-item .t{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.ab-item:hover .t{transform:scale(1.08) rotate(-5deg)}
+.ab-scrim{position:absolute;inset:0;border:0;padding:0;background:transparent;z-index:30;cursor:default}
+.ab-pbtn{position:relative;display:inline-flex}
+.ab-tip{position:absolute;top:calc(100% + 8px);right:0;background:#2A2B33;color:#fff;font:500 12px/1 Geist,sans-serif;padding:7px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:45;display:flex;gap:8px;align-items:center}
+.ab-pbtn:hover .ab-tip{opacity:1;transform:none}
+.ab-kbd{font:500 11px/1 Geist,sans-serif;color:#B9BBC2;background:rgba(255,255,255,.08);padding:4px 6px;border-radius:5px;white-space:nowrap}
+.ab-ov{position:absolute;inset:0;z-index:50;background:rgba(8,9,11,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;animation:ab-fade .2s ease both}
+.ab-dlg{width:1020px;max-width:100%;height:min(800px,100%);background:#18191E;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 90px -20px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden;animation:ab-pop .3s cubic-bezier(.2,.8,.2,1) both}
+.ab-seg{display:flex;position:relative;background:#0E0F12;border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.ab-seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;flex:1;font:500 12px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;padding:0 6px;white-space:nowrap}
+.ab-seg button[aria-pressed="true"]{color:#fff}
+.ab-seg .ab-ind{position:absolute;top:3px;left:3px;height:28px;border-radius:7px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.ab-chip{appearance:none;border:0;background:#22232A;height:30px;padding:0 12px;border-radius:999px;font:500 12px/1 Geist,sans-serif;color:#B9BBC2;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.ab-chip:hover{background:#2A2B33;color:#fff}
+.ab-chip[aria-pressed="true"]{background:rgba(110,106,246,.18);color:#D2D0FF;box-shadow:inset 0 0 0 1px rgba(110,106,246,.5)}
+.ab-sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.ab-sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.ab-sw[aria-checked="true"]{background:#6E6AF6}
+.ab-sw[aria-checked="true"]::after{transform:translateX(14px)}
+.ab-field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.ab-field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+select.ab-field{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px}
+.ab-sec{display:flex;flex-direction:column;gap:10px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ab-h{font:600 13px/1.2 Geist,sans-serif;color:#ECECEF;margin:0}
+.ab-l{font:400 12.5px/1.4 Geist,sans-serif;color:#9A9DA6}
+.ab-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font:400 13px/1.3 Geist,sans-serif;color:#ECECEF}
+.ab-sheet{background:#FBFAF7;border-radius:3px;box-shadow:0 22px 50px -14px rgba(0,0,0,.75);transition:width .45s cubic-bezier(.2,.8,.2,1),height .45s cubic-bezier(.2,.8,.2,1),filter .35s;position:relative;overflow:hidden;display:grid;gap:10px;padding:14px}
+.ab-feeding{animation:ab-feed 1.1s cubic-bezier(.4,0,.2,1) infinite}
+.ab-mini{background:#fff;border-radius:2px;position:relative;overflow:hidden;min-height:0;padding:10% 9%;animation:ab-rise .35s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
+.ab-ln{height:3px;border-radius:2px;background:#D3D1C9;flex:none}
+.ab-ok{animation:ab-popin .45s cubic-bezier(.3,1.6,.5,1) both}
+.ab-tools:focus-visible,.ab-item:focus-visible,.ab-seg button:focus-visible,.ab-chip:focus-visible,.ab-sw:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+@keyframes ab-pop{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes ab-fade{from{opacity:0}to{opacity:1}}
+@keyframes ab-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ab-popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes ab-feed{0%{transform:none;opacity:1}55%{transform:translateY(-40px);opacity:0}56%{transform:translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; display: flex; flex-direction: column; background: #0E0F12; color: #ECECEF; font-family: Geist, system-ui, sans-serif; overflow: hidden">
+
+<dc-import name="AppBar" active="fusion" doc="Dossier complet.pdf" pages="23" hint-size="100%,60px"></dc-import>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 8px; min-height: 0">
+<main class="panel" style="flex: 999 1 560px; min-width: 0; overflow: auto; padding: 28px 32px 48px; background: #121317; display: flex; flex-direction: column; align-items: center">
+<div style="width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 26px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 6px"><h1 style="margin: 0; font: 600 22px/1.2 Geist, sans-serif; letter-spacing: -.03em">{{ heading }}</h1><span class="muted">{{ sub }}</span></div>
+<div class="seg" role="group" aria-label="Opération">
+<span class="ind" style="width: 120px; transform: translateX({{ tabX }}px)" aria-hidden="true"></span>
+<button style="width: 120px" aria-pressed="{{ isMergeA }}" onClick="{{ toMerge }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M3.5 2.5v2.5a3.5 3.5 0 0 0 3.5 3.5h2a3.5 3.5 0 0 0 3.5-3.5V2.5 M8 8.5v5.5"></path></svg>Fusionner</button>
+<button style="width: 120px" aria-pressed="{{ isSplitA }}" onClick="{{ toSplit }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 2v5.5 M8 7.5c0 2-4.5 2-4.5 5.5 M8 7.5c0 2 4.5 2 4.5 5.5"></path></svg>Diviser</button>
+</div>
+</div>
+
+<sc-if value="{{ isMerge }}" hint-placeholder-val="{{ true }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; height: {{ listH }}px; transition: height .4s cubic-bezier(.2,.8,.2,1)">
+<sc-for list="{{ files }}" as="f" hint-placeholder-count="3">
+<div class="file" style="top: {{ f.top }}px; box-shadow: {{ f.ring }}">
+<span class="grip" aria-hidden="true"><svg class="i" width="16" height="16"><path d="M6 4h.01 M10 4h.01 M6 8h.01 M10 8h.01 M6 12h.01 M10 12h.01" style="stroke-width: 2.4"></path></svg></span>
+<span style="width: 40px; height: 52px; border-radius: 5px; background: #F2F1ED; padding: 8px 6px; display: flex; flex-direction: column; gap: 3px; flex: none; position: relative; box-shadow: 0 6px 14px -6px rgba(0,0,0,.6)"><span style="height: 4px; width: 70%; background: {{ f.c }}; border-radius: 2px"></span><span style="height: 2px; width: 100%; background: #D3D1C9"></span><span style="height: 2px; width: 85%; background: #D3D1C9"></span><span style="height: 2px; width: 92%; background: #D3D1C9"></span><span class="tnum" style="position: absolute; bottom: -6px; right: -6px; width: 20px; height: 20px; border-radius: 10px; background: {{ f.c }}; color: #0E0F12; font: 600 10.5px/20px Geist, sans-serif; text-align: center">{{ f.pos }}</span></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px">
+<span style="font: 500 14px/1.2 Geist, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ f.name }}</span>
+<span class="muted tnum">{{ f.pages }} pages · {{ f.size }}</span>
+</span>
+<sc-if value="{{ f.done }}" hint-placeholder-val="{{ false }}"><span class="ok" style="width: 26px; height: 26px; border-radius: 13px; background: rgba(79,203,145,.18); color: #4FCB91; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" style="width: 13px; height: 13px; stroke-width: 2.2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span></sc-if>
+<sc-if value="{{ f.working }}" hint-placeholder-val="{{ false }}"><span style="width: 20px; height: 20px; border-radius: 10px; border: 2px solid rgba(110,106,246,.25); border-top-color: #6E6AF6; animation: spin .7s linear infinite"></span></sc-if>
+<sc-if value="{{ f.idle }}" hint-placeholder-val="{{ true }}">
+<span style="display: flex; gap: 2px">
+<button class="btn ghost icon" style="width: 30px; height: 30px; border-radius: 8px" onClick="{{ f.up }}" disabled="{{ f.first }}" aria-label="Monter {{ f.name }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 10l4-4 4 4"></path></svg></button>
+<button class="btn ghost icon" style="width: 30px; height: 30px; border-radius: 8px" onClick="{{ f.down }}" disabled="{{ f.last }}" aria-label="Descendre {{ f.name }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></button>
+<button class="btn ghost icon" style="width: 30px; height: 30px; border-radius: 8px" onClick="{{ f.remove }}" aria-label="Retirer {{ f.name }}"><svg class="i" width="16" height="16" style="width: 12px; height: 12px" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+</span>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<button class="drop" onClick="{{ addFile }}"><span class="bub"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 3v10 M3 8h10"></path></svg></span><span style="font: 500 14px/1.2 Geist, sans-serif">Déposez des PDF ici ou parcourez</span><span class="muted">PDF, images et documents Word sont acceptés</span></button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSplit }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; background: #1B1C21">
+<span style="width: 40px; height: 52px; border-radius: 5px; background: #F2F1ED; padding: 8px 6px; display: flex; flex-direction: column; gap: 3px; flex: none"><span style="height: 4px; width: 70%; background: #6E6AF6; border-radius: 2px"></span><span style="height: 2px; width: 100%; background: #D3D1C9"></span><span style="height: 2px; width: 85%; background: #D3D1C9"></span></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 5px"><span style="font: 500 14px/1.2 Geist, sans-serif">Rapport annuel 2025.pdf</span><span class="muted tnum">14 pages · 24,8 Mo · 4 signets</span></span>
+<button class="btn ghost">Changer</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="title" style="font-weight: 500">Méthode</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{ methods }}" as="m" hint-placeholder-count="3">
+<button class="btn" style="height: auto; padding: 14px; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; background: {{ m.bg }}; box-shadow: {{ m.ring }}; white-space: normal" aria-pressed="{{ m.on }}" onClick="{{ m.pick }}"><span style="font-weight: 600">{{ m.label }}</span><span class="muted" style="font-size: 12px">{{ m.hint }}</span></button>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{ isRanges }}" hint-placeholder-val="{{ true }}">
+<label class="rise" style="display: flex; flex-direction: column; gap: 8px"><span class="muted">Plages de pages, séparées par des virgules</span><input class="field tnum" value="{{ ranges }}" onChange="{{ onRanges }}" aria-label="Plages de pages"></label>
+</sc-if>
+<sc-if value="{{ isSize }}" hint-placeholder-val="{{ false }}">
+<label class="rise" style="display: flex; flex-direction: column; gap: 12px"><span style="display: flex; justify-content: space-between; font-size: 13px"><span style="color: #B9BBC2">Taille maximale par fichier</span><span class="tnum">{{ maxMb }} Mo</span></span><input type="range" min="3" max="25" value="{{ maxMb }}" onChange="{{ onMax }}" style="accent-color: #6E6AF6" aria-label="Taille maximale"></label>
+</sc-if>
+<sc-if value="{{ isMarks }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{ bmarks }}" as="b" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #1B1C21"><button class="chk" role="checkbox" aria-checked="{{ b.on }}" aria-label="Couper avant {{ b.t }}" onClick="{{ b.toggle }}"><svg class="i" width="16" height="16" style="width: 12px; height: 12px; stroke-width: 2.2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></button><span style="flex: 1; font-size: 13.5px">{{ b.t }}</span><span class="muted tnum">page {{ b.p }}</span></div>
+</sc-for>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between"><span class="muted">Aperçu du découpage</span><span class="muted tnum">{{ partsCount }} fichiers</span></div>
+<div style="display: flex; gap: 4px">
+<sc-for list="{{ cells }}" as="c" hint-placeholder-count="14"><span class="cell tnum" style="background: {{ c.bg }}; transition-delay: {{ c.delay }}">{{ c.n }}</span></sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</main>
+
+<aside class="panel" style="flex: 1 1 320px; max-width: 100%; padding: 22px 18px; display: flex; flex-direction: column; gap: 22px">
+<h2 class="title">Résultat</h2>
+<sc-if value="{{ isMerge }}" hint-placeholder-val="{{ true }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="padding: 14px; border-radius: 12px; background: #1B1C21; display: flex; flex-direction: column; gap: 6px"><span class="muted">Pages</span><span class="tnum" style="font: 600 22px/1 Geist, sans-serif; letter-spacing: -.02em">{{ totalPages }}</span></div>
+<div style="padding: 14px; border-radius: 12px; background: #1B1C21; display: flex; flex-direction: column; gap: 6px"><span class="muted">Taille</span><span class="tnum" style="font: 600 22px/1 Geist, sans-serif; letter-spacing: -.02em">{{ totalSize }}</span></div>
+</div>
+<label style="display: flex; flex-direction: column; gap: 8px"><span class="muted">Nom du fichier</span><input class="field" value="{{ outName }}" onChange="{{ onName }}"></label>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13.5px">Un signet par fichier</span><button class="sw" role="switch" aria-checked="{{ optMarks }}" aria-label="Un signet par fichier" onClick="{{ toggleMarks }}"></button></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13.5px">Ajouter une table des matières</span><button class="sw" role="switch" aria-checked="{{ optToc }}" aria-label="Table des matières" onClick="{{ toggleToc }}"></button></div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13.5px">Uniformiser au format A4</span><button class="sw" role="switch" aria-checked="{{ optA4 }}" aria-label="Uniformiser au format A4" onClick="{{ toggleA4 }}"></button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isSplit }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{ parts }}" as="p" hint-placeholder-count="3">
+<div class="rise" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: #1B1C21; animation-delay: {{ p.delay }}">
+<span style="width: 10px; height: 28px; border-radius: 3px; background: {{ p.c }}"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px"><span style="font: 500 13.5px/1.2 Geist, sans-serif">{{ p.name }}</span><span class="muted tnum">{{ p.range }}</span></span>
+<sc-if value="{{ p.done }}" hint-placeholder-val="{{ false }}"><span class="ok" style="color: #4FCB91"><svg class="i" width="16" height="16" style="stroke-width: 2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ badRanges }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0; color: #F2C064">Indiquez des plages valides, par exemple 1-4, 5-10.</p></sc-if>
+</div>
+</sc-if>
+
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px">
+<sc-if value="{{ running }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 8px"><span class="muted tnum">{{ runLabel }} {{ pct }} %</span><span style="position: relative; height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden"><span style="display: block; height: 100%; width: {{ pct }}%; background: #6E6AF6; border-radius: 3px; transition: width .2s linear"></span></span></div>
+</sc-if>
+<sc-if value="{{ finished }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(79,203,145,.1)">
+<span class="ok" style="width: 32px; height: 32px; border-radius: 16px; background: #4FCB91; color: #0E0F12; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" style="stroke-width: 2.2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span>
+<span style="flex: 1; font-size: 13.5px; line-height: 1.35">{{ doneMsg }}</span>
+<button class="btn ghost" style="height: 30px; color: #6FDCA8">Ouvrir</button>
+</div>
+</sc-if>
+<button class="btn primary" style="height: 44px; font-size: 14px" onClick="{{ run }}" disabled="{{ cantRun }}">{{ runBtn }}</button>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const PAL = ["#8B87FA", "#4FCB91", "#F2B84B", "#F07A9A", "#5BC0EB", "#C49BF5"];
+const EXTRA = [{ name: "Annexe juridique.pdf", pages: 6, mb: 0.7 }, { name: "Photos du chantier.pdf", pages: 9, mb: 5.2 }, { name: "Planning.pdf", pages: 2, mb: 0.3 }];
+const BMARKS = [{ t: "Introduction", p: 1 }, { t: "Métriques clés", p: 4 }, { t: "Conformité", p: 9 }, { t: "Annexes", p: 12 }];
+const N = 14, ROW = 82;
+const fmtMb = (x) => (x < 1 ? Math.round(x * 1000) + " Ko" : x.toFixed(1).replace(".", ",") + " Mo");
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tab: "merge",
+      files: [{ id: 1, name: "Dossier principal.pdf", pages: 8, mb: 1.2 }, { id: 2, name: "Annexe financière.pdf", pages: 12, mb: 4.8 }, { id: 3, name: "Devis signé.pdf", pages: 3, mb: 0.89 }],
+      order: [1, 2, 3], seq: 4, outName: "Dossier complet.pdf", optMarks: true, optToc: false, optA4: true,
+      method: "ranges", ranges: "1-4, 5-10, 11-14", maxMb: 10, cuts: [4, 9],
+      running: false, pct: 0, step: -1, finished: false
+    };
+  }
+  componentWillUnmount() { clearInterval(this.iv); }
+  splitParts() {
+    const st = this.state;
+    if (st.method === "ranges") {
+      const parts = []; let bad = false;
+      st.ranges.split(",").map((s) => s.trim()).filter(Boolean).forEach((s) => {
+        const m = s.match(/^(\d+)\s*[-–]\s*(\d+)$/) || s.match(/^(\d+)$/);
+        if (!m) { bad = true; return; }
+        const a = +m[1], b = +(m[2] || m[1]);
+        if (a < 1 || b > N || a > b) { bad = true; return; }
+        parts.push([a, b]);
+      });
+      return { parts, bad: bad || !parts.length };
+    }
+    if (st.method === "size") {
+      const per = Math.max(1, Math.floor(st.maxMb / (24.8 / N)));
+      const parts = []; for (let a = 1; a <= N; a += per) parts.push([a, Math.min(N, a + per - 1)]);
+      return { parts, bad: false };
+    }
+    const starts = [1].concat(st.cuts.slice().sort((a, b) => a - b)).filter((v, i, arr) => arr.indexOf(v) === i);
+    return { parts: starts.map((s, i) => [s, (starts[i + 1] || N + 1) - 1]), bad: false };
+  }
+  start(total, onDone) {
+    this.setState({ running: true, pct: 0, finished: false, step: 0 });
+    clearInterval(this.iv);
+    this.iv = setInterval(() => {
+      const pct = Math.min(100, this.state.pct + 4);
+      this.setState({ pct, step: Math.floor(pct / (100 / total)) });
+      if (pct >= 100) { clearInterval(this.iv); this.setState({ running: false, finished: true, step: total }); }
+    }, 70);
+  }
+  renderVals() {
+    const st = this.state;
+    const byId = {}; st.files.forEach((f) => (byId[f.id] = f));
+    const ord = st.order;
+    const files = st.files.map((f) => {
+      const i = ord.indexOf(f.id);
+      return {
+        ...f, pos: i + 1, top: i * ROW, size: fmtMb(f.mb), c: PAL[(f.id - 1) % PAL.length],
+        first: i === 0, last: i === ord.length - 1,
+        done: (st.running || st.finished) && st.tab === "merge" && i < st.step, working: st.running && st.tab === "merge" && i === st.step,
+        idle: !st.running && !(st.finished && st.tab === "merge"),
+        ring: st.running && i === st.step ? "inset 0 0 0 1.5px #6E6AF6" : "none",
+        up: () => { const o = ord.slice(); [o[i - 1], o[i]] = [o[i], o[i - 1]]; this.setState({ order: o, finished: false }); },
+        down: () => { const o = ord.slice(); [o[i + 1], o[i]] = [o[i], o[i + 1]]; this.setState({ order: o, finished: false }); },
+        remove: () => this.setState({ files: st.files.filter((x) => x.id !== f.id), order: ord.filter((x) => x !== f.id), finished: false })
+      };
+    });
+    const totalPages = st.files.reduce((s, f) => s + f.pages, 0);
+    const totalMb = st.files.reduce((s, f) => s + f.mb, 0);
+    const sp = this.splitParts();
+    const owner = {}; sp.parts.forEach((p, k) => { for (let n = p[0]; n <= p[1]; n++) if (owner[n] == null) owner[n] = k; });
+    const cells = []; for (let n = 1; n <= N; n++) cells.push({ n, bg: owner[n] != null ? PAL[owner[n] % PAL.length] : "#24252C", delay: n * 18 + "ms" });
+    const base = "Rapport annuel 2025";
+    const parts = sp.bad ? [] : sp.parts.map((p, k) => ({ name: base + " — partie " + (k + 1) + ".pdf", range: p[0] === p[1] ? "Page " + p[0] : "Pages " + p[0] + " à " + p[1], c: PAL[k % PAL.length], delay: k * 50 + "ms", done: st.finished && st.tab === "split" }));
+    const isMerge = st.tab === "merge";
+    return {
+      isMerge, isSplit: !isMerge, isMergeA: isMerge ? "true" : "false", isSplitA: isMerge ? "false" : "true", tabX: isMerge ? 0 : 120,
+      toMerge: () => this.setState({ tab: "merge", finished: false }), toSplit: () => this.setState({ tab: "split", finished: false }),
+      heading: isMerge ? "Fusionner des PDF" : "Diviser un PDF",
+      sub: isMerge ? "Réorganisez les fichiers dans l’ordre voulu, puis fusionnez-les en un seul document." : "Choisissez comment découper le document : l’aperçu se met à jour en direct.",
+      files, listH: Math.max(0, st.files.length * ROW - 10),
+      addFile: () => { const e = EXTRA[(st.seq - 4) % EXTRA.length]; const id = st.seq; this.setState({ files: st.files.concat([{ id, ...e }]), order: ord.concat([id]), seq: id + 1, finished: false }); },
+      totalPages, totalSize: fmtMb(totalMb), outName: st.outName, onName: (e) => this.setState({ outName: e.target.value }),
+      optMarks: st.optMarks ? "true" : "false", optToc: st.optToc ? "true" : "false", optA4: st.optA4 ? "true" : "false",
+      toggleMarks: () => this.setState({ optMarks: !st.optMarks }), toggleToc: () => this.setState({ optToc: !st.optToc }), toggleA4: () => this.setState({ optA4: !st.optA4 }),
+      methods: [{ id: "ranges", label: "Par pages", hint: "Plages personnalisées" }, { id: "size", label: "Par taille", hint: "Limite en Mo" }, { id: "marks", label: "Par signets", hint: "Un fichier par chapitre" }].map((m) => ({ ...m, on: m.id === st.method ? "true" : "false", bg: m.id === st.method ? "rgba(110,106,246,.14)" : "#1B1C21", ring: m.id === st.method ? "inset 0 0 0 1.5px #6E6AF6" : "inset 0 0 0 1px rgba(255,255,255,.05)", pick: () => this.setState({ method: m.id, finished: false }) })),
+      isRanges: st.method === "ranges", isSize: st.method === "size", isMarks: st.method === "marks",
+      ranges: st.ranges, onRanges: (e) => this.setState({ ranges: e.target.value, finished: false }),
+      maxMb: st.maxMb, onMax: (e) => this.setState({ maxMb: +e.target.value, finished: false }),
+      bmarks: BMARKS.map((b) => ({ ...b, on: b.p === 1 || st.cuts.includes(b.p) ? "true" : "false", toggle: () => { if (b.p === 1) return; this.setState({ cuts: st.cuts.includes(b.p) ? st.cuts.filter((x) => x !== b.p) : st.cuts.concat([b.p]), finished: false }); } })),
+      cells, parts, partsCount: parts.length, badRanges: sp.bad,
+      running: st.running, pct: st.pct, finished: st.finished,
+      runLabel: isMerge ? "Fusion en cours…" : "Découpage en cours…",
+      doneMsg: isMerge ? st.outName + " est prêt — " + totalPages + " pages." : parts.length + " fichiers créés dans le dossier du document.",
+      runBtn: st.running ? "Traitement…" : (isMerge ? "Fusionner " + st.files.length + " fichiers" : "Diviser en " + parts.length + " fichiers"),
+      cantRun: st.running || (isMerge ? st.files.length < 2 : parts.length < 1),
+      run: () => this.start(isMerge ? st.files.length : parts.length)
+    };
+  }
+}
+</script>
+</body>
+</html>

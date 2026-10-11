@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Signature</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Caveat:wght@500&amp;family=Homemade+Apple&amp;family=Mrs+Saint+Delafield&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F12}
+*{box-sizing:border-box}
+a{color:#A9A6FF}a:hover{color:#C8C6FF}
+button,input{font:inherit;color:inherit}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;color:#9A9DA6;text-decoration:none;font:500 13px/1 Geist,sans-serif;transition:color .2s,background .2s;white-space:nowrap}
+.nav:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.nav[aria-current]{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.btn{appearance:none;border:0;background:#1F2026;color:#ECECEF;font:500 13px/1 Geist,sans-serif;height:34px;padding:0 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,transform .12s,color .2s,box-shadow .2s,opacity .2s;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.btn:hover{background:#282930}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.primary{background:#6E6AF6;color:#fff;box-shadow:0 8px 20px -8px rgba(110,106,246,.8)}
+.primary:hover{background:#7E7AF8}
+.ghost{background:transparent;box-shadow:none;color:#B9BBC2}
+.ghost:hover{background:rgba(255,255,255,.07);color:#fff}
+.panel{background:#16171B;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.title{font:600 14px/1.2 Geist,sans-serif;color:#ECECEF;margin:0;letter-spacing:-.01em}
+.muted{color:#9A9DA6;font:400 12.5px/1.45 Geist,sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
+.seg{display:flex;position:relative;background:#0E0F12;border-radius:11px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:30px;flex:1;font:500 12.5px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg .ind{position:absolute;top:3px;left:3px;height:30px;width:calc((100% - 6px) / 3);border-radius:8px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.sw[aria-checked="true"]{background:#6E6AF6}
+.sw[aria-checked="true"]::after{transform:translateX(14px)}
+.btn:focus-visible,.nav:focus-visible,.seg button:focus-visible,.sw:focus-visible,.font:focus-visible,.slot:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+.field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+.pad{position:relative;background:#FBFAF7;border-radius:12px;height:150px;overflow:hidden;cursor:crosshair;touch-action:none}
+.draw{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:900;stroke-dashoffset:900;animation:draw 1.6s cubic-bezier(.45,0,.2,1) forwards}
+.font{appearance:none;border:0;background:#FBFAF7;color:#1F2A6B;border-radius:12px;height:62px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;transition:box-shadow .2s,transform .2s;padding:0 10px;overflow:hidden;white-space:nowrap}
+.font:hover{transform:translateY(-2px)}
+.font[aria-pressed="true"]{box-shadow:0 0 0 2px #16171B,0 0 0 4px #6E6AF6}
+.paper{background:#FBFAF7;color:#1A1B1E;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 30px 60px -20px rgba(0,0,0,.7);position:relative}
+.slot{appearance:none;width:100%;height:96px;border-radius:10px;border:1.5px dashed #6E6AF6;background:rgba(110,106,246,.06);color:#4B47D6;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font:500 13px/1 Geist,sans-serif;transition:background .25s,transform .2s;animation:breathe 2.4s ease-in-out infinite}
+.slot:hover{background:rgba(110,106,246,.12)}
+.step{display:flex;align-items:center;gap:12px;font:400 13px/1.3 Geist,sans-serif;transition:color .3s,opacity .3s}
+.ok{animation:popin .4s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(110,106,246,0)}50%{box-shadow:0 0 0 6px rgba(110,106,246,.12)}}
+@keyframes ink{from{opacity:0;filter:blur(3px);transform:translateY(4px)}to{opacity:1;filter:none;transform:none}}
+.rise{animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.ab-tools{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px 0 13px;border-radius:999px;border:0;background:transparent;color:#9A9DA6;font:500 13px/1 Geist,sans-serif;cursor:pointer;transition:color .2s,background .2s;white-space:nowrap}
+.ab-tools:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.ab-tools[aria-expanded="true"],.ab-tools.cur{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.ab-menu{position:absolute;top:calc(100% + 10px);left:0;width:380px;max-width:calc(100vw - 32px);padding:8px;background:rgba(26,27,32,.97);backdrop-filter:blur(20px) saturate(170%);border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px -18px rgba(0,0,0,.85);z-index:40;transform-origin:top left;animation:ab-pop .22s cubic-bezier(.2,.8,.2,1) both}
+.ab-item{display:flex;align-items:center;gap:14px;padding:10px;border-radius:11px;color:#ECECEF;text-decoration:none;border:0;background:transparent;width:100%;text-align:left;cursor:pointer;font:inherit;transition:background .15s;animation:ab-rise .32s cubic-bezier(.2,.8,.2,1) both}
+.ab-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.ab-item[aria-current]{background:rgba(110,106,246,.12)}
+.ab-item .t{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.ab-item:hover .t{transform:scale(1.08) rotate(-5deg)}
+.ab-scrim{position:absolute;inset:0;border:0;padding:0;background:transparent;z-index:30;cursor:default}
+.ab-pbtn{position:relative;display:inline-flex}
+.ab-tip{position:absolute;top:calc(100% + 8px);right:0;background:#2A2B33;color:#fff;font:500 12px/1 Geist,sans-serif;padding:7px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:45;display:flex;gap:8px;align-items:center}
+.ab-pbtn:hover .ab-tip{opacity:1;transform:none}
+.ab-kbd{font:500 11px/1 Geist,sans-serif;color:#B9BBC2;background:rgba(255,255,255,.08);padding:4px 6px;border-radius:5px;white-space:nowrap}
+.ab-ov{position:absolute;inset:0;z-index:50;background:rgba(8,9,11,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;animation:ab-fade .2s ease both}
+.ab-dlg{width:1020px;max-width:100%;height:min(800px,100%);background:#18191E;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 90px -20px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden;animation:ab-pop .3s cubic-bezier(.2,.8,.2,1) both}
+.ab-seg{display:flex;position:relative;background:#0E0F12;border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.ab-seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;flex:1;font:500 12px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;padding:0 6px;white-space:nowrap}
+.ab-seg button[aria-pressed="true"]{color:#fff}
+.ab-seg .ab-ind{position:absolute;top:3px;left:3px;height:28px;border-radius:7px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.ab-chip{appearance:none;border:0;background:#22232A;height:30px;padding:0 12px;border-radius:999px;font:500 12px/1 Geist,sans-serif;color:#B9BBC2;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.ab-chip:hover{background:#2A2B33;color:#fff}
+.ab-chip[aria-pressed="true"]{background:rgba(110,106,246,.18);color:#D2D0FF;box-shadow:inset 0 0 0 1px rgba(110,106,246,.5)}
+.ab-sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.ab-sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.ab-sw[aria-checked="true"]{background:#6E6AF6}
+.ab-sw[aria-checked="true"]::after{transform:translateX(14px)}
+.ab-field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.ab-field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+select.ab-field{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px}
+.ab-sec{display:flex;flex-direction:column;gap:10px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ab-h{font:600 13px/1.2 Geist,sans-serif;color:#ECECEF;margin:0}
+.ab-l{font:400 12.5px/1.4 Geist,sans-serif;color:#9A9DA6}
+.ab-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font:400 13px/1.3 Geist,sans-serif;color:#ECECEF}
+.ab-sheet{background:#FBFAF7;border-radius:3px;box-shadow:0 22px 50px -14px rgba(0,0,0,.75);transition:width .45s cubic-bezier(.2,.8,.2,1),height .45s cubic-bezier(.2,.8,.2,1),filter .35s;position:relative;overflow:hidden;display:grid;gap:10px;padding:14px}
+.ab-feeding{animation:ab-feed 1.1s cubic-bezier(.4,0,.2,1) infinite}
+.ab-mini{background:#fff;border-radius:2px;position:relative;overflow:hidden;min-height:0;padding:10% 9%;animation:ab-rise .35s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
+.ab-ln{height:3px;border-radius:2px;background:#D3D1C9;flex:none}
+.ab-ok{animation:ab-popin .45s cubic-bezier(.3,1.6,.5,1) both}
+.ab-tools:focus-visible,.ab-item:focus-visible,.ab-seg button:focus-visible,.ab-chip:focus-visible,.ab-sw:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+@keyframes ab-pop{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes ab-fade{from{opacity:0}to{opacity:1}}
+@keyframes ab-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ab-popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes ab-feed{0%{transform:none;opacity:1}55%{transform:translateY(-40px);opacity:0}56%{transform:translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; display: flex; flex-direction: column; background: #0E0F12; color: #ECECEF; font-family: Geist, system-ui, sans-serif; overflow: hidden">
+
+<dc-import name="AppBar" active="signer" doc="Accord de consortium.pdf" pages="12" hint-size="100%,60px"></dc-import>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 8px; min-height: 0">
+
+<main class="panel" style="flex: 999 1 560px; min-width: 0; overflow: auto; background: #121317; padding: 22px 24px 48px; display: flex; flex-direction: column; align-items: center; gap: 18px">
+<div style="width: 640px; max-width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: {{ bannerBg }}; transition: background .4s">
+<span style="width: 32px; height: 32px; border-radius: 16px; background: {{ bannerIconBg }}; color: {{ bannerFg }}; display: flex; align-items: center; justify-content: center; transition: background .4s, color .4s"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ bannerIcon }}"></path></svg></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 3px"><span style="font: 500 13.5px/1.2 Geist, sans-serif">{{ bannerTitle }}</span><span class="muted">{{ bannerSub }}</span></span>
+<span class="tnum" style="font: 500 12.5px/1 Geist, sans-serif; color: #B9BBC2">{{ signedCount }} / 2 signatures</span>
+</div>
+
+<article class="paper" style="width: 640px; max-width: 100%; padding: 60px 64px 56px; font-size: 14px; flex: none">
+<div style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6A64; margin-bottom: 36px"><span>Réf. EIDAS-2025-FR-88942</span><span>Page 12 sur 12</span></div>
+<p style="margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6E6AF6">Accord de consortium</p>
+<h1 style="margin: 0; font: 600 25px/1.2 Geist, sans-serif; letter-spacing: -.03em">Engagement de confidentialité</h1>
+<div style="height: 1px; background: #E6E4DD; margin: 26px 0"></div>
+<h2 style="margin: 0 0 8px; font: 600 15px/1.3 Geist, sans-serif">Article 12 — Entrée en vigueur</h2>
+<p style="margin: 0 0 14px; line-height: 1.75; color: #3A3B40">Le présent accord entre en vigueur à la date de la dernière signature. Conformément au règlement (UE) n° 910/2014, la signature électronique qualifiée apposée par chaque partie a la même valeur qu’une signature manuscrite.</p>
+<p style="margin: 0 0 30px; line-height: 1.75; color: #3A3B40">Toute modification du document après signature invalide automatiquement les sceaux électroniques.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; color: #6B6A64">Pour la société A</span>
+<div style="height: 96px; border-radius: 10px; background: #F2F0EA; display: flex; align-items: center; justify-content: center; position: relative"><span style="font: 400 30px/1 'Mrs Saint Delafield', cursive; color: #1F2A6B">M. de Valombreuse</span><span style="position: absolute; right: 8px; bottom: 8px; width: 20px; height: 20px; border-radius: 10px; background: #1F9D6A; color: #fff; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" style="width: 11px; height: 11px; stroke-width: 2.4" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span></div>
+<span style="font-size: 12.5px; line-height: 1.45"><b style="font-weight: 600">Marc de Valombreuse</b><br><span style="color: #6B6A64">Signé le 12 février 2025</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; color: #6B6A64">Pour la société B</span>
+<sc-if value="{{ notSigned }}" hint-placeholder-val="{{ true }}">
+<button class="slot" onClick="{{ sign }}" disabled="{{ busy }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2 11.5c2-3 3.5-7 5-7s-1 7 1 7 2.5-3 3.5-3 1 2 2.5 2 M2 14h12"></path></svg>Cliquez pour signer</button>
+</sc-if>
+<sc-if value="{{ signed }}" hint-placeholder-val="{{ false }}">
+<div style="height: 96px; border-radius: 10px; background: #F2F0EA; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden">
+<sc-if value="{{ isDraw }}" hint-placeholder-val="{{ false }}"><svg width="290" height="150" aria-hidden="true" style="transform: scale(.52); transform-origin: center"><path d="{{ pathD }}" class="draw" style="stroke: #1F2A6B; stroke-width: 3.2; animation-duration: 1.2s"></path></svg></sc-if>
+<sc-if value="{{ isType }}" hint-placeholder-val="{{ false }}"><span style="font: {{ fontCss }}; color: #1F2A6B; animation: ink .8s cubic-bezier(.2,.8,.2,1) both">{{ typed }}</span></sc-if>
+<sc-if value="{{ isImport }}" hint-placeholder-val="{{ false }}"><span style="font: 400 30px/1 'Homemade Apple', cursive; color: #1F2A6B; animation: ink .8s cubic-bezier(.2,.8,.2,1) both">J. Martin</span></sc-if>
+<span class="ok" style="position: absolute; right: 8px; bottom: 8px; width: 20px; height: 20px; border-radius: 10px; background: #1F9D6A; color: #fff; display: flex; align-items: center; justify-content: center; animation-delay: .9s"><svg class="i" width="16" height="16" style="width: 11px; height: 11px; stroke-width: 2.4" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span>
+</div>
+</sc-if>
+<span style="font-size: 12.5px; line-height: 1.45"><b style="font-weight: 600">{{ typed }}</b><br><span style="color: #6B6A64">{{ myStatus }}</span></span>
+</div>
+</div>
+</article>
+</main>
+
+<aside class="panel" style="flex: 1 1 340px; max-width: 100%; padding: 20px 18px; display: flex; flex-direction: column; gap: 24px">
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 class="title">Votre signature</h2>
+<div class="seg" role="group" aria-label="Type de signature">
+<span class="ind" style="transform: translateX({{ modeX }}%)" aria-hidden="true"></span>
+<sc-for list="{{ modes }}" as="m" hint-placeholder-count="3"><button aria-pressed="{{ m.on }}" onClick="{{ m.pick }}">{{ m.label }}</button></sc-for>
+</div>
+<sc-if value="{{ isDraw }}" hint-placeholder-val="{{ true }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 8px">
+<div class="pad">
+<svg width="100%" height="150" onPointerDown="{{ down }}" onPointerMove="{{ move }}" onPointerUp="{{ up }}" onPointerLeave="{{ up }}" role="img" aria-label="Zone de dessin de la signature" style="display: block">
+<path d="M20 118 H 270" style="stroke: #D3D1C9; stroke-width: 1; stroke-dasharray: 4 5; fill: none"></path>
+<sc-if value="{{ demo }}" hint-placeholder-val="{{ true }}"><path d="{{ demoD }}" class="draw" style="stroke: #1F2A6B; stroke-width: 2.6"></path></sc-if>
+<path d="{{ userD }}" style="fill: none; stroke: #1F2A6B; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round"></path>
+</svg>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center"><span class="muted">Dessinez avec la souris, le trackpad ou un stylet</span><button class="btn ghost" style="height: 30px; padding: 0 10px" onClick="{{ clear }}">Effacer</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isType }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 10px">
+<input class="field" value="{{ typed }}" onChange="{{ onTyped }}" aria-label="Nom à signer">
+<div style="display: grid; gap: 8px">
+<sc-for list="{{ fonts }}" as="f" hint-placeholder-count="3"><button class="font" style="font: {{ f.css }}" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}" aria-label="Style {{ f.name }}">{{ typed }}</button></sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ isImport }}" hint-placeholder-val="{{ false }}">
+<button class="btn rise" style="height: 150px; flex-direction: column; gap: 10px; border-radius: 12px; background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.14)"><span style="width: 40px; height: 40px; border-radius: 20px; background: #1F2026; color: #A9A6FF; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11z M2.5 10.5l3-3 3 3 2-2 3 3"></path></svg></span><span>Importer une image</span><span class="muted">PNG transparent recommandé</span></button>
+</sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 class="title">Signature numérique</h2><button class="sw" role="switch" aria-checked="{{ certOnS }}" aria-label="Signer avec un certificat" onClick="{{ toggleCert }}"></button></div>
+<sc-if value="{{ certOn }}" hint-placeholder-val="{{ true }}">
+<div class="rise" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #1C1D22">
+<span style="width: 36px; height: 36px; border-radius: 10px; background: rgba(79,203,145,.14); color: #4FCB91; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 1.5l5 2v4c0 3.2-2.2 5.6-5 7-2.8-1.4-5-3.8-5-7v-4z M5.8 8l1.6 1.6 3-3.2"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font: 500 13px/1.2 Geist, sans-serif">julien-martin.p12</span><span class="muted">Autorité : CertEurope · valide jusqu’en 2027</span></span>
+<button class="btn ghost" style="height: 30px; padding: 0 10px">Changer</button>
+</div>
+<input class="field" type="password" value="motdepasse" aria-label="Mot de passe du certificat">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #B9BBC2">Horodatage qualifié</span><button class="sw" role="switch" aria-checked="{{ tsaS }}" aria-label="Horodatage qualifié" onClick="{{ toggleTsa }}"></button></div>
+</div>
+</sc-if>
+</section>
+
+<sc-if value="{{ showSteps }}" hint-placeholder-val="{{ false }}">
+<section class="rise" style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 12px; background: #1C1D22">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+<div class="step" style="color: {{ s.color }}">
+<sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><span class="ok" style="width: 20px; height: 20px; border-radius: 10px; background: #4FCB91; color: #0E0F12; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" style="width: 11px; height: 11px; stroke-width: 2.6" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span></sc-if>
+<sc-if value="{{ s.active }}" hint-placeholder-val="{{ false }}"><span style="width: 20px; height: 20px; border-radius: 10px; border: 2px solid rgba(110,106,246,.25); border-top-color: #6E6AF6; animation: spin .7s linear infinite"></span></sc-if>
+<sc-if value="{{ s.todo }}" hint-placeholder-val="{{ true }}"><span style="width: 20px; height: 20px; border-radius: 10px; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.15)"></span></sc-if>
+{{ s.label }}
+</div>
+</sc-for>
+</section>
+</sc-if>
+
+<button class="btn primary" style="height: 44px; font-size: 14px" onClick="{{ sign }}" disabled="{{ busyOrSigned }}">{{ signBtn }}</button>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 class="title">Signatures du document</h2><button class="btn ghost" style="height: 30px; padding: 0 10px" onClick="{{ verify }}">{{ verifyLabel }}</button></div>
+<sc-for list="{{ sigs }}" as="g" hint-placeholder-count="2">
+<div class="rise" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: #1C1D22">
+<span style="width: 30px; height: 30px; border-radius: 15px; background: {{ g.bg }}; color: {{ g.fg }}; display: flex; align-items: center; justify-content: center; transition: background .3s, color .3s"><sc-if value="{{ g.checking }}" hint-placeholder-val="{{ false }}"><span style="width: 14px; height: 14px; border-radius: 7px; border: 2px solid rgba(255,255,255,.2); border-top-color: #fff; animation: spin .7s linear infinite"></span></sc-if><sc-if value="{{ g.ready }}" hint-placeholder-val="{{ true }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ g.d }}"></path></svg></sc-if></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font: 500 13px/1.2 Geist, sans-serif">{{ g.who }}</span><span class="muted">{{ g.detail }}</span></span>
+<span style="font: 500 11.5px/1 Geist, sans-serif; color: {{ g.fg }}; background: {{ g.bg }}; padding: 5px 8px; border-radius: 999px">{{ g.status }}</span>
+</div>
+</sc-for>
+</section>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const DEMO = "M28 104 C 40 60, 52 30, 62 34 C 72 40, 50 100, 60 104 C 72 108, 82 64, 92 66 C 100 68, 94 98, 104 98 C 116 98, 120 70, 130 72 C 138 74, 134 96, 144 96 C 158 96, 166 60, 176 62 C 186 64, 178 100, 192 98 C 210 94, 230 80, 262 84";
+const FONTS = [{ name: "Caveat", css: "500 34px/1 Caveat, cursive" }, { name: "Homemade Apple", css: "400 22px/1 'Homemade Apple', cursive" }, { name: "Mrs Saint Delafield", css: "400 38px/1 'Mrs Saint Delafield', cursive" }];
+const STEPS = ["Lecture du certificat", "Calcul de l’empreinte SHA-256", "Horodatage qualifié", "Intégration au PDF"];
+const D_OK = "M3.5 8.5l3 3 6-7", D_PEN = "M2 11.5c2-3 3.5-7 5-7s-1 7 1 7 2.5-3 3.5-3 1 2 2.5 2", D_WARN = "M8 2.5l6 11H2z M8 7v3 M8 12h.01";
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: "draw", strokes: [], drawing: false, demo: true, typed: "Julien Martin", font: 0, certOn: true, tsa: true, step: -1, signed: false, verifying: false, verified: false };
+  }
+  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.vt); }
+  pt(e) { const el = e.currentTarget; const r = el.getBoundingClientRect(); const sx = r.width / (el.clientWidth || r.width) || 1; return [Math.round((e.clientX - r.left) / sx), Math.round((e.clientY - r.top) / sx)]; }
+  renderVals() {
+    const st = this.state;
+    const userD = st.strokes.map((s) => s.length ? "M" + s.map((p) => p[0] + " " + p[1]).join(" L ") : "").join(" ");
+    const busy = st.step >= 0 && !st.signed;
+    const steps = (st.certOn ? STEPS : ["Préparation", "Intégration au PDF"]).filter((s) => st.tsa || s !== "Horodatage qualifié");
+    const mi = ["draw", "type", "import"].indexOf(st.mode);
+    const okCert = st.verified || !st.verifying;
+    const sigs = [
+      { who: "Marc de Valombreuse", detail: "CertEurope · 12 fév. 2025", status: st.verifying ? "Vérification…" : "Valide", bg: "rgba(79,203,145,.16)", fg: "#4FCB91", d: D_OK },
+      st.signed
+        ? { who: st.typed, detail: st.certOn ? "Certificat .p12 · à l’instant" : "Signature manuscrite · à l’instant", status: st.verifying ? "Vérification…" : (st.certOn ? "Valide" : "Non certifiée"), bg: st.certOn ? "rgba(79,203,145,.16)" : "rgba(242,184,75,.16)", fg: st.certOn ? "#4FCB91" : "#F2C064", d: st.certOn ? D_OK : D_WARN }
+        : { who: st.typed, detail: "En attente de signature", status: "En attente", bg: "rgba(110,106,246,.16)", fg: "#A9A6FF", d: D_PEN }
+    ].map((g) => ({ ...g, checking: st.verifying, ready: !st.verifying }));
+    return {
+      modes: [{ id: "draw", label: "Dessiner" }, { id: "type", label: "Taper" }, { id: "import", label: "Importer" }].map((m) => ({ ...m, on: m.id === st.mode ? "true" : "false", pick: () => this.setState({ mode: m.id }) })),
+      modeX: mi * 100, isDraw: st.mode === "draw", isType: st.mode === "type", isImport: st.mode === "import",
+      demo: st.demo && !st.strokes.length, demoD: DEMO, userD: userD || "M0 0",
+      down: (e) => { const p = this.pt(e); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} this.setState({ drawing: true, demo: false, strokes: st.strokes.concat([[p]]) }); },
+      move: (e) => { if (!this.state.drawing) return; const p = this.pt(e); const s = this.state.strokes.slice(); s[s.length - 1] = s[s.length - 1].concat([p]); this.setState({ strokes: s }); },
+      up: () => { if (this.state.drawing) this.setState({ drawing: false }); },
+      clear: () => this.setState({ strokes: [], demo: false }),
+      pathD: userD || DEMO,
+      typed: st.typed, onTyped: (e) => this.setState({ typed: e.target.value || " " }),
+      fonts: FONTS.map((f, i) => ({ ...f, on: i === st.font ? "true" : "false", pick: () => this.setState({ font: i }) })),
+      fontCss: FONTS[st.font].css,
+      certOn: st.certOn, certOnS: st.certOn ? "true" : "false", toggleCert: () => this.setState({ certOn: !st.certOn }),
+      tsaS: st.tsa ? "true" : "false", toggleTsa: () => this.setState({ tsa: !st.tsa }),
+      showSteps: st.step >= 0,
+      steps: steps.map((s, i) => ({ label: s, done: i < st.step || st.signed, active: i === st.step && !st.signed, todo: i > st.step && !st.signed, color: i <= st.step || st.signed ? "#ECECEF" : "#7C7F88" })),
+      busy, busyOrSigned: busy || st.signed,
+      signBtn: st.signed ? "Document signé" : (busy ? "Signature en cours…" : "Signer le document"),
+      sign: () => {
+        if (busy || st.signed) return;
+        this.setState({ step: 0 });
+        clearInterval(this.iv);
+        this.iv = setInterval(() => {
+          const n = this.state.step + 1;
+          if (n >= steps.length) { clearInterval(this.iv); this.setState({ step: n, signed: true }); }
+          else this.setState({ step: n });
+        }, 650);
+      },
+      signed: st.signed, notSigned: !st.signed, signedCount: st.signed ? 2 : 1,
+      myStatus: st.signed ? "Signé à l’instant" : "Signature requise",
+      bannerBg: st.signed ? "rgba(79,203,145,.1)" : "rgba(110,106,246,.1)", bannerIconBg: st.signed ? "#4FCB91" : "rgba(110,106,246,.2)", bannerFg: st.signed ? "#0E0F12" : "#A9A6FF",
+      bannerIcon: st.signed ? D_OK : D_PEN,
+      bannerTitle: st.signed ? "Toutes les signatures sont valides" : "Votre signature est requise",
+      bannerSub: st.signed ? "Le document est verrouillé contre toute modification." : "Une partie a déjà signé ce document.",
+      sigs, verifyLabel: st.verifying ? "Vérification…" : "Vérifier",
+      verify: () => { if (st.verifying) return; this.setState({ verifying: true }); this.vt = setTimeout(() => this.setState({ verifying: false, verified: true }), 1400); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Fins de ligne LF dans le dépôt ; fichiers binaires jamais convertis.
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.dll binary
+*.woff2 binary

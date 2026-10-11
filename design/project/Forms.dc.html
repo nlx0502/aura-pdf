@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Formulaires</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F12}
+*{box-sizing:border-box}
+a{color:#A9A6FF}a:hover{color:#C8C6FF}
+button,input,select{font:inherit;color:inherit}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;color:#9A9DA6;text-decoration:none;font:500 13px/1 Geist,sans-serif;transition:color .2s,background .2s;white-space:nowrap}
+.nav:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.nav[aria-current]{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.btn{appearance:none;border:0;background:#1F2026;color:#ECECEF;font:500 13px/1 Geist,sans-serif;height:34px;padding:0 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,transform .12s,color .2s,box-shadow .2s,opacity .2s;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.btn:hover{background:#282930}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.primary{background:#6E6AF6;color:#fff;box-shadow:0 8px 20px -8px rgba(110,106,246,.8)}
+.primary:hover{background:#7E7AF8}
+.ghost{background:transparent;box-shadow:none;color:#B9BBC2}
+.ghost:hover{background:rgba(255,255,255,.07);color:#fff}
+.panel{background:#16171B;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.title{font:600 14px/1.2 Geist,sans-serif;color:#ECECEF;margin:0;letter-spacing:-.01em}
+.muted{color:#9A9DA6;font:400 12.5px/1.45 Geist,sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
+.sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.sw[aria-checked="true"]{background:#6E6AF6}
+.sw[aria-checked="true"]::after{transform:translateX(14px)}
+.btn:focus-visible,.nav:focus-visible,.sw:focus-visible,.frow:focus-visible,.tile:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+.field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+.frow{appearance:none;border:0;background:transparent;width:100%;display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;cursor:pointer;text-align:left;transition:background .2s;animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.frow:hover{background:rgba(255,255,255,.04)}
+.frow[aria-current="true"]{background:rgba(110,106,246,.14)}
+.tile{appearance:none;border:0;background:#1C1D22;border-radius:12px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font:500 12px/1.2 Geist,sans-serif;color:#B9BBC2;transition:background .2s,color .2s,transform .2s}
+.tile:hover{background:#24252C;color:#fff;transform:translateY(-2px)}
+.tile .ic{width:32px;height:32px;border-radius:10px;background:#24252C;display:flex;align-items:center;justify-content:center;color:#A9A6FF;transition:background .2s,color .2s}
+.tile:hover .ic{background:#6E6AF6;color:#fff}
+.paper{background:#FBFAF7;color:#1A1B1E;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 30px 60px -20px rgba(0,0,0,.7);position:relative}
+.pf{display:flex;flex-direction:column;gap:7px;padding:10px;margin:0 -10px;border-radius:10px;transition:background .3s,box-shadow .3s;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+.pin{width:100%;height:40px;border-radius:8px;border:1px solid #DAD8D0;background:#fff;padding:0 12px;font:400 14px/1 Geist,sans-serif;color:#1A1B1E;outline:none;transition:border-color .2s,box-shadow .2s}
+.pin:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.15)}
+.cb{appearance:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #C9C7BE;background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:background .2s,border-color .2s;padding:0;flex:none}
+.cb[aria-checked="true"]{background:#6E6AF6;border-color:#6E6AF6}
+.cb svg{transform:scale(0);transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.cb[aria-checked="true"] svg{transform:scale(1)}
+.rad{appearance:none;height:36px;padding:0 14px;border-radius:999px;border:1px solid #DAD8D0;background:#fff;font:500 13px/1 Geist,sans-serif;color:#3A3B40;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.rad[aria-checked="true"]{background:#6E6AF6;border-color:#6E6AF6;color:#fff}
+.flat{font:500 14px/1.4 Geist,sans-serif;color:#1A1B1E;padding:9px 0;border-bottom:1px solid #E6E4DD;animation:flash .9s ease both}
+.ok{animation:popin .4s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes flash{0%{background:rgba(110,106,246,.25)}100%{background:transparent}}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(110,106,246,.45)}100%{box-shadow:0 0 0 10px rgba(110,106,246,0)}}
+.rise{animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.ab-tools{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px 0 13px;border-radius:999px;border:0;background:transparent;color:#9A9DA6;font:500 13px/1 Geist,sans-serif;cursor:pointer;transition:color .2s,background .2s;white-space:nowrap}
+.ab-tools:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.ab-tools[aria-expanded="true"],.ab-tools.cur{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.ab-menu{position:absolute;top:calc(100% + 10px);left:0;width:380px;max-width:calc(100vw - 32px);padding:8px;background:rgba(26,27,32,.97);backdrop-filter:blur(20px) saturate(170%);border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px -18px rgba(0,0,0,.85);z-index:40;transform-origin:top left;animation:ab-pop .22s cubic-bezier(.2,.8,.2,1) both}
+.ab-item{display:flex;align-items:center;gap:14px;padding:10px;border-radius:11px;color:#ECECEF;text-decoration:none;border:0;background:transparent;width:100%;text-align:left;cursor:pointer;font:inherit;transition:background .15s;animation:ab-rise .32s cubic-bezier(.2,.8,.2,1) both}
+.ab-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.ab-item[aria-current]{background:rgba(110,106,246,.12)}
+.ab-item .t{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.ab-item:hover .t{transform:scale(1.08) rotate(-5deg)}
+.ab-scrim{position:absolute;inset:0;border:0;padding:0;background:transparent;z-index:30;cursor:default}
+.ab-pbtn{position:relative;display:inline-flex}
+.ab-tip{position:absolute;top:calc(100% + 8px);right:0;background:#2A2B33;color:#fff;font:500 12px/1 Geist,sans-serif;padding:7px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:45;display:flex;gap:8px;align-items:center}
+.ab-pbtn:hover .ab-tip{opacity:1;transform:none}
+.ab-kbd{font:500 11px/1 Geist,sans-serif;color:#B9BBC2;background:rgba(255,255,255,.08);padding:4px 6px;border-radius:5px;white-space:nowrap}
+.ab-ov{position:absolute;inset:0;z-index:50;background:rgba(8,9,11,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;animation:ab-fade .2s ease both}
+.ab-dlg{width:1020px;max-width:100%;height:min(800px,100%);background:#18191E;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 90px -20px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden;animation:ab-pop .3s cubic-bezier(.2,.8,.2,1) both}
+.ab-seg{display:flex;position:relative;background:#0E0F12;border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.ab-seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;flex:1;font:500 12px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;padding:0 6px;white-space:nowrap}
+.ab-seg button[aria-pressed="true"]{color:#fff}
+.ab-seg .ab-ind{position:absolute;top:3px;left:3px;height:28px;border-radius:7px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.ab-chip{appearance:none;border:0;background:#22232A;height:30px;padding:0 12px;border-radius:999px;font:500 12px/1 Geist,sans-serif;color:#B9BBC2;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.ab-chip:hover{background:#2A2B33;color:#fff}
+.ab-chip[aria-pressed="true"]{background:rgba(110,106,246,.18);color:#D2D0FF;box-shadow:inset 0 0 0 1px rgba(110,106,246,.5)}
+.ab-sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.ab-sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.ab-sw[aria-checked="true"]{background:#6E6AF6}
+.ab-sw[aria-checked="true"]::after{transform:translateX(14px)}
+.ab-field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.ab-field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+select.ab-field{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px}
+.ab-sec{display:flex;flex-direction:column;gap:10px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ab-h{font:600 13px/1.2 Geist,sans-serif;color:#ECECEF;margin:0}
+.ab-l{font:400 12.5px/1.4 Geist,sans-serif;color:#9A9DA6}
+.ab-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font:400 13px/1.3 Geist,sans-serif;color:#ECECEF}
+.ab-sheet{background:#FBFAF7;border-radius:3px;box-shadow:0 22px 50px -14px rgba(0,0,0,.75);transition:width .45s cubic-bezier(.2,.8,.2,1),height .45s cubic-bezier(.2,.8,.2,1),filter .35s;position:relative;overflow:hidden;display:grid;gap:10px;padding:14px}
+.ab-feeding{animation:ab-feed 1.1s cubic-bezier(.4,0,.2,1) infinite}
+.ab-mini{background:#fff;border-radius:2px;position:relative;overflow:hidden;min-height:0;padding:10% 9%;animation:ab-rise .35s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
+.ab-ln{height:3px;border-radius:2px;background:#D3D1C9;flex:none}
+.ab-ok{animation:ab-popin .45s cubic-bezier(.3,1.6,.5,1) both}
+.ab-tools:focus-visible,.ab-item:focus-visible,.ab-seg button:focus-visible,.ab-chip:focus-visible,.ab-sw:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+@keyframes ab-pop{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes ab-fade{from{opacity:0}to{opacity:1}}
+@keyframes ab-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ab-popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes ab-feed{0%{transform:none;opacity:1}55%{transform:translateY(-40px);opacity:0}56%{transform:translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; display: flex; flex-direction: column; background: #0E0F12; color: #ECECEF; font-family: Geist, system-ui, sans-serif; overflow: hidden">
+
+<dc-import name="AppBar" active="forms" doc="Demande d’ouverture de compte.pdf" pages="2" hint-size="100%,60px"></dc-import>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 8px; min-height: 0">
+
+<aside class="panel" style="flex: 1 1 260px; max-width: 100%; padding: 18px 14px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px"><h2 class="title">Champs</h2><span class="muted tnum">{{ fieldCount }}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+<button class="frow" aria-current="{{ f.cur }}" onClick="{{ f.select }}">
+<span style="width: 30px; height: 30px; border-radius: 9px; background: #1F2026; color: #B9BBC2; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ f.d }}"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font: 500 13px/1.2 Geist, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ f.label }}</span><span class="muted">{{ f.typeName }}{{ f.req }}</span></span>
+<span style="width: 8px; height: 8px; border-radius: 4px; background: {{ f.dot }}; transition: background .3s"></span>
+</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding: 0 4px">
+<span class="muted" style="font-weight: 500; color: #B9BBC2">Ajouter un champ</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{ kinds }}" as="k" hint-placeholder-count="6"><button class="tile" onClick="{{ k.add }}" disabled="{{ flat }}"><span class="ic"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ k.d }}"></path></svg></span>{{ k.name }}</button></sc-for>
+</div>
+</div>
+</aside>
+
+<main class="panel" style="flex: 999 1 560px; min-width: 0; overflow: auto; background: #121317; padding: 28px 24px 56px; display: flex; justify-content: center; align-items: flex-start">
+<article class="paper" style="width: 620px; max-width: 100%; padding: 56px 60px">
+<div style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6A64; margin-bottom: 32px"><span>Réf. AP-2025-089</span><span>Page 1</span></div>
+<p style="margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6E6AF6">Formulaire</p>
+<h1 style="margin: 0; font: 600 25px/1.2 Geist, sans-serif; letter-spacing: -.03em">Demande d’ouverture de compte</h1>
+<p style="margin: 10px 0 26px; color: #6B6A64; font-size: 14px">Les champs marqués d’un astérisque sont obligatoires.</p>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+<div class="pf" style="background: {{ f.hl }}; box-shadow: {{ f.ring }}">
+<sc-if value="{{ f.notCheck }}" hint-placeholder-val="{{ true }}"><label for="{{ f.key }}" style="font: 500 12.5px/1.2 Geist, sans-serif; color: #3A3B40">{{ f.label }}<span style="color: #D2453D">{{ f.star }}</span></label></sc-if>
+<sc-if value="{{ f.isFlat }}" hint-placeholder-val="{{ false }}"><div class="flat" style="animation-delay: {{ f.delay }}">{{ f.flatValue }}</div></sc-if>
+<sc-if value="{{ f.live }}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{ f.isText }}" hint-placeholder-val="{{ true }}"><input class="pin" id="{{ f.key }}" type="{{ f.inputType }}" value="{{ f.value }}" placeholder="{{ f.ph }}" onChange="{{ f.set }}" onFocus="{{ f.select }}"></sc-if>
+<sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}"><select class="pin" id="{{ f.key }}" value="{{ f.value }}" onChange="{{ f.set }}" onFocus="{{ f.select }}"><option value="">Choisir…</option><option value="Particulier">Particulier</option><option value="Professionnel">Professionnel</option><option value="Association">Association</option></select></sc-if>
+<sc-if value="{{ f.isRadio }}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 8px; flex-wrap: wrap" role="radiogroup" aria-label="{{ f.label }}"><sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="3"><button class="rad" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}">{{ o.label }}</button></sc-for></div></sc-if>
+<sc-if value="{{ f.isCheck }}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; gap: 12px"><button class="cb" id="{{ f.key }}" role="checkbox" aria-checked="{{ f.checked }}" onClick="{{ f.toggle }}" aria-label="{{ f.label }}"><svg class="i" width="16" height="16" style="width: 12px; height: 12px; stroke-width: 2.4" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></button><span style="font-size: 14px; color: #3A3B40; line-height: 1.4">{{ f.label }}<span style="color: #D2453D">{{ f.star }}</span></span></div></sc-if>
+<sc-if value="{{ f.isSig }}" hint-placeholder-val="{{ false }}"><div style="height: 70px; border-radius: 8px; border: 1.5px dashed #C9C7BE; display: flex; align-items: center; justify-content: center; color: #9C9A92; font-size: 13px">Zone de signature</div></sc-if>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</article>
+</main>
+
+<aside class="panel" style="flex: 1 1 300px; max-width: 100%; padding: 20px 18px; display: flex; flex-direction: column; gap: 24px">
+<section style="display: flex; align-items: center; gap: 18px; padding: 16px; border-radius: 14px; background: #1C1D22">
+<div style="position: relative; width: 84px; height: 84px; flex: none">
+<svg width="84" height="84" aria-hidden="true" style="transform: rotate(-90deg)"><circle cx="42" cy="42" r="34" style="fill: none; stroke: rgba(255,255,255,.08); stroke-width: 7"></circle><circle cx="42" cy="42" r="34" style="fill: none; stroke: {{ ringColor }}; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 213.6; stroke-dashoffset: {{ ringOffset }}; transition: stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1), stroke .4s"></circle></svg>
+<span class="tnum" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 600 18px/1 Geist, sans-serif; letter-spacing: -.02em">{{ pct }} %</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px"><span class="title">{{ progressTitle }}</span><span class="muted tnum">{{ filled }} sur {{ fieldCount }} champs remplis</span><span class="muted tnum" style="color: {{ reqColor }}">{{ reqLabel }}</span></div>
+</section>
+
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+<section class="rise" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="title">Propriétés du champ</h2>
+<label style="display: flex; flex-direction: column; gap: 7px"><span class="muted">Libellé</span><input class="field" value="{{ selLabel }}" onChange="{{ onSelLabel }}" disabled="{{ flat }}"></label>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13.5px">Obligatoire</span><button class="sw" role="switch" aria-checked="{{ selReq }}" aria-label="Champ obligatoire" onClick="{{ toggleReq }}" disabled="{{ flat }}"></button></div>
+<div style="display: flex; justify-content: space-between"><span class="muted">Type</span><span style="font-size: 13px">{{ selType }}</span></div>
+<button class="btn ghost" style="justify-content: flex-start; color: #FF9C9C; margin-left: -10px" onClick="{{ removeSel }}" disabled="{{ flat }}">Supprimer ce champ</button>
+</section>
+</sc-if>
+
+<section style="display: flex; flex-direction: column; gap: 12px; margin-top: auto">
+<h2 class="title">Aplatir le formulaire</h2>
+<p class="muted" style="margin: 0">Les valeurs saisies deviennent du contenu fixe : le formulaire ne peut plus être modifié.</p>
+<sc-if value="{{ confirm }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; gap: 8px"><button class="btn ghost" style="flex: 1" onClick="{{ cancel }}">Annuler</button><button class="btn primary" style="flex: 1" onClick="{{ doFlatten }}">Confirmer</button></div>
+</sc-if>
+<sc-if value="{{ showFlatBtn }}" hint-placeholder-val="{{ true }}"><button class="btn" style="height: 42px" onClick="{{ askFlatten }}">Aplatir</button></sc-if>
+<sc-if value="{{ flat }}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(79,203,145,.1)"><span class="ok" style="width: 28px; height: 28px; border-radius: 14px; background: #4FCB91; color: #0E0F12; display: flex; align-items: center; justify-content: center"><svg class="i" width="16" height="16" style="stroke-width: 2.2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span><span style="flex: 1; font-size: 13px">Formulaire aplati</span><button class="btn ghost" style="height: 30px; color: #6FDCA8" onClick="{{ unflatten }}">Annuler</button></div>
+</sc-if>
+</section>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const KINDS = {
+  text: { name: "Texte", d: "M3 3.5h10 M8 3.5v10 M6 13.5h4" },
+  email: { name: "E-mail", d: "M2 4h12v8H2z M2 4.5l6 4.5 6-4.5" },
+  date: { name: "Date", d: "M2.5 3.5h11v10h-11z M2.5 6.5h11 M5.5 2v3 M10.5 2v3" },
+  select: { name: "Liste", d: "M2.5 4h11v8h-11z M9.5 7l1.5 1.5L12.5 7" },
+  radio: { name: "Choix", d: "M5 8a3 3 0 1 0 6 0 3 3 0 0 0-6 0z M7.5 8h1" },
+  check: { name: "Case", d: "M2.5 2.5h11v11h-11z M5 8l2 2 4-4.5" },
+  sig: { name: "Signature", d: "M2 11.5c2-3 3.5-7 5-7s-1 7 1 7 2.5-3 3.5-3 1 2 2.5 2 M2 14h12" }
+};
+const PH = { text: "Votre réponse", email: "nom@exemple.fr", date: "" };
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      fields: [
+        { id: 1, type: "text", label: "Nom complet", value: "Camille Laurent", req: true },
+        { id: 2, type: "email", label: "Adresse e-mail", value: "camille@exemple.fr", req: true },
+        { id: 3, type: "select", label: "Type de compte", value: "", req: true },
+        { id: 4, type: "radio", label: "Fréquence des relevés", value: "Mensuelle", req: false, opts: ["Mensuelle", "Trimestrielle", "Annuelle"] },
+        { id: 5, type: "date", label: "Date de naissance", value: "", req: false },
+        { id: 6, type: "check", label: "J’accepte les conditions générales", value: "", req: true }
+      ],
+      sel: 3, seq: 7, flat: false, confirm: false, fresh: null
+    };
+  }
+  componentWillUnmount() { clearTimeout(this.ft); }
+  renderVals() {
+    const st = this.state;
+    const upd = (id, patch) => this.setState({ fields: st.fields.map((f) => f.id === id ? { ...f, ...patch } : f) });
+    const isFilled = (f) => f.type === "sig" ? false : !!f.value;
+    const filled = st.fields.filter(isFilled).length;
+    const reqMissing = st.fields.filter((f) => f.req && !isFilled(f)).length;
+    const total = st.fields.length;
+    const pct = total ? Math.round(filled / total * 100) : 0;
+    const sel = st.fields.find((f) => f.id === st.sel);
+    return {
+      fieldCount: total, filled, pct, flat: st.flat,
+      fields: st.fields.map((f, i) => ({
+        ...f, key: "f" + f.id, d: KINDS[f.type].d, typeName: KINDS[f.type].name, req: f.req ? " · obligatoire" : "", star: f.req ? " *" : "",
+        cur: f.id === st.sel ? "true" : "false", dot: isFilled(f) ? "#4FCB91" : (f.req ? "#F2B84B" : "#3A3B42"),
+        hl: f.id === st.sel && !st.flat ? "rgba(110,106,246,.07)" : "transparent",
+        ring: f.id === st.fresh ? "0 0 0 2px rgba(110,106,246,.5)" : (f.id === st.sel && !st.flat ? "inset 0 0 0 1px rgba(110,106,246,.35)" : "none"),
+        notCheck: f.type !== "check", live: !st.flat, isFlat: st.flat, delay: i * 70 + "ms",
+        flatValue: f.type === "check" ? f.label + (f.value ? " — oui" : " — non") : (f.type === "sig" ? "—" : (f.value || "—")),
+        isText: f.type === "text" || f.type === "email" || f.type === "date", inputType: f.type === "date" ? "date" : (f.type === "email" ? "email" : "text"), ph: PH[f.type] || "",
+        isSelect: f.type === "select", isRadio: f.type === "radio", isCheck: f.type === "check", isSig: f.type === "sig",
+        checked: f.value ? "true" : "false",
+        opts: (f.opts || []).map((o) => ({ label: o, on: f.value === o ? "true" : "false", pick: () => upd(f.id, { value: o }) })),
+        set: (e) => upd(f.id, { value: e.target.value }), toggle: () => upd(f.id, { value: f.value ? "" : "oui" }),
+        select: () => this.setState({ sel: f.id })
+      })),
+      kinds: ["text", "email", "date", "select", "check", "sig"].map((k) => ({ ...KINDS[k], add: () => {
+        const id = st.seq; const f = { id, type: k, label: k === "sig" ? "Signature du demandeur" : "Nouveau champ " + KINDS[k].name.toLowerCase(), value: "", req: false };
+        if (k === "radio") f.opts = ["Oui", "Non"];
+        this.setState({ fields: st.fields.concat([f]), seq: id + 1, sel: id, fresh: id });
+        clearTimeout(this.ft); this.ft = setTimeout(() => this.setState({ fresh: null }), 1200);
+      } })),
+      ringOffset: (213.6 * (1 - pct / 100)).toFixed(1), ringColor: pct === 100 ? "#4FCB91" : "#6E6AF6",
+      progressTitle: pct === 100 ? "Formulaire complet" : "Progression",
+      reqLabel: reqMissing ? reqMissing + " champ" + (reqMissing > 1 ? "s obligatoires manquants" : " obligatoire manquant") : "Tous les champs obligatoires sont remplis",
+      reqColor: reqMissing ? "#F2C064" : "#6FDCA8",
+      hasSel: !!sel, selLabel: sel ? sel.label : "", selReq: sel && sel.req ? "true" : "false", selType: sel ? KINDS[sel.type].name : "",
+      onSelLabel: (e) => sel && upd(sel.id, { label: e.target.value }),
+      toggleReq: () => sel && upd(sel.id, { req: !sel.req }),
+      removeSel: () => sel && this.setState({ fields: st.fields.filter((f) => f.id !== sel.id), sel: null }),
+      confirm: st.confirm, showFlatBtn: !st.flat && !st.confirm,
+      askFlatten: () => this.setState({ confirm: true }), cancel: () => this.setState({ confirm: false }),
+      doFlatten: () => this.setState({ flat: true, confirm: false }), unflatten: () => this.setState({ flat: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

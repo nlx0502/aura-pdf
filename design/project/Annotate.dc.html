@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aura PDF — Annotation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F12}
+*{box-sizing:border-box}
+a{color:#A9A6FF}a:hover{color:#C8C6FF}
+button,input,textarea,select{font:inherit;color:inherit}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;color:#9A9DA6;text-decoration:none;font:500 13px/1 Geist,sans-serif;transition:color .2s,background .2s;white-space:nowrap}
+.nav:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.nav[aria-current]{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.btn{appearance:none;border:0;background:#1F2026;color:#ECECEF;font:500 13px/1 Geist,sans-serif;height:34px;padding:0 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,transform .12s,color .2s,box-shadow .2s,opacity .2s;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.btn:hover{background:#282930}
+.btn:active{transform:scale(.97)}
+.primary{background:#6E6AF6;color:#fff;box-shadow:0 8px 20px -8px rgba(110,106,246,.8)}
+.primary:hover{background:#7E7AF8}
+.ghost{background:transparent;box-shadow:none;color:#B9BBC2}
+.ghost:hover{background:rgba(255,255,255,.06);color:#fff}
+.icon{width:34px;padding:0}
+.panel{background:#16171B;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.title{font:600 14px/1.2 Geist,sans-serif;color:#ECECEF;margin:0;letter-spacing:-.01em}
+.muted{color:#9A9DA6;font:400 12.5px/1.45 Geist,sans-serif}
+.tnum{font-variant-numeric:tabular-nums}
+.row{transition:background .18s,color .18s,opacity .3s;border-radius:10px}
+.row:hover{background:rgba(255,255,255,.04)}
+.seg{display:inline-flex;position:relative;background:#0E0F12;border-radius:11px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;font:500 12.5px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg .ind{position:absolute;top:3px;left:3px;height:28px;border-radius:8px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.btn:focus-visible,.nav:focus-visible,.seg button:focus-visible,.tool:focus-visible,.fx:focus-visible,.sent:focus-visible,.dot:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+.field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s}
+.field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+.field::placeholder{color:#7C7F88}
+.tool{appearance:none;border:0;background:transparent;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#B9BBC2;transition:background .2s,color .2s,transform .15s;position:relative}
+.tool:hover{background:rgba(255,255,255,.07);color:#fff}
+.tool:active{transform:scale(.92)}
+.tool[aria-pressed="true"]{background:#6E6AF6;color:#fff;box-shadow:0 6px 16px -6px rgba(110,106,246,.9)}
+.tool .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translate(-50%,-4px);background:#2A2B33;color:#fff;font:500 12px/1 Geist,sans-serif;padding:7px 9px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:10}
+.tool:hover .tip{opacity:1;transform:translate(-50%,0)}
+.sent{color:inherit;text-decoration:none;border-radius:3px;background-repeat:no-repeat;background-position:0 0;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-size .55s cubic-bezier(.2,.8,.2,1),text-decoration-color .3s,box-shadow .2s;cursor:text}
+.sent:hover{color:inherit;box-shadow:0 0 0 1px rgba(110,106,246,.35)}
+.dot{appearance:none;width:22px;height:22px;border-radius:11px;border:0;cursor:pointer;padding:0;transition:transform .2s cubic-bezier(.3,1.5,.5,1),box-shadow .2s}
+.dot:hover{transform:scale(1.15)}
+.dot[aria-pressed="true"]{box-shadow:0 0 0 2px #16171B,0 0 0 4px currentColor;transform:scale(1.05)}
+.paper{background:#FBFAF7;color:#1A1B1E;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 30px 60px -20px rgba(0,0,0,.7);position:relative}
+.hud{position:absolute;display:flex;align-items:center;gap:2px;padding:5px;background:rgba(28,29,35,.9);backdrop-filter:blur(18px) saturate(170%);border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 16px 34px -10px rgba(0,0,0,.6);animation:pop .16s cubic-bezier(.2,.8,.2,1) both;z-index:5;color:#ECECEF}
+.pin{position:absolute;width:24px;height:24px;border-radius:12px 12px 12px 3px;color:#1A1B1E;font:600 11px/24px Geist,sans-serif;text-align:center;z-index:2;box-shadow:0 4px 10px -2px rgba(0,0,0,.3)}
+.pin::before{content:'';position:absolute;inset:0;border-radius:12px;background:inherit;animation:ping 2s cubic-bezier(0,0,.2,1) infinite;z-index:-1}
+.stamp{position:absolute;font:700 13px/1 Geist,sans-serif;letter-spacing:.12em;padding:9px 14px;border:2.5px solid;border-radius:8px;transform:rotate(-6deg);animation:thunk .45s cubic-bezier(.2,.8,.2,1) both;pointer-events:none;mix-blend-mode:multiply}
+.placer{position:absolute;inset:0;appearance:none;border:0;background:transparent;cursor:crosshair;z-index:3;border-radius:6px;transition:background .2s}
+.placer:hover{background:rgba(110,106,246,.035)}
+.draw{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:600;stroke-dashoffset:600;animation:draw .7s cubic-bezier(.4,0,.2,1) forwards}
+.caret{display:inline-block;width:1.5px;height:14px;animation:blink 1s steps(1) infinite;vertical-align:-2px}
+@keyframes blink{50%{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.92) translateY(6px)}to{opacity:1;transform:none}}
+@keyframes ping{0%{transform:scale(1);opacity:.45}100%{transform:scale(2.2);opacity:0}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes thunk{0%{opacity:0;transform:scale(1.9) rotate(-14deg)}55%{opacity:1;transform:scale(.94) rotate(-5deg)}100%{opacity:1;transform:scale(1) rotate(-6deg)}}
+@keyframes check{0%{transform:scale(0)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+.rise{animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.pop{animation:pop .22s cubic-bezier(.2,.8,.2,1) both}
+.ab-tools{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px 0 13px;border-radius:999px;border:0;background:transparent;color:#9A9DA6;font:500 13px/1 Geist,sans-serif;cursor:pointer;transition:color .2s,background .2s;white-space:nowrap}
+.ab-tools:hover{color:#ECECEF;background:rgba(255,255,255,.05)}
+.ab-tools[aria-expanded="true"],.ab-tools.cur{color:#fff;background:#24252C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.ab-menu{position:absolute;top:calc(100% + 10px);left:0;width:380px;max-width:calc(100vw - 32px);padding:8px;background:rgba(26,27,32,.97);backdrop-filter:blur(20px) saturate(170%);border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px -18px rgba(0,0,0,.85);z-index:40;transform-origin:top left;animation:ab-pop .22s cubic-bezier(.2,.8,.2,1) both}
+.ab-item{display:flex;align-items:center;gap:14px;padding:10px;border-radius:11px;color:#ECECEF;text-decoration:none;border:0;background:transparent;width:100%;text-align:left;cursor:pointer;font:inherit;transition:background .15s;animation:ab-rise .32s cubic-bezier(.2,.8,.2,1) both}
+.ab-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.ab-item[aria-current]{background:rgba(110,106,246,.12)}
+.ab-item .t{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.ab-item:hover .t{transform:scale(1.08) rotate(-5deg)}
+.ab-scrim{position:absolute;inset:0;border:0;padding:0;background:transparent;z-index:30;cursor:default}
+.ab-pbtn{position:relative;display:inline-flex}
+.ab-tip{position:absolute;top:calc(100% + 8px);right:0;background:#2A2B33;color:#fff;font:500 12px/1 Geist,sans-serif;padding:7px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:45;display:flex;gap:8px;align-items:center}
+.ab-pbtn:hover .ab-tip{opacity:1;transform:none}
+.ab-kbd{font:500 11px/1 Geist,sans-serif;color:#B9BBC2;background:rgba(255,255,255,.08);padding:4px 6px;border-radius:5px;white-space:nowrap}
+.ab-ov{position:absolute;inset:0;z-index:50;background:rgba(8,9,11,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;animation:ab-fade .2s ease both}
+.ab-dlg{width:1020px;max-width:100%;height:min(800px,100%);background:#18191E;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 40px 90px -20px rgba(0,0,0,.85);display:flex;flex-direction:column;overflow:hidden;animation:ab-pop .3s cubic-bezier(.2,.8,.2,1) both}
+.ab-seg{display:flex;position:relative;background:#0E0F12;border-radius:10px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.ab-seg button{position:relative;z-index:1;appearance:none;border:0;background:transparent;height:28px;flex:1;font:500 12px/1 Geist,sans-serif;color:#9A9DA6;cursor:pointer;transition:color .2s;padding:0 6px;white-space:nowrap}
+.ab-seg button[aria-pressed="true"]{color:#fff}
+.ab-seg .ab-ind{position:absolute;top:3px;left:3px;height:28px;border-radius:7px;background:#2A2B33;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.ab-chip{appearance:none;border:0;background:#22232A;height:30px;padding:0 12px;border-radius:999px;font:500 12px/1 Geist,sans-serif;color:#B9BBC2;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.ab-chip:hover{background:#2A2B33;color:#fff}
+.ab-chip[aria-pressed="true"]{background:rgba(110,106,246,.18);color:#D2D0FF;box-shadow:inset 0 0 0 1px rgba(110,106,246,.5)}
+.ab-sw{appearance:none;width:36px;height:22px;border-radius:11px;border:0;background:#2A2B33;position:relative;cursor:pointer;transition:background .25s;flex:none;padding:0}
+.ab-sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.3,1.4,.5,1)}
+.ab-sw[aria-checked="true"]{background:#6E6AF6}
+.ab-sw[aria-checked="true"]::after{transform:translateX(14px)}
+.ab-field{background:#0E0F12;border:1px solid rgba(255,255,255,.08);border-radius:10px;height:38px;padding:0 12px;font:400 13px/1 Geist,sans-serif;color:#ECECEF;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;min-width:0}
+.ab-field:focus{border-color:#6E6AF6;box-shadow:0 0 0 4px rgba(110,106,246,.18)}
+select.ab-field{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px}
+.ab-sec{display:flex;flex-direction:column;gap:10px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ab-h{font:600 13px/1.2 Geist,sans-serif;color:#ECECEF;margin:0}
+.ab-l{font:400 12.5px/1.4 Geist,sans-serif;color:#9A9DA6}
+.ab-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font:400 13px/1.3 Geist,sans-serif;color:#ECECEF}
+.ab-sheet{background:#FBFAF7;border-radius:3px;box-shadow:0 22px 50px -14px rgba(0,0,0,.75);transition:width .45s cubic-bezier(.2,.8,.2,1),height .45s cubic-bezier(.2,.8,.2,1),filter .35s;position:relative;overflow:hidden;display:grid;gap:10px;padding:14px}
+.ab-feeding{animation:ab-feed 1.1s cubic-bezier(.4,0,.2,1) infinite}
+.ab-mini{background:#fff;border-radius:2px;position:relative;overflow:hidden;min-height:0;padding:10% 9%;animation:ab-rise .35s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
+.ab-ln{height:3px;border-radius:2px;background:#D3D1C9;flex:none}
+.ab-ok{animation:ab-popin .45s cubic-bezier(.3,1.6,.5,1) both}
+.ab-tools:focus-visible,.ab-item:focus-visible,.ab-seg button:focus-visible,.ab-chip:focus-visible,.ab-sw:focus-visible{outline:2px solid #A9A6FF;outline-offset:2px}
+@keyframes ab-pop{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes ab-fade{from{opacity:0}to{opacity:1}}
+@keyframes ab-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ab-popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes ab-feed{0%{transform:none;opacity:1}55%{transform:translateY(-40px);opacity:0}56%{transform:translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; display: flex; flex-direction: column; background: #0E0F12; color: #ECECEF; font-family: Geist, system-ui, sans-serif; overflow: hidden">
+
+<dc-import name="AppBar" active="annoter" doc="Bon de commande.pdf" pages="4" hint-size="100%,60px"></dc-import>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 8px; min-height: 0">
+
+<aside class="panel" style="flex: 1 1 250px; max-width: 100%; padding: 18px 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px"><h2 class="title">Annotations</h2><span class="muted tnum">{{ annCount }}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{ annList }}" as="a" hint-placeholder-count="5">
+<div class="row rise" style="display: flex; align-items: center; gap: 12px; padding: 9px 8px 9px 10px">
+<span style="width: 30px; height: 30px; border-radius: 9px; background: {{ a.tint }}; color: {{ a.color }}; display: flex; align-items: center; justify-content: center; flex: none"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ a.d }}"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font: 500 13px/1.2 Geist, sans-serif">{{ a.kind }}</span>
+<span class="muted" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ a.sub }}</span>
+</span>
+<button class="btn ghost icon" style="width: 28px; height: 28px; border-radius: 8px" onClick="{{ a.remove }}" aria-label="Supprimer l’annotation"><svg class="i" width="16" height="16" style="width: 12px; height: 12px" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+</div>
+</sc-for>
+</div>
+<p class="muted" style="margin: auto 4px 0; padding: 12px; border-radius: 10px; background: #1C1D22">Choisissez un outil de texte puis cliquez une phrase, ou une forme puis cliquez sur la page.</p>
+</aside>
+
+<main class="panel" style="flex: 999 1 560px; min-width: 0; position: relative; background: #121317; overflow: auto; display: flex; flex-direction: column; align-items: center; padding: 18px 24px 64px">
+<div role="toolbar" aria-label="Outils d’annotation" style="position: sticky; top: 0; z-index: 8; display: flex; align-items: center; gap: 2px; padding: 5px; background: rgba(28,29,35,.86); backdrop-filter: blur(18px) saturate(170%); border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 18px 40px -14px rgba(0,0,0,.7); flex-wrap: wrap; justify-content: center; margin-bottom: 26px">
+<sc-for list="{{ tools }}" as="t" hint-placeholder-count="12">
+<sc-if value="{{ t.sep }}" hint-placeholder-val="{{ false }}"><span style="width: 1px; height: 20px; background: rgba(255,255,255,.1); margin: 0 5px"></span></sc-if>
+<button class="tool" aria-pressed="{{ t.on }}" onClick="{{ t.pick }}" aria-label="{{ t.label }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="{{ t.d }}"></path></svg><span class="tip">{{ t.label }}</span></button>
+</sc-for>
+<span style="width: 1px; height: 20px; background: rgba(255,255,255,.1); margin: 0 8px 0 5px"></span>
+<div style="display: flex; gap: 8px; align-items: center; padding-right: 6px" role="group" aria-label="Couleur">
+<sc-for list="{{ colors }}" as="c" hint-placeholder-count="4"><button class="dot" style="background: {{ c.hex }}; color: {{ c.hex }}" aria-pressed="{{ c.on }}" aria-label="Couleur {{ c.name }}" onClick="{{ c.pick }}"></button></sc-for>
+</div>
+<span style="width: 1px; height: 20px; background: rgba(255,255,255,.1); margin: 0 4px 0 2px"></span>
+<button class="tool" onClick="{{ undo }}" aria-label="Annuler la dernière annotation"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M5.5 3 2.5 6l3 3 M2.5 6h7a4 4 0 0 1 0 8H7"></path></svg><span class="tip">Annuler</span></button>
+</div>
+
+<article class="paper" style="width: 640px; max-width: 100%; padding: 64px 68px 68px; font-size: 14px; flex: none">
+<div style="display: flex; justify-content: space-between; font-size: 11px; color: #6B6A64; margin-bottom: 36px"><span>Réf. AP-2025-089</span><span>Page 1</span></div>
+<p style="margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6E6AF6">Bon de commande</p>
+<h1 style="margin: 0; font: 600 27px/1.15 Geist, sans-serif; letter-spacing: -.035em">Audit de sécurité &amp; plateforme cloud</h1>
+<p style="margin: 10px 0 0; color: #6B6A64">Direction des systèmes d’information</p>
+<div style="height: 1px; background: #E6E4DD; margin: 28px 0"></div>
+<sc-for list="{{ paras }}" as="pa" hint-placeholder-count="3">
+<section style="position: relative; margin-bottom: 24px">
+<h2 style="margin: 0 0 10px; font: 600 16px/1.3 Geist, sans-serif; letter-spacing: -.02em">{{ pa.title }}</h2>
+<p style="margin: 0; line-height: 1.78; font-size: 14.5px"><sc-for list="{{ pa.sents }}" as="s" hint-placeholder-count="3"><a class="sent" href="#{{ s.key }}" onClick="{{ s.pick }}" style="background-image: linear-gradient({{ s.bg }}, {{ s.bg }}); background-size: {{ s.bs }} 100%; text-decoration: {{ s.deco }}; text-decoration-color: {{ s.dc }}; text-decoration-thickness: 2px; text-underline-offset: 3px">{{ s.t }}</a> </sc-for></p>
+<sc-if value="{{ pa.hud }}" hint-placeholder-val="{{ false }}">
+<div class="hud" style="top: -50px; left: 30px" role="toolbar" aria-label="Actions sur la sélection">
+<sc-for list="{{ colors }}" as="c" hint-placeholder-count="4"><button class="dot" style="width: 18px; height: 18px; margin: 0 3px; background: {{ c.hex }}; color: {{ c.hex }}" aria-pressed="{{ c.on }}" aria-label="Recolorer en {{ c.name }}" onClick="{{ c.recolor }}"></button></sc-for>
+<span style="width: 1px; height: 18px; background: rgba(255,255,255,.12); margin: 0 5px"></span>
+<button class="btn ghost" style="height: 30px; padding: 0 10px" onClick="{{ hudComment }}"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M2.5 2.5h11v8h-5l-3 3v-3h-3z"></path></svg>Commenter</button>
+<button class="btn ghost" style="height: 30px; padding: 0 10px" onClick="{{ hudCopy }}">Copier</button>
+<button class="btn ghost" style="height: 30px; padding: 0 10px; color: #FF8C8C" onClick="{{ hudRemove }}">Retirer</button>
+</div>
+</sc-if>
+</section>
+</sc-for>
+<div style="border-radius: 10px; overflow: hidden; background: #F2F0EA; font-size: 13px">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 120px; padding: 11px 16px; color: #6B6A64; font-size: 12px; font-weight: 500"><span>Poste</span><span style="text-align: right">Montant HT</span></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 120px; padding: 11px 16px; border-top: 1px solid #E6E4DD"><span>Licence plateforme — 50 sièges</span><span style="text-align: right; color: #6B6A64">[Montant]</span></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 120px; padding: 11px 16px; border-top: 1px solid #E6E4DD"><span>Module OCR &amp; vectorisation</span><span style="text-align: right; color: #6B6A64">[Montant]</span></div>
+</div>
+
+<sc-for list="{{ shapes }}" as="sh" hint-placeholder-count="0">
+<div style="position: absolute; left: {{ sh.x }}px; top: {{ sh.y }}px; pointer-events: none; z-index: 4">
+<sc-if value="{{ sh.isRect }}" hint-placeholder-val="{{ false }}"><svg width="140" height="80" aria-hidden="true"><rect x="2" y="2" width="136" height="76" rx="6" class="draw" style="stroke: {{ sh.color }}; stroke-width: {{ sh.w }}"></rect></svg></sc-if>
+<sc-if value="{{ sh.isEllipse }}" hint-placeholder-val="{{ false }}"><svg width="140" height="80" aria-hidden="true"><ellipse cx="70" cy="40" rx="66" ry="36" class="draw" style="stroke: {{ sh.color }}; stroke-width: {{ sh.w }}"></ellipse></svg></sc-if>
+<sc-if value="{{ sh.isLine }}" hint-placeholder-val="{{ false }}"><svg width="160" height="20" aria-hidden="true"><path d="M4 10 L156 10" class="draw" style="stroke: {{ sh.color }}; stroke-width: {{ sh.w }}"></path></svg></sc-if>
+<sc-if value="{{ sh.isArrow }}" hint-placeholder-val="{{ false }}"><svg width="140" height="56" aria-hidden="true"><path d="M4 50 L130 10" class="draw" style="stroke: {{ sh.color }}; stroke-width: {{ sh.w }}"></path><path d="M114 6 L131 10 L121 24" class="draw" style="stroke: {{ sh.color }}; stroke-width: {{ sh.w }}; animation-delay: .45s"></path></svg></sc-if>
+<sc-if value="{{ sh.isPen }}" hint-placeholder-val="{{ false }}"><svg width="170" height="64" aria-hidden="true"><path d="M5 40 C 22 4, 44 4, 54 30 S 84 62, 100 26 S 132 4, 150 36 S 160 50, 166 44" class="draw" style="stroke: {{ sh.color }}; stroke-width: {{ sh.w }}; animation-duration: 1.1s"></path></svg></sc-if>
+<sc-if value="{{ sh.isText }}" hint-placeholder-val="{{ false }}"><div class="pop" style="border: 1.5px solid {{ sh.color }}; border-radius: 6px; padding: 7px 10px; font: 400 13px/1.3 Geist, sans-serif; color: #1A1B1E; background: rgba(255,255,255,.85); white-space: nowrap">Zone de texte<span class="caret" style="background: {{ sh.color }}; margin-left: 2px"></span></div></sc-if>
+<sc-if value="{{ sh.isNote }}" hint-placeholder-val="{{ false }}"><span class="pin" style="position: relative; display: block; background: {{ sh.color }}">{{ sh.n }}</span></sc-if>
+</div>
+</sc-for>
+
+<span class="pin" style="right: 26px; top: 252px; background: #F2B84B" aria-label="Commentaire 1">1</span>
+
+<sc-for list="{{ stamps }}" as="sp" hint-placeholder-count="0">
+<span class="stamp" style="left: {{ sp.x }}px; top: {{ sp.y }}px; color: {{ sp.color }}; border-color: {{ sp.color }}">{{ sp.label }}</span>
+</sc-for>
+
+<sc-if value="{{ placing }}" hint-placeholder-val="{{ false }}">
+<button class="placer" onClick="{{ place }}" aria-label="Placer : {{ toolLabel }}"></button>
+</sc-if>
+</article>
+</main>
+
+<aside class="panel" style="flex: 1 1 310px; max-width: 100%; padding: 18px 16px; display: flex; flex-direction: column; gap: 26px">
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="title">Style</h2><span class="muted">{{ toolLabel }}</span></div>
+<label style="display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; justify-content: space-between; font-size: 13px"><span style="color: #B9BBC2">Opacité</span><span class="tnum">{{ opacity }} %</span></span>
+<input type="range" min="20" max="100" step="5" value="{{ opacity }}" onChange="{{ onOpacity }}" style="accent-color: #6E6AF6; width: 100%" aria-label="Opacité">
+</label>
+<div style="display: flex; flex-direction: column; gap: 10px"><span style="font-size: 13px; color: #B9BBC2">Épaisseur</span>
+<div class="seg" role="group" aria-label="Épaisseur du trait">
+<span class="ind" style="width: 66px; transform: translateX({{ widthX }}px)" aria-hidden="true"></span>
+<sc-for list="{{ widths }}" as="w" hint-placeholder-count="4"><button style="width: 66px; display: flex; align-items: center; justify-content: center" aria-pressed="{{ w.on }}" onClick="{{ w.pick }}" aria-label="{{ w.label }}"><span style="width: 22px; height: {{ w.h }}px; border-radius: 4px; background: currentColor"></span></button></sc-for>
+</div></div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="title">Tampons</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{ stampKinds }}" as="k" hint-placeholder-count="4">
+<button class="btn" style="height: 40px; color: {{ k.text }}; background: {{ k.tint }}; box-shadow: none; font-weight: 600; font-size: 12px; letter-spacing: .06em" onClick="{{ k.add }}">{{ k.label }}</button>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap"><h2 class="title">Commentaires</h2>
+<div class="seg" role="group" aria-label="Filtrer les commentaires">
+<span class="ind" style="width: 68px; transform: translateX({{ filterX }}px)" aria-hidden="true"></span>
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="3"><button style="width: 68px" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}">{{ f.label }}</button></sc-for>
+</div></div>
+<sc-for list="{{ comments }}" as="c" hint-placeholder-count="2">
+<article class="rise" style="border-radius: 12px; padding: 14px; background: #1C1D22; display: flex; flex-direction: column; gap: 9px; opacity: {{ c.op }}; transition: opacity .35s">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 26px; height: 26px; border-radius: 13px; background: {{ c.av }}; color: #0E0F12; font: 600 10.5px/26px Geist, sans-serif; text-align: center">{{ c.ini }}</span>
+<span style="font: 500 13px/1 Geist, sans-serif; flex: 1">{{ c.who }}</span>
+<span class="muted">{{ c.when }}</span>
+</div>
+<sc-if value="{{ c.hasQuote }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0; padding: 8px 10px; background: #16171B; border-radius: 8px; font-style: italic">« {{ c.quote }} »</p></sc-if>
+<p style="margin: 0; font: 400 13.5px/1.5 Geist, sans-serif; color: #D8DAE0">{{ c.text }}</p>
+<div style="display: flex; gap: 4px; align-items: center; margin-left: -8px">
+<button class="btn ghost" style="height: 30px; padding: 0 10px">Répondre</button>
+<button class="btn ghost" style="height: 30px; padding: 0 10px; color: {{ c.resColor }}" onClick="{{ c.toggle }}"><svg class="i" width="16" height="16" aria-hidden="true" style="animation: {{ c.anim }}"><path d="{{ c.resD }}"></path></svg>{{ c.resLabel }}</button>
+</div>
+</article>
+</sc-for>
+<sc-if value="{{ noComments }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0">Aucun commentaire ici.</p></sc-if>
+<div style="display: flex; gap: 6px">
+<input class="field" style="flex: 1; min-width: 0; border-radius: 999px" placeholder="Écrire un commentaire…" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" aria-label="Nouveau commentaire">
+<button class="btn primary icon" style="height: 38px; width: 38px; border-radius: 19px" onClick="{{ send }}" aria-label="Envoyer"><svg class="i" width="16" height="16" aria-hidden="true"><path d="M8 13V3 M4 7l4-4 4 4"></path></svg></button>
+</div>
+</section>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const D = {
+  select: "M3.5 2.5l9 4.5-4 1.2-1.8 4.3z", highlight: "M10 2.5l3.5 3.5-6.5 6.5H3.5V9z M2 14.5h12", underline: "M4.5 2.5v4.5a3.5 3.5 0 0 0 7 0V2.5 M3.5 14h9",
+  strike: "M3 8h10 M11 4.5C10.5 3.3 9.4 2.5 8 2.5c-1.9 0-3 1-3 2.5 M5 11.5c.5 1.2 1.6 2 3 2 1.9 0 3-1 3-2.5", note: "M2.5 2.5h11v8h-5l-3 3v-3h-3z",
+  text: "M3 3.5h10 M8 3.5v10 M6 13.5h4", pen: "M2.5 13.5c2-1 3-5 5-5s1.5 4 3.5 4 2-3 2.5-4.5", arrow: "M3 13L13 3 M7 3h6v6", rect: "M2.5 4h11v8h-11z",
+  ellipse: "M8 3.5c3 0 5.5 2 5.5 4.5S11 12.5 8 12.5 2.5 10.5 2.5 8 5 3.5 8 3.5z", line: "M3 13L13 3", stamp: "M5.5 9V7a2.5 2.5 0 1 1 5 0v2 M2.5 9h11v3h-11z M3.5 14h9",
+  check: "M3.5 8.5l3 3 6-7", circle: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"
+};
+const TOOLS = [
+  { id: "select", label: "Sélection" },
+  { id: "highlight", label: "Surligner", mark: true, sep: true }, { id: "underline", label: "Souligner", mark: true }, { id: "strike", label: "Barrer", mark: true },
+  { id: "note", label: "Note", sep: true }, { id: "text", label: "Zone de texte" }, { id: "pen", label: "Dessin libre" },
+  { id: "arrow", label: "Flèche", sep: true }, { id: "rect", label: "Rectangle" }, { id: "ellipse", label: "Ellipse" }, { id: "line", label: "Ligne" }
+];
+const COLORS = [{ name: "ambre", hex: "#F2B84B" }, { name: "vert", hex: "#4FCB91" }, { name: "indigo", hex: "#8B87FA" }, { name: "rose", hex: "#F07A9A" }];
+const PARAS = [
+  { title: "Identification de l’organisation", sents: ["La présente commande engage l’entité déclarante pour une durée de soixante mois consécutifs.", "Les informations d’identification doivent être vérifiées avant toute signature.", "Toute modification ultérieure fera l’objet d’un avenant."] },
+  { title: "Éléments du marché", sents: ["Le prestataire fournit un accès illimité aux registres télémétriques.", "La réversibilité intégrale des données est garantie sous un format ouvert.", "Les niveaux de service sont audités chaque trimestre par un tiers indépendant."] },
+  { title: "Confidentialité", sents: ["Le mandataire certifie l’exécution des protocoles cryptographiques sur machine sécurisée.", "Aucune donnée ne quitte le périmètre de l’organisation sans accord écrit."] }
+];
+const STAMPS = [{ label: "APPROUVÉ", color: "#1F9D6A" }, { label: "CONFIDENTIEL", color: "#D2453D" }, { label: "BROUILLON", color: "#5B57E8" }, { label: "À REVOIR", color: "#C7871A" }];
+const STAMP_POS = [{ x: 400, y: 100 }, { x: 70, y: 640 }, { x: 410, y: 600 }, { x: 260, y: 350 }];
+const WIDTHS = [1, 1.5, 2, 3];
+const KIND = { highlight: "Surlignage", underline: "Soulignement", strike: "Barré", note: "Note", text: "Zone de texte", pen: "Dessin libre", arrow: "Flèche", rect: "Rectangle", ellipse: "Ellipse", line: "Ligne" };
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; };
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tool: "highlight", color: "#F2B84B", width: 1.5, opacity: 45,
+      marks: { "0-1": { type: "highlight", color: "#F2B84B" }, "1-1": { type: "underline", color: "#4FCB91" }, "2-1": { type: "strike", color: "#F07A9A" } },
+      shapes: [{ id: 1, type: "arrow", x: 440, y: 316, color: "#8B87FA", w: 2 }], stamps: [], hud: null, hudKey: null, seq: 10, notes: 1,
+      comments: [
+        { id: 1, who: "Sarah Chen", ini: "SC", av: "#4FCB91", when: "Il y a 2 h", text: "Ces informations ont-elles été vérifiées par le juridique, ou s’agit-il du brouillon interne ?", quote: "Les informations d’identification doivent être vérifiées…", resolved: false },
+        { id: 2, who: "Marc Dubois", ini: "MD", av: "#8B87FA", when: "Hier", text: "Clause de confidentialité validée, rien à signaler.", quote: "", resolved: true }
+      ],
+      filter: "all", draft: "", hist: []
+    };
+  }
+  push(h) { return this.state.hist.concat([h]); }
+  renderVals() {
+    const st = this.state;
+    const tool = TOOLS.find((t) => t.id === st.tool);
+    const paras = PARAS.map((p, pi) => ({
+      title: p.title, hud: st.hud === pi,
+      sents: p.sents.map((t, si) => {
+        const key = pi + "-" + si; const m = st.marks[key];
+        const isH = m && m.type === "highlight";
+        return {
+          t, key: "s" + key,
+          bg: isH ? rgba(m.color, st.opacity / 100) : "transparent", bs: isH ? "100%" : "0%",
+          deco: m && m.type === "underline" ? "underline" : (m && m.type === "strike" ? "line-through" : "none"),
+          dc: m && m.type !== "highlight" ? m.color : "transparent",
+          pick: (e) => {
+            e.preventDefault();
+            if (!tool.mark) return;
+            const marks = { ...st.marks };
+            if (marks[key] && marks[key].type === st.tool && marks[key].color === st.color) delete marks[key];
+            else marks[key] = { type: st.tool, color: st.color };
+            this.setState({ marks, hud: marks[key] ? pi : null, hudKey: key, hist: this.push({ k: "mark", key }) });
+          }
+        };
+      })
+    }));
+    const annList = [];
+    Object.keys(st.marks).forEach((key) => {
+      const m = st.marks[key]; const [pi, si] = key.split("-").map(Number);
+      annList.push({ kind: KIND[m.type], d: D[m.type], sub: PARAS[pi].sents[si], color: m.color, tint: rgba(m.color, 0.16), remove: () => { const marks = { ...st.marks }; delete marks[key]; this.setState({ marks, hud: null }); } });
+    });
+    st.shapes.forEach((s) => annList.push({ kind: KIND[s.type], d: D[s.type], sub: "Page 1", color: s.color, tint: rgba(s.color, 0.16), remove: () => this.setState({ shapes: st.shapes.filter((x) => x.id !== s.id) }) }));
+    st.stamps.forEach((s) => annList.push({ kind: "Tampon", d: D.stamp, sub: s.label.charAt(0) + s.label.slice(1).toLowerCase(), color: s.color, tint: rgba(s.color, 0.16), remove: () => this.setState({ stamps: st.stamps.filter((x) => x.id !== s.id) }) }));
+    const fIdx = ["all", "open", "done"].indexOf(st.filter);
+    const comments = st.comments.filter((c) => st.filter === "all" || (st.filter === "open" ? !c.resolved : c.resolved)).map((c) => ({
+      ...c, hasQuote: !!c.quote, op: c.resolved ? 0.55 : 1,
+      resD: c.resolved ? D.check : D.circle, resLabel: c.resolved ? "Résolu" : "Résoudre", resColor: c.resolved ? "#4FCB91" : "#B9BBC2",
+      anim: c.resolved ? "check .4s cubic-bezier(.2,.8,.2,1) both" : "none",
+      toggle: () => this.setState({ comments: st.comments.map((x) => x.id === c.id ? { ...x, resolved: !x.resolved } : x) })
+    }));
+    const addComment = (text, quote) => {
+      if (!text.trim()) return;
+      this.setState({ comments: [{ id: st.seq, who: "Vous", ini: "VO", av: "#F2B84B", when: "À l’instant", text, quote: quote || "", resolved: false }].concat(st.comments), seq: st.seq + 1, draft: "", filter: st.filter === "done" ? "all" : st.filter });
+    };
+    const hk = st.hudKey ? st.hudKey.split("-").map(Number) : null;
+    const hudSent = hk ? PARAS[hk[0]].sents[hk[1]] : "";
+    return {
+      tools: TOOLS.map((t) => ({ ...t, d: D[t.id], sep: !!t.sep, on: t.id === st.tool ? "true" : "false", pick: () => this.setState({ tool: t.id, hud: null }) })),
+      colors: COLORS.map((c) => ({ ...c, on: c.hex === st.color ? "true" : "false", pick: () => this.setState({ color: c.hex }),
+        recolor: () => { const k = st.hudKey; const marks = { ...st.marks }; if (marks[k]) marks[k] = { ...marks[k], color: c.hex }; this.setState({ marks, color: c.hex }); } })),
+      paras, shapes: st.shapes.map((s) => ({ ...s, isRect: s.type === "rect", isEllipse: s.type === "ellipse", isLine: s.type === "line", isArrow: s.type === "arrow", isPen: s.type === "pen", isText: s.type === "text", isNote: s.type === "note" })),
+      stamps: st.stamps,
+      placing: !tool.mark && st.tool !== "select",
+      place: (e) => {
+        const el = e.currentTarget; const r = el.getBoundingClientRect(); const sc = r.width / el.offsetWidth || 1;
+        const x = (e.clientX - r.left) / sc; const y = (e.clientY - r.top) / sc;
+        const off = { rect: [70, 40], ellipse: [70, 40], line: [80, 10], arrow: [70, 28], pen: [85, 32], text: [10, 16], note: [12, 12] }[st.tool] || [0, 0];
+        const s = { id: st.seq, type: st.tool, x: x - off[0], y: y - off[1], color: st.color, w: st.width };
+        const upd = { shapes: st.shapes.concat([s]), seq: st.seq + 1, hist: this.push({ k: "shape", id: st.seq }) };
+        if (st.tool === "note") { s.n = st.notes + 1; upd.notes = st.notes + 1; }
+        this.setState(upd);
+      },
+      toolLabel: tool.label,
+      opacity: st.opacity, onOpacity: (e) => this.setState({ opacity: +e.target.value }),
+      widths: WIDTHS.map((w) => ({ label: w + " pt", h: Math.max(1.5, w * 1.6), on: w === st.width ? "true" : "false", pick: () => this.setState({ width: w }) })),
+      widthX: WIDTHS.indexOf(st.width) * 66,
+      stampKinds: STAMPS.map((s) => ({ label: s.label.charAt(0) + s.label.slice(1).toLowerCase(), text: rgba(s.color, 1) === s.color ? s.color : s.color, tint: rgba(s.color, 0.16), add: () => {
+        const pos = STAMP_POS[st.stamps.length % STAMP_POS.length];
+        this.setState({ stamps: st.stamps.concat([{ id: st.seq, label: s.label, color: s.color, x: pos.x, y: pos.y }]), seq: st.seq + 1, hist: this.push({ k: "stamp", id: st.seq }) });
+      } })).map((k, i) => ({ ...k, text: ["#5FD9A0", "#FF8C84", "#A9A6FF", "#F2C064"][i] })),
+      annList, annCount: annList.length,
+      filters: [{ id: "all", label: "Tous" }, { id: "open", label: "Ouverts" }, { id: "done", label: "Résolus" }].map((f) => ({ ...f, on: f.id === st.filter ? "true" : "false", pick: () => this.setState({ filter: f.id }) })),
+      filterX: fIdx * 68, comments, noComments: comments.length === 0,
+      draft: st.draft, onDraft: (e) => this.setState({ draft: e.target.value }),
+      onDraftKey: (e) => { if (e.key === "Enter") addComment(st.draft); },
+      send: () => addComment(st.draft),
+      hudComment: () => { addComment("Point à clarifier.", hudSent.slice(0, 64) + (hudSent.length > 64 ? "…" : "")); this.setState({ hud: null }); },
+      hudCopy: () => { try { navigator.clipboard.writeText(hudSent); } catch (e) {} this.setState({ hud: null }); },
+      hudRemove: () => { const marks = { ...st.marks }; delete marks[st.hudKey]; this.setState({ marks, hud: null }); },
+      undo: () => {
+        const h = st.hist[st.hist.length - 1]; if (!h) return;
+        const s = { hist: st.hist.slice(0, -1), hud: null };
+        if (h.k === "shape") s.shapes = st.shapes.filter((x) => x.id !== h.id);
+        if (h.k === "stamp") s.stamps = st.stamps.filter((x) => x.id !== h.id);
+        if (h.k === "mark") { const marks = { ...st.marks }; delete marks[h.key]; s.marks = marks; }
+        this.setState(s);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
