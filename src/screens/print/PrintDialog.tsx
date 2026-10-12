@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { save } from "@tauri-apps/plugin-dialog";
 import { Button, Chip, IconButton, Icons, Modal, ModalHeader, ProgressBar, Segmented, Slider, Stepper, Switch, TextField, toast } from "../../components";
-import { asAppError } from "../../lib/api";
+import { asAppError, perms } from "../../lib/api";
 import { Prio, renderPage } from "../../lib/render";
 import { stripExt } from "../../lib/format";
 import { shortcut } from "../../lib/platform";
@@ -31,15 +31,19 @@ export function PrintDialog() {
   const set = useApp((s) => s.set);
   const tab = useActiveTab();
 
-  // Sans document ouvert, rien à imprimer.
+  // Sans document ouvert, rien à imprimer ; impression éventuellement interdite.
+  const allowed = !tab || perms(tab.info).print;
   useEffect(() => {
     if (open && !tab) {
       set({ printOpen: false });
       toast.info(t("print.needDoc"));
+    } else if (open && !allowed) {
+      set({ printOpen: false });
+      toast.error(t("print.forbidden"));
     }
-  }, [open, tab, set, t]);
+  }, [open, tab, allowed, set, t]);
 
-  if (!open || !tab) return null;
+  if (!open || !tab || !allowed) return null;
   return <PrintDialogInner key={tab.key} />;
 }
 

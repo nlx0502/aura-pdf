@@ -1,0 +1,339 @@
+/* Module Sécurité — reproduit Security.dc.html. */
+
+.securityw {
+  overflow: hidden;
+}
+.sec__main {
+  flex: 999 1 560px;
+  min-width: 0;
+  overflow: auto;
+  background: var(--bg-center);
+  padding: 26px 28px 40px;
+}
+.sec__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+.sec__head h1 {
+  margin: 0;
+  font: var(--fw-semibold) 22px/1.2 var(--font);
+  letter-spacing: -0.03em;
+}
+.sec__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  align-items: start;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.sec__grid:disabled {
+  opacity: 0.7;
+}
+
+/* ---- Cartes */
+.scard {
+  background: var(--bg-card-alt);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  animation: rise 0.45s var(--ease) both;
+}
+.scard__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.scard__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.scard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background 0.35s, color 0.35s;
+}
+.hic--warn {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+/* Le cadenas se ferme quand la protection est activée. */
+.padlock__shackle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  transition: transform 0.45s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.sfield {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.sfield .field-wrap {
+  width: 100%;
+}
+.sfield__eye {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin-right: -9px;
+}
+.sec__hint {
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+/* ---- Jauge de robustesse */
+.smeter {
+  display: flex;
+  gap: 4px;
+}
+.smeter span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  transition: background 0.35s;
+}
+.smeter__l {
+  transition: color 0.3s;
+}
+
+/* ---- Permissions */
+.sperms {
+  display: flex;
+  flex-direction: column;
+}
+.sperm {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13.5px;
+  color: var(--text);
+  transition: color 0.25s;
+}
+.sperm--off {
+  color: #7c7f88;
+}
+
+/* ---- Métadonnées */
+.smeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* ---- PDF/A */
+.schips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sec__warn {
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--warning-text);
+  background: var(--warning-soft);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.schecks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.scheck {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: color 0.3s;
+  flex-wrap: wrap;
+}
+.scheck--ok,
+.scheck--fix {
+  color: var(--text);
+}
+.scheck--bad {
+  color: var(--danger-text);
+}
+.scheck__l {
+  flex: 0 1 auto;
+}
+.scheck__note {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.scheck--bad .scheck__note {
+  color: var(--danger-text);
+}
+.scheck__ic,
+.scheck__spin,
+.scheck__todo {
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scheck__ic {
+  background: var(--success);
+  color: #0e0f12;
+  animation: popin-fade 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.scheck__ic .i {
+  width: 10px;
+  height: 10px;
+  stroke-width: 2.8;
+}
+.scheck__ic--fix {
+  background: var(--accent);
+  color: #fff;
+}
+.scheck__ic--bad {
+  background: var(--danger);
+}
+.scheck__spin {
+  border: 2px solid rgba(110, 106, 246, 0.25);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+.scheck__todo {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.15);
+}
+
+/* ---- Document restreint : déverrouillage */
+.sec__unlock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: var(--warning-soft);
+}
+.sec__unlock-t {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13.5px;
+}
+.sec__unlock .field-wrap {
+  flex: 0 1 240px;
+}
+.sec__unlock-bad {
+  flex-basis: 100%;
+  font-size: var(--fs-sm);
+  color: var(--danger-text);
+}
+
+/* ---- Récapitulatif */
+.sec__side {
+  flex: 1 1 300px;
+  max-width: 380px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: auto;
+  position: relative;
+}
+.ssum {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ssum__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ssum__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex: none;
+  transition: background 0.3s;
+}
+.ssum__k {
+  flex: 1;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.ssum__v {
+  font: var(--fw-medium) 13.5px/1.2 var(--font);
+  text-align: right;
+}
+.sec__foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sapply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sapply__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.sapply__bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.25s linear;
+}
+
+/* Pictogrammes au trait (maquette). */
+.securityw svg.i,
+.formsw svg.i {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sfield__eye {
+  color: var(--text-muted);
+}
+.sfield__eye:hover {
+  color: var(--text);
+}

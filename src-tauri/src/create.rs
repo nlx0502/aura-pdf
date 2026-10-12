@@ -47,6 +47,9 @@ pub enum CreateSpec {
         pages: u32,
         style: PageStyle,
     },
+    /// Une page par image, aux proportions exactes de l'image (numérisations).
+    #[serde(rename_all = "camelCase")]
+    Scans { paths: Vec<String> },
     #[serde(rename_all = "camelCase")]
     Images {
         paths: Vec<String>,
@@ -129,6 +132,25 @@ pub fn create(pdfium: &Pdfium, spec: &CreateSpec, out: &Path) -> AppResult<()> {
                     .create_page_at_end(PdfPagePaperSize::new_custom(PdfPoints::new(w), PdfPoints::new(h)))
                     .map_err(AppError::internal)?;
                 decorate(&mut page, *style, w, h).map_err(AppError::internal)?;
+            }
+        }
+        CreateSpec::Scans { paths } => {
+            if paths.is_empty() {
+                return Err(AppError::new("no_images", "Ajoutez au moins une image."));
+            }
+            for p in paths {
+                let img = image::open(p).map_err(|e| AppError::new("image", format!("Impossible de lire l’image « {} » ({e}).", file_name(p))))?;
+                let (iw, ih) = (img.width() as f32, img.height() as f32);
+                // Largeur A4 (portrait ou paysage selon l'image), hauteur proportionnelle.
+                let w = if iw > ih { 841.89 } else { 595.28 };
+                let h = w * ih / iw;
+                let mut page = doc
+                    .pages_mut()
+                    .create_page_at_end(PdfPagePaperSize::new_custom(PdfPoints::new(w), PdfPoints::new(h)))
+                    .map_err(AppError::internal)?;
+                page.objects_mut()
+                    .create_image_object(PdfPoints::new(0.0), PdfPoints::new(0.0), &img, Some(PdfPoints::new(w)), Some(PdfPoints::new(h)))
+                    .map_err(AppError::internal)?;
             }
         }
         CreateSpec::Images { paths, format, landscape, one_per_page } => {

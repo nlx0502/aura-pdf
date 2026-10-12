@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Chip, ColorDots, IconButton, Icons, Segmented, Slider, Stepper, Switch, TextField } from "../../components";
 import { TEXT_COLORS } from "../../lib/annot";
-import { fillNumber, NUM_FORMATS, type ContentItem, type NumPos } from "../../lib/edit";
+import { FontPicker } from "../../components/FontPicker";
+import { fillNumber, NUM_FORMATS, pageNumber, type ContentItem, type NumPos } from "../../lib/edit";
 import { pickImage } from "../../lib/files";
 import type { DocTab } from "../../stores/app";
 import { useEdit, type DocEdit, type RedactPattern } from "../../stores/edit";
@@ -97,12 +98,35 @@ export function EditSide({ tab, d, readOnly }: { tab: DocTab; d: DocEdit; readOn
           <div className="eside__field">
             <span className="muted">{t("edit.format")}</span>
             <div className="eside__chips">
-              {NUM_FORMATS.map((f) => (
-                <Chip key={f} pressed={s.numbering.format === f} onClick={() => set(tab.key, (x) => ({ ...x, numbering: { ...x.numbering, format: f, on: true } }))}>
-                  {fillNumber(f, 1, total)}
-                </Chip>
-              ))}
+              {NUM_FORMATS.map((f) => {
+                const sample = pageNumber(s.numbering.skipFirst ? 1 : 0, total, s.numbering.start, s.numbering.skipFirst)!;
+                return (
+                  <Chip key={f} pressed={s.numbering.format === f} onClick={() => set(tab.key, (x) => ({ ...x, numbering: { ...x.numbering, format: f, on: true } }))}>
+                    {fillNumber(f, sample.n, sample.total)}
+                  </Chip>
+                );
+              })}
             </div>
+          </div>
+          <div className="eside__row">
+            <span>{t("edit.skipCover")}</span>
+            <Switch
+              label={t("edit.skipCover")}
+              checked={s.numbering.skipFirst}
+              // La page de garde compte : la page suivante porte le n° 2 (modifiable).
+              onChange={(v) => set(tab.key, (x) => ({ ...x, numbering: { ...x.numbering, skipFirst: v, start: v ? 2 : 1, on: true } }))}
+            />
+          </div>
+          <div className="eside__row">
+            <span>{t("edit.firstNumber")}</span>
+            <Stepper
+              value={s.numbering.start}
+              min={0}
+              max={9999}
+              onChange={(v) => set(tab.key, (x) => ({ ...x, numbering: { ...x.numbering, start: v, on: true } }), "numstart")}
+              decLabel={t("edit.firstNumberDec")}
+              incLabel={t("edit.firstNumberInc")}
+            />
           </div>
           <div className="eside__field">
             <span className="muted">{t("edit.position")}</span>
@@ -299,14 +323,9 @@ function TextPanel({ item, disabled, onApply }: { item: ContentItem; disabled: b
           onBlur={() => text !== item.text && change({})}
         />
       </label>
+      <FontPicker block value={item.font} disabled={disabled} onChange={(font) => change({ font })} />
       <div className="eside__row">
-        <Segmented
-          size="sm"
-          label={t("annot.font")}
-          value={item.font}
-          onChange={(font) => change({ font })}
-          options={(["sans", "serif", "mono"] as const).map((f) => ({ value: f, label: t(`annot.fonts.${f}`), title: t(`annot.fontsLong.${f}`) }))}
-        />
+        <span>{t("annot.fontStyle")}</span>
         <span className="eside__inline">
           <IconButton label={t("annot.bold")} icon={<Icons.bold />} on={item.bold} disabled={disabled} onClick={() => change({ bold: !item.bold })} />
           <IconButton label={t("annot.italic")} icon={<Icons.italic />} on={item.italic} disabled={disabled} onClick={() => change({ italic: !item.italic })} />

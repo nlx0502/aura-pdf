@@ -165,7 +165,15 @@ pub fn read(doc: &Document) -> Vec<Annot> {
                             a.contents.clear();
                             let da = parse_da(&str_of(doc, d, b"DA"));
                             a.font_size = da.size.unwrap_or(12.0);
-                            let (family, bold, italic) = super::model::font_from_resource(&da.font);
+                            let (family, bold, italic) = match get(doc, d, b"AuraFont").map(super::pdf::text) {
+                                // Police du système enregistrée par Aura : « Famille|gras|italique ».
+                                Some(s) if da.font == super::ap::SYS_FONT_RES => {
+                                    let mut it = s.split('|');
+                                    let fam = it.next().unwrap_or("sans").to_string();
+                                    (fam, it.next() == Some("1"), it.next() == Some("1"))
+                                }
+                                _ => super::model::font_from_resource(&da.font),
+                            };
                             a.font = family;
                             a.bold = bold;
                             a.italic = italic;

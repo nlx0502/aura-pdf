@@ -15,6 +15,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7", features = [] }
 
 [dependencies]
+zip = { version = "2", default-features = false, features = ["deflate"] }
+roxmltree = "0.20"
+arboard = { version = "3", default-features = false, features = ["image-data"] }
 tauri = { version = "2.12", features = [] }
 tauri-plugin-dialog = "2.8"
 tauri-plugin-single-instance = "2.5"
@@ -22,6 +25,24 @@ tauri-plugin-opener = "2.7"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 pdfium-render = { version = "0.9", default-features = false, features = ["thread_safe", "image_025", "pdfium_latest"] }
+ttf-parser = "0.25"
+# Signature numérique (RustCrypto, MIT OU Apache-2.0)
+p12-keystore = "0.2.1"
+cms = { version = "0.2.3", features = ["builder"] }
+x509-cert = { version = "0.2.5", features = ["builder"] }
+der = { version = "0.7", features = ["alloc", "derive", "oid"] }
+spki = "0.7"
+rsa = { version = "0.9", features = ["sha2"] }
+p256 = { version = "0.13", features = ["ecdsa"] }
+p384 = { version = "0.13", features = ["ecdsa"] }
+ecdsa = { version = "0.16", features = ["der", "verifying"] }
+sha1 = { version = "0.10", features = ["oid"] }
+sha2 = { version = "0.10", features = ["oid"] }
+signature = "2"
+rand_core = { version = "0.6", features = ["getrandom"] }
+const-oid = { version = "0.9", features = ["db"] }
+rustls-native-certs = "0.8"
+ureq = { version = "2", default-features = false }
 regex = { version = "1", default-features = false, features = ["std", "unicode-perl", "unicode-case"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "tiff", "webp"] }
 

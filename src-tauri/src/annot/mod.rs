@@ -147,4 +147,29 @@ mod tests {
         assert_eq!(back2.iter().find(|a| a.id == "aura-0").unwrap().replies.len(), 1);
         let _ = std::fs::remove_file(&path);
     }
+
+    #[test]
+    fn zone_de_texte_en_police_du_systeme() {
+        let src = fixture("Rapport Q1 2025.pdf");
+        if !src.exists() || !crate::sysfonts::list().iter().any(|f| f.family == "Arial") {
+            return;
+        }
+        let path = std::env::temp_dir().join(format!("aura-sysfont-{}.pdf", std::process::id()));
+        std::fs::copy(&src, &path).unwrap();
+        let mut a = sample(Kind::Text, "aura-sys");
+        a.font = "Arial".into();
+        a.italic = true;
+        a.text = "Été 2025 — Œuvre".into();
+        let before = std::fs::metadata(&path).unwrap().len();
+        save(&path, None, &[a]).unwrap();
+        let back = load(&path, None).unwrap();
+        let t = back.iter().find(|x| x.kind == Kind::Text).unwrap();
+        assert_eq!((t.font.as_str(), t.italic, t.text.as_str()), ("Arial", true, "Été 2025 — Œuvre"));
+        // Sous-ensemble intégré : quelques dizaines de Ko au plus (Arial complet ≈ 1 Mo).
+        let added = std::fs::metadata(&path).unwrap().len() - before;
+        assert!(added < 150_000, "police trop lourde : {added} octets");
+        let doc = lopdf::Document::load(&path).unwrap();
+        assert!(doc.objects.values().any(|o| o.as_dict().map(|d| d.has(b"FontFile2")).unwrap_or(false)));
+        let _ = std::fs::remove_file(&path);
+    }
 }

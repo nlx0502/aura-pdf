@@ -27,6 +27,21 @@ Module Éditer conforme à `design/project/Organize.dc.html` : mode **Pages**
 | Enregistrer | Ctrl+S ou bouton ; « Modifications non enregistrées » / « Enregistré » ; pastille sur l'onglet ; confirmation à la fermeture ; les annotations en attente sont enregistrées d'abord |
 | Calques (lecture) | Calques optionnels du PDF (OCG) avec ordre et imbrication du document, affichés ou masqués à la volée (affichage seulement, le fichier n'est pas modifié) |
 
+## Ajouts après la première revue
+
+- **Polices installées** : à côté de Sans / Serif / Mono, un menu « Autres… »
+  liste les polices TrueType du poste (recherche, aperçu dans chaque police),
+  pour les zones de texte (Annoter) comme pour le texte modifié (Éditer). Seuls
+  les caractères utilisés sont intégrés au PDF (sous-ensemble : quelques Ko au
+  lieu de ~1 Mo pour Arial) ; le gras ou l'italique absents d'une famille sont
+  simulés. Les polices dont la licence interdit l'intégration ne sont pas
+  proposées. Le texte d'un PDF écrit dans une police installée (ex. Calibri) est
+  reconnu et modifiable dans cette police.
+- **Page de garde** : option « Page de garde sans numéro » et « Premier numéro »
+  (la page 2 porte par défaut le n° 2, réglable à 1).
+- Captures : `captures/j4-polices.png`, `j4-polices-page.png`, `j4-page-de-garde.png` ;
+  scénario `scripts/e2e-polices.mjs`.
+
 ## Fonctionnement
 
 - L'interface décrit le document voulu (**plan** : ordre, sources, rotations,
@@ -109,7 +124,7 @@ Module Éditer conforme à `design/project/Organize.dc.html` : mode **Pages**
 | Écart | Raison / suite |
 |---|---|
 | Documents protégés par mot de passe : lecture seule | Avec le module Sécurité (jalon 7). |
-| Texte modifié réécrit en police standard (Helvetica, Times, Courier) | Les polices intégrées sont souvent réduites aux glyphes utilisés ; la réutilisation de la police d'origine quand c'est possible est prévue au jalon 9. |
+| Police d'origine non installée sur le poste : texte modifié réécrit dans une police standard ou installée au choix | Les polices intégrées aux PDF sont souvent réduites aux glyphes utilisés. Polices OpenType à contours CFF (.otf) non proposées. |
 | Texte d'un formulaire XObject ou incliné non modifiable en mode Contenu | Il reste sélectionnable pour le caviardage. |
 | Pages insérées : contenu modifiable après l'enregistrement seulement | L'édition s'applique au document ouvert. |
 | Modification de contenu : la page est réécrite par PDFium | Rendu identique dans nos tests ; les pages non touchées ne sont jamais réécrites. |

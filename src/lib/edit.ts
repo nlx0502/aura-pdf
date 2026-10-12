@@ -22,7 +22,7 @@ export interface PlanPage {
 export interface Plan {
   pages: PlanPage[];
   header: { header: string; footer: string; size: number; color: string } | null;
-  numbering: { format: string; position: NumPos; size: number; start: number; color: string } | null;
+  numbering: { format: string; position: NumPos; size: number; start: number; skipFirst: boolean; color: string } | null;
   watermark: { text: string; opacity: number; color: string; angle: number } | null;
   crop: { top: number; bottom: number; left: number; right: number } | null;
   cleanMetadata: boolean;
@@ -47,7 +47,8 @@ export interface ContentItem {
   ids: number[];
   rect: Rect;
   text: string;
-  font: "sans" | "serif" | "mono";
+  /** « sans », « serif », « mono » ou police installée. */
+  font: string;
   bold: boolean;
   italic: boolean;
   size: number;
@@ -121,7 +122,7 @@ export interface EditPage {
 
 export interface EditSettings {
   header: { on: boolean; header: string; footer: string };
-  numbering: { on: boolean; format: string; position: NumPos };
+  numbering: { on: boolean; format: string; position: NumPos; skipFirst: boolean; start: number };
   watermark: { text: string; opacity: number; color: string };
   crop: { on: boolean; top: number; bottom: number; left: number; right: number; scope: "all" | "sel" };
 }
@@ -131,13 +132,23 @@ export const NUM_FORMATS = ["{n}", "{n} / {total}", "Page {n} sur {total}"] as c
 export function defaultSettings(name: string): EditSettings {
   return {
     header: { on: false, header: name.replace(/\.pdf$/i, ""), footer: "" },
-    numbering: { on: false, format: "{n} / {total}", position: "br" },
+    numbering: { on: false, format: "{n} / {total}", position: "br", skipFirst: false, start: 1 },
     watermark: { text: "", opacity: 18, color: "#6E6AF6" },
     crop: { on: false, top: 12, bottom: 12, left: 18, right: 18, scope: "all" },
   };
 }
 
 export const MM = 72 / 25.4;
+
+/**
+ * Numéro affiché sur la page `i` (index 0) et dernier numéro, ou null pour une
+ * page de garde non numérotée (mêmes règles que le cœur Rust).
+ */
+export function pageNumber(i: number, pages: number, start: number, skipFirst: boolean): { n: number; total: number } | null {
+  const first = skipFirst ? 1 : 0;
+  if (i < first) return null;
+  return { n: start + i - first, total: start + Math.max(0, pages - first - 1) };
+}
 
 export function fillNumber(format: string, n: number, total: number) {
   return format.replace("{n}", String(n)).replace("{total}", String(total));
@@ -215,7 +226,7 @@ export function buildPlan(pages: EditPage[], s: EditSettings, sel: Set<string>, 
       links: p.src.kind === "orig" ? (links.get(p.src.index) ?? []).filter((e) => e.op !== "add" || e.uri.trim() !== "") : [],
     })),
     header: s.header.on && (s.header.header.trim() || s.header.footer.trim()) ? { header: s.header.header, footer: s.header.footer, size: 9, color: "#5A5B60" } : null,
-    numbering: s.numbering.on ? { format: s.numbering.format, position: s.numbering.position, size: 9, start: 1, color: "#3A3B40" } : null,
+    numbering: s.numbering.on ? { format: s.numbering.format, position: s.numbering.position, size: 9, start: s.numbering.start, skipFirst: s.numbering.skipFirst, color: "#3A3B40" } : null,
     watermark: s.watermark.text.trim() ? { text: s.watermark.text.trim(), opacity: s.watermark.opacity / 100, color: s.watermark.color, angle: 35 } : null,
     crop: cropOn ? { top: s.crop.top * MM, bottom: s.crop.bottom * MM, left: s.crop.left * MM, right: s.crop.right * MM } : null,
     cleanMetadata: clean,

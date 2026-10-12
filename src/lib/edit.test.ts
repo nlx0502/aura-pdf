@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPlan, defaultSettings, moveSelected, moveTo, paperName, shownSize, toggleSelection, type EditPage } from "./edit";
+import { buildPlan, defaultSettings, moveSelected, moveTo, pageNumber, paperName, shownSize, toggleSelection, type EditPage } from "./edit";
 
 const pages = ["a", "b", "c", "d", "e"].map((key) => ({ key }));
 const keys = (l: { key: string }[]) => l.map((p) => p.key).join("");
@@ -27,6 +27,13 @@ describe("module Éditer", () => {
   it("taille affichée après rotation", () => {
     expect(shownSize({ w: 595, h: 842, rot: 1 })).toEqual({ w: 842, h: 595 });
     expect(shownSize({ w: 595, h: 842, rot: -2 })).toEqual({ w: 595, h: 842 });
+  });
+
+  it("numérotation avec page de garde", () => {
+    expect(pageNumber(0, 10, 1, false)).toEqual({ n: 1, total: 10 });
+    expect(pageNumber(0, 10, 2, true)).toBeNull();
+    expect(pageNumber(1, 10, 2, true)).toEqual({ n: 2, total: 10 });
+    expect(pageNumber(1, 10, 1, true)).toEqual({ n: 1, total: 9 });
   });
 
   it("formats de papier", () => {

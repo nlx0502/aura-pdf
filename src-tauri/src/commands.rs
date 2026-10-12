@@ -111,6 +111,10 @@ pub async fn printer_margins(name: String, paper: crate::print::layout::Paper, l
 
 #[tauri::command]
 pub async fn print_start(state: State<'_, AppState>, doc: u32, job: u64, settings: PrintSettings, margin: f32, target: PrintTarget) -> AppResult<()> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    if !blocking(move || crate::security::rights(&path, password.as_deref())).await?.print {
+        return Err(AppError::new("print", "Le propriétaire de ce document n’autorise pas son impression."));
+    }
     state.engine.print_start(doc, job, settings, margin, target).await
 }
 
@@ -178,6 +182,335 @@ pub async fn content_list(state: State<'_, AppState>, doc: u32, page: u32) -> Ap
 #[tauri::command]
 pub async fn content_apply(state: State<'_, AppState>, doc: u32, ops: Vec<crate::engine::content::ContentOp>, reset: bool) -> AppResult<()> {
     state.engine.content_apply(doc, ops, reset).await
+}
+
+/// Polices installées utilisables dans les zones de texte et le contenu.
+#[tauri::command]
+pub async fn system_fonts() -> AppResult<Vec<crate::sysfonts::FamilyInfo>> {
+    tauri::async_runtime::spawn_blocking(crate::sysfonts::list).await.map_err(AppError::internal)
+}
+
+// ------------------------------------------------------------------ outils
+
+async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + 'static) -> AppResult<T> {
+    tauri::async_runtime::spawn_blocking(f).await.map_err(AppError::internal)?.map_err(|e| AppError::new("tool", e))
+}
+
+#[tauri::command]
+pub async fn tool_inspect(path: String) -> AppResult<crate::tools::inspect::FileInfo> {
+    blocking(move || crate::tools::inspect::inspect(std::path::Path::new(&path))).await
+}
+
+#[tauri::command]
+pub async fn tool_analyze(path: String) -> AppResult<crate::tools::compress::Analysis> {
+    blocking(move || crate::tools::compress::analyze(std::path::Path::new(&path))).await
+}
+
+#[tauri::command]
+pub async fn split_by_size(path: String, max_bytes: u64) -> AppResult<Vec<[u32; 2]>> {
+    blocking(move || crate::tools::split::by_size(std::path::Path::new(&path), max_bytes)).await
+}
+
+const IMAGE_EXT: [&str; 8] = ["png", "jpg", "jpeg", "gif", "bmp", "tif", "tiff", "webp"];
+
+/// Fusion : les images sont d'abord converties en PDF (une page A4 par image).
+#[tauri::command]
+pub async fn merge_start(state: State<'_, AppState>, job: u64, inputs: Vec<String>, opts: crate::tools::merge::MergeOptions, out_dir: String, out_name: String) -> AppResult<String> {
+    let mut paths = Vec::new();
+    for (i, p) in inputs.iter().enumerate() {
+        let path = PathBuf::from(p);
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
+        if IMAGE_EXT.contains(&ext.as_str()) {
+            let tmp = std::env::temp_dir().join(format!("aura-merge-{job}-{i}.pdf"));
+            let spec = CreateSpec::Images { paths: vec![p.clone()], format: crate::create::PaperFormat::A4, landscape: false, one_per_page: true };
+            state.engine.create(spec, tmp.clone()).await?;
+            paths.push(tmp);
+        } else if ext != "pdf" {
+            return Err(AppError::new("tool", format!("« {} » : seuls les PDF et les images peuvent être fusionnés pour l’instant (Word au jalon 8).", path.file_name().map(|n| n.to_string_lossy()).unwrap_or_default())));
+        } else {
+            paths.push(path);
+        }
+    }
+    let stem = out_name.trim().trim_end_matches(".pdf").trim_end_matches(".PDF").to_string();
+    let out = crate::tools::free_path(std::path::Path::new(&out_dir), &stem);
+    let out_s = out.to_string_lossy().to_string();
+    crate::tools::spawn(job, state.emit.clone(), move |j| {
+        let r = crate::tools::merge::merge(&paths, &opts, &out, j).map(|o| vec![o]);
+        for p in &paths {
+            if p.file_name().map(|n| n.to_string_lossy().starts_with("aura-merge-")).unwrap_or(false) {
+                let _ = std::fs::remove_file(p);
+            }
+        }
+        r
+    });
+    Ok(out_s)
+}
+
+#[tauri::command]
+pub fn split_start(state: State<'_, AppState>, job: u64, path: String, parts: Vec<crate::tools::split::Part>, out_dir: String) {
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::tools::split::split(std::path::Path::new(&path), &parts, std::path::Path::new(&out_dir), j));
+}
+
+/// Compression vers « nom (compressé).pdf » à côté de l'original.
+#[tauri::command]
+pub fn compress_start(state: State<'_, AppState>, job: u64, path: String, opts: crate::tools::compress::CompressOptions) -> String {
+    let src = PathBuf::from(&path);
+    let dir = src.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let stem = src.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let out = crate::tools::free_path(&dir, &format!("{stem} (compressé)"));
+    let out_s = out.to_string_lossy().to_string();
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::tools::compress::compress(&src, &opts, &out, j).map(|o| vec![o]));
+    out_s
+}
+
+#[tauri::command]
+pub fn tool_cancel(job: u64) {
+    crate::tools::cancel(job);
+}
+
+// ------------------------------------------------------------------ signature
+
+#[tauri::command]
+pub async fn reload_document(state: State<'_, AppState>, doc: u32) -> AppResult<DocInfo> {
+    state.engine.reload(doc).await
+}
+
+#[tauri::command]
+pub async fn sign_report(path: String) -> AppResult<crate::sign::verify::Report> {
+    blocking(move || crate::sign::verify::report(std::path::Path::new(&path))).await
+}
+
+#[tauri::command]
+pub async fn cert_inspect(path: String, password: String) -> AppResult<crate::sign::crypto::CertInfo> {
+    blocking(move || crate::sign::crypto::load_p12(std::path::Path::new(&path), &password).map(|s| crate::sign::crypto::cert_info(&s.chain[0]))).await
+}
+
+#[tauri::command]
+pub async fn cert_create(name: String, email: String, organization: String, password: String, out: String) -> AppResult<crate::sign::crypto::CertInfo> {
+    blocking(move || crate::sign::crypto::create_self_signed(&name, &email, &organization, &password, std::path::Path::new(&out))).await
+}
+
+/// Signe le fichier `path` (tâche annulable, progression par étapes).
+#[tauri::command]
+pub fn sign_start(state: State<'_, AppState>, job: u64, path: String, req: crate::sign::SignRequest) {
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::sign::sign(std::path::Path::new(&path), &req, j).map(|o| vec![o]));
+}
+
+// ------------------------------------------------------------------ sécurité
+
+#[tauri::command]
+pub async fn security_info(state: State<'_, AppState>, doc: u32) -> AppResult<crate::security::SecurityInfo> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    blocking(move || crate::security::inspect(&path, password.as_deref())).await
+}
+
+/// Contrôle de conformité PDF/A du document tel qu'il est enregistré.
+#[tauri::command]
+pub async fn pdfa_check(state: State<'_, AppState>, doc: u32, level: String) -> AppResult<Vec<crate::security::pdfa::Check>> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    blocking(move || {
+        let info = crate::security::inspect(&path, password.as_deref())?;
+        let d = crate::security::load(&path, password.as_deref())?;
+        crate::security::pdfa::check(&d, &level, info.algorithm != "none")
+    })
+    .await
+}
+
+/// Applique la sécurité au fichier du document (tâche avec progression) ;
+/// l'interface rouvre ensuite le document avec `security_reload`.
+#[tauri::command]
+pub async fn security_apply(state: State<'_, AppState>, job: u64, doc: u32, mut spec: crate::security::SecuritySpec) -> AppResult<()> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    // Mot de passe d'ouverture laissé vide : celui du document est conservé
+    // (s'il a été ouvert avec le mot de passe utilisateur, pas propriétaire).
+    if spec.protect && spec.user_password.is_empty() {
+        if let Some(pw) = &password {
+            let (p, pw2) = (path.clone(), pw.clone());
+            let info = blocking(move || crate::security::inspect(&p, Some(&pw2))).await?;
+            if info.open_password && !info.owner {
+                spec.user_password = pw.clone();
+            }
+        }
+    }
+    // Retirer ou modifier la sécurité exige les droits du propriétaire.
+    let (p, pw) = (path.clone(), password.clone());
+    let info = blocking(move || crate::security::inspect(&p, pw.as_deref())).await?;
+    if info.algorithm != "none" && !info.owner && info.permissions != crate::security::Perms::ALL {
+        return Err(AppError::new("security", "Saisissez le mot de passe propriétaire pour modifier la sécurité de ce document."));
+    }
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::security::apply(&path, password.as_deref(), &spec, j).map(|o| vec![o]));
+    Ok(())
+}
+
+/// Rouvre le document après `security_apply` : avec le mot de passe
+/// propriétaire s'il a été choisi (l'auteur garde tous les droits), sinon
+/// avec le mot de passe d'ouverture.
+#[tauri::command]
+pub async fn security_reload(state: State<'_, AppState>, doc: u32, password: Option<String>) -> AppResult<DocInfo> {
+    state.engine.reload_with(doc, password).await
+}
+
+// ------------------------------------------------------------------ formulaires
+
+#[tauri::command]
+pub async fn forms_list(state: State<'_, AppState>, doc: u32) -> AppResult<Vec<crate::forms::Field>> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    blocking(move || crate::forms::read(&path, password.as_deref())).await
+}
+
+/// Enregistre valeurs, propriétés, nouveaux champs et suppressions, puis relit le document.
+#[tauri::command]
+pub async fn forms_save(state: State<'_, AppState>, doc: u32, plan: crate::forms::FormPlan) -> AppResult<DocInfo> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    blocking(move || {
+        let perms = crate::security::rights(&path, password.as_deref())?;
+        // Remplir exige le droit « formulaires » ; modifier la structure (champs, style, position), le droit « modifier ».
+        let structure = !plan.delete.is_empty() || {
+            let current = crate::forms::read(&path, password.as_deref())?;
+            plan.upsert.iter().any(|f| {
+                let Some(o) = current.iter().find(|o| o.name == f.name).filter(|_| !f.is_new) else { return true };
+                let mut a = serde_json::to_value(o).unwrap_or_default();
+                let mut b = serde_json::to_value(f).unwrap_or_default();
+                for v in [&mut a, &mut b] {
+                    if let Some(m) = v.as_object_mut() {
+                        m.remove("value");
+                    }
+                }
+                a != b
+            })
+        };
+        if !perms.forms || (structure && !perms.edit) {
+            return Err("Le propriétaire du document n’autorise pas cette modification du formulaire.".into());
+        }
+        let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+        let out = crate::forms::save(bytes, password.as_deref(), &plan)?;
+        crate::edit::write_atomic(&path, &out).map_err(|e| e.message)
+    })
+    .await?;
+    state.engine.reload(doc).await
+}
+
+/// Aplatit le formulaire (les valeurs deviennent du contenu fixe), puis relit
+/// le document. Une copie de l'original est gardée pour « Annuler ».
+#[tauri::command]
+pub async fn forms_flatten(state: State<'_, AppState>, doc: u32) -> AppResult<(DocInfo, String)> {
+    let (path, password) = state.engine.credentials(doc).await?;
+    let backup = blocking(move || {
+        if !crate::security::rights(&path, password.as_deref())?.edit {
+            return Err("Le propriétaire du document n’autorise pas sa modification.".into());
+        }
+        let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let backup = std::env::temp_dir().join(format!("aura-formulaire-{doc}-{nanos}.pdf"));
+        std::fs::write(&backup, &bytes).map_err(|e| e.to_string())?;
+        let out = crate::forms::flatten(&bytes, password.as_deref())?;
+        crate::edit::write_atomic(&path, &out).map_err(|e| e.message)?;
+        Ok(backup.to_string_lossy().to_string())
+    })
+    .await?;
+    Ok((state.engine.reload(doc).await?, backup))
+}
+
+/// Annule un aplatissement : l'original est remis en place.
+#[tauri::command]
+pub async fn forms_restore(state: State<'_, AppState>, doc: u32, backup: String) -> AppResult<DocInfo> {
+    let (path, _) = state.engine.credentials(doc).await?;
+    let backup = std::path::PathBuf::from(backup);
+    if !backup.file_name().map(|n| n.to_string_lossy().starts_with("aura-formulaire-")).unwrap_or(false) || backup.parent() != Some(std::env::temp_dir().as_path()) {
+        return Err(AppError::new("forms", "Copie de sauvegarde introuvable."));
+    }
+    blocking(move || {
+        let bytes = std::fs::read(&backup).map_err(|e| e.to_string())?;
+        crate::edit::write_atomic(&path, &bytes).map_err(|e| e.message)?;
+        let _ = std::fs::remove_file(&backup);
+        Ok(())
+    })
+    .await?;
+    state.engine.reload(doc).await
+}
+
+// ------------------------------------------------------------------ conversion
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConvertInfo {
+    pub word: bool,
+    pub excel: bool,
+    pub powerpoint: bool,
+}
+
+/// Applications Office disponibles pour la conversion.
+#[tauri::command]
+pub async fn convert_info() -> ConvertInfo {
+    tauri::async_runtime::spawn_blocking(|| ConvertInfo {
+        word: crate::convert::office_available("Word"),
+        excel: crate::convert::office_available("Excel"),
+        powerpoint: crate::convert::office_available("PowerPoint"),
+    })
+    .await
+    .unwrap_or(ConvertInfo { word: false, excel: false, powerpoint: false })
+}
+
+/// Convertit des fichiers (tâche annulable, progression par fichier et par page).
+#[tauri::command]
+pub fn convert_start(state: State<'_, AppState>, job: u64, files: Vec<String>, spec: crate::convert::ConvertSpec) {
+    let engine = state.engine.clone();
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::convert::run(&engine, &files, &spec, ocr_fn(), j));
+}
+
+/// Reconnaissance de texte pour la conversion (pages numérisées).
+fn ocr_fn() -> Option<crate::convert::OcrFn<'static>> {
+    Some(&crate::ocr::convert_ocr)
+}
+
+/// Reconnaissance de texte d'un document ouvert (tâche avec aperçu en direct).
+#[tauri::command]
+pub fn ocr_start(state: State<'_, AppState>, job: u64, doc: u32, spec: crate::ocr::job::OcrSpec) {
+    let engine = state.engine.clone();
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::ocr::job::run(&engine, doc, &spec, j).map(|o| vec![o]));
+}
+
+/// Crée un PDF (images, numérisations) puis le rend recherchable, sur place.
+#[tauri::command]
+pub fn create_pdf_ocr(state: State<'_, AppState>, job: u64, spec: CreateSpec, out: String, langs: Vec<String>) {
+    let engine = state.engine.clone();
+    crate::tools::spawn(job, state.emit.clone(), move |j| {
+        use tauri::async_runtime::block_on as block;
+        let path = std::path::PathBuf::from(&out);
+        block(engine.create(spec, path.clone())).map_err(|e| e.message)?;
+        let info = block(engine.open(path, None)).map_err(|e| e.message)?;
+        let spec = crate::ocr::job::OcrSpec { langs, searchable: true, deskew: true, all_pages: false, in_place: true };
+        let r = crate::ocr::job::run(&engine, info.id, &spec, j);
+        let _ = engine.close(info.id);
+        r.map(|o| vec![o])
+    });
+}
+
+/// Document Office (Word, Excel, PowerPoint) en PDF, vers `out`.
+#[tauri::command]
+pub fn document_pdf(state: State<'_, AppState>, job: u64, input: String, out: String) {
+    crate::tools::spawn(job, state.emit.clone(), move |j| crate::convert::document_to_pdf(std::path::Path::new(&input), std::path::Path::new(&out), j).map(|o| vec![o]));
+}
+
+/// Numérise une page avec le scanner (boîte de dialogue Windows) ; renvoie l'image, ou rien si annulé.
+#[tauri::command]
+pub async fn scan_acquire() -> AppResult<Option<String>> {
+    blocking(crate::convert::scan::acquire).await
+}
+
+/// Crée un PDF à partir du contenu du presse-papiers (image ou texte).
+#[tauri::command]
+pub async fn clipboard_pdf(state: State<'_, AppState>, out: String) -> AppResult<()> {
+    let image = blocking(crate::convert::scan::clipboard).await?;
+    match image {
+        crate::convert::scan::Clip::Image(path) => {
+            let spec = CreateSpec::Scans { paths: vec![path.clone()] };
+            let r = state.engine.create(spec, std::path::PathBuf::from(&out)).await;
+            let _ = std::fs::remove_file(&path);
+            r
+        }
+        crate::convert::scan::Clip::Text(text) => blocking(move || crate::convert::text_to_pdf(&text, std::path::Path::new(&out))).await,
+    }
 }
 
 // ------------------------------------------------------------------ récents

@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { Button, Icons, Modal, ModalHeader } from "../components";
 import { dirtyTabs as dirtyAnnotTabs, useAnnots } from "../stores/annot";
 import { dirtyEditTabs, useEdit } from "../stores/edit";
+import { dirtyFormTabs, useForms } from "../stores/forms";
 import { useApp } from "../stores/app";
 
 type Pending = { kind: "tab"; key: string } | { kind: "quit" } | null;
@@ -12,15 +13,17 @@ const usePending = create<{ pending: Pending }>(() => ({ pending: null }));
 
 /** Onglets dont les annotations ou les modifications ne sont pas enregistrées. */
 function dirtyTabs(): string[] {
-  return Array.from(new Set([...dirtyAnnotTabs(), ...dirtyEditTabs()]));
+  return Array.from(new Set([...dirtyAnnotTabs(), ...dirtyEditTabs(), ...dirtyFormTabs()]));
 }
 
 function isDirty(key: string) {
-  return !!useAnnots.getState().docs[key]?.dirty || !!useEdit.getState().docs[key]?.dirty;
+  return !!useAnnots.getState().docs[key]?.dirty || !!useEdit.getState().docs[key]?.dirty || !!useForms.getState().docs[key]?.dirty;
 }
 
 /** Enregistre tout ce qui est en attente pour un onglet (l'édition enregistre aussi les annotations). */
 export async function saveTab(key: string): Promise<boolean> {
+  // Le formulaire enregistre aussi l'édition et les annotations en attente.
+  if (useForms.getState().docs[key]?.dirty) return useForms.getState().save(key);
   if (useEdit.getState().docs[key]?.dirty) return useEdit.getState().save(key);
   if (useAnnots.getState().docs[key]?.dirty) return useAnnots.getState().save(key);
   return true;
@@ -29,6 +32,7 @@ export async function saveTab(key: string): Promise<boolean> {
 function discardTab(key: string) {
   useAnnots.getState().discard(key);
   useEdit.getState().discard(key);
+  useForms.getState().discard(key);
 }
 
 /** Ferme un onglet, en proposant d'enregistrer les modifications si besoin. */

@@ -232,3 +232,102 @@ fn pixel(e: &Engine, doc: u32, (x, y): (u32, u32)) -> [u8; 4] {
     let i = ((y * b.width + x) * 4) as usize;
     [b.rgba[i], b.rgba[i + 1], b.rgba[i + 2], b.rgba[i + 3]]
 }
+
+#[test]
+fn contenu_en_police_du_systeme() {
+    if !have_fixtures() || !crate::sysfonts::list().iter().any(|f| f.family == "Arial") {
+        return;
+    }
+    let (e, _) = engine();
+    let path = tmp("contenu-arial.pdf");
+    std::fs::copy(fixture("Rapport Q1 2025.pdf"), &path).unwrap();
+    let info = block(e.open(path.clone(), None)).unwrap();
+    let items = block(e.content_list(info.id, 0)).unwrap();
+    let title = items.iter().find(|i| i.text.contains("Stratégie")).unwrap().clone();
+    let spec = content::TextSpec {
+        text: "Synthèse Œuvre".into(),
+        rect: title.rect,
+        font: "Arial".into(),
+        bold: true,
+        italic: false,
+        size: title.size,
+        color: title.color.clone(),
+        align: 0,
+        line_height: 1.2,
+        baseline: Some(title.baseline),
+    };
+    block(e.content_apply(info.id, vec![content::ContentOp::ReplaceText { page: 0, ids: title.ids.clone(), spec }], false)).unwrap();
+    let after = block(e.content_list(info.id, 0)).unwrap();
+    let t = after.iter().find(|i| i.text.contains("Synthèse")).expect("texte réécrit");
+    assert_eq!(t.font, "Arial", "police reconnue parmi les polices installées");
+    assert!(t.bold);
+    let fresh = block(e.edit_apply(info.id, plan_with(info.page_count, &[]), None)).unwrap().unwrap();
+    assert!(all_text(&e, fresh.id, 1).contains("Synthèse Œuvre"));
+    e.close(fresh.id).unwrap();
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn compression_rendu_fidele() {
+    use lopdf::{dictionary, Object, Stream};
+    // Image 1600 × 1200 (rouge à gauche, bleu à droite) affichée sur 400 × 300 pt.
+    let (w, h) = (1600u32, 1200u32);
+    let mut px = Vec::with_capacity((w * h * 3) as usize);
+    for y in 0..h {
+        for x in 0..w {
+            // Bruit sur deux composantes : image « photographique », recodée en JPEG.
+            // Composantes bruitées indépendamment : beaucoup de couleurs, comme une photo.
+            let h = |k: u32| ((x.wrapping_mul(k) ^ y.wrapping_mul(k.rotate_left(7))).wrapping_mul(2_654_435_761) >> 24) as u8;
+            let (a, b, c) = (h(7919) / 5, h(104_729) / 3, h(31) / 5);
+            px.extend_from_slice(&if x < w / 2 { [200 + a, b, c] } else { [c, b, 200 + a] });
+        }
+    }
+    let mut doc = lopdf::Document::with_version("1.7");
+    let pages_id = doc.new_object_id();
+    let mut img = Stream::new(dictionary! { "Type" => "XObject", "Subtype" => "Image", "Width" => w as i64, "Height" => h as i64, "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8 }, px);
+    img.compress().unwrap();
+    let img_id = doc.add_object(img);
+    let content = doc.add_object(Stream::new(dictionary! {}, b"q 400 0 0 300 100 400 cm /Im1 Do Q".to_vec()));
+    let page = doc.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages_id, "MediaBox" => vec![0.into(), 0.into(), 600.into(), 800.into()],
+        "Contents" => content, "Resources" => dictionary! { "XObject" => dictionary! { "Im1" => img_id } },
+    });
+    doc.objects.insert(pages_id, Object::Dictionary(dictionary! { "Type" => "Pages", "Kids" => vec![Object::Reference(page)], "Count" => 1 }));
+    let cat = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+    doc.trailer.set("Root", cat);
+    let src = tmp("lourd.pdf");
+    doc.save(&src).unwrap();
+    let out = tmp("lourd-compresse.pdf");
+    let opts = crate::tools::compress::CompressOptions { dpi: 96, quality: 60, gray: false, subset: true, unembed: true, meta: true, thumbs: true, attach: true, compact: true };
+    let r = crate::tools::compress::compress(&src, &opts, &out, &crate::tools::Job::silent()).unwrap();
+    let before = std::fs::metadata(&src).unwrap().len();
+    assert!(r.size * 2 < before, "{} → {}", before, r.size);
+    let a = crate::tools::compress::analyze(&out).unwrap();
+    assert!(a.image_list[0].jpeg, "image recodée en JPEG");
+
+    let (e, _) = engine();
+    let info = block(e.open(out.clone(), None)).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    e.render(RenderJob {
+        doc: info.id, page: 0, width_px: 600, rotation: 0, annotations: true, forms: true, tile: None, prio: prio::VISIBLE, gen: u64::MAX / 2,
+        responder: Box::new(move |o| {
+            let _ = tx.send(match o {
+                RenderOutcome::Ok(b) => Some(b),
+                _ => None,
+            });
+        }),
+    });
+    let b = rx.recv_timeout(std::time::Duration::from_secs(10)).unwrap().expect("rendu");
+    let at = |x: u32, y: u32| {
+        let i = ((y * b.width + x) * 4) as usize;
+        [b.rgba[i], b.rgba[i + 1], b.rgba[i + 2]]
+    };
+    // Moitié gauche rouge, moitié droite bleue (y d'affichage = 800 - 550 = 250).
+    let l = at(200, 250);
+    let rr = at(400, 250);
+    assert!(l[0] > 170 && l[2] < 90, "gauche : {l:?}");
+    assert!(rr[2] > 170 && rr[0] < 90, "droite : {rr:?}");
+    e.close(info.id).unwrap();
+    let _ = std::fs::remove_file(src);
+    let _ = std::fs::remove_file(out);
+}

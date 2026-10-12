@@ -369,3 +369,148 @@ fn couche_texte() {
     let links = block(e.page_links(info.id, 1)).unwrap();
     assert_eq!(links.first().and_then(|l| l.page), Some(6));
 }
+
+/// Fichiers chiffrés par le module Sécurité : PDFium les ouvre, refuse un
+/// mauvais mot de passe et reconnaît les droits (mot de passe utilisateur ou
+/// propriétaire) ; un document modifié reste chiffré après rechargement.
+#[test]
+fn securite_documents_chiffres_dans_pdfium() {
+    if !have_fixtures() {
+        return;
+    }
+    use crate::security::{apply, Meta, Perms, SecuritySpec};
+    let (e, _) = engine();
+    for aes256 in [true, false] {
+        let path = std::env::temp_dir().join(format!("aura-secu-pdfium-{aes256}-{}.pdf", std::process::id()));
+        std::fs::copy(fixture("Rapport Q1 2025.pdf"), &path).unwrap();
+        let spec = SecuritySpec {
+            protect: true,
+            user_password: "lecture".into(),
+            owner_password: "chef".into(),
+            aes256,
+            encrypt_metadata: true,
+            permissions: Perms { print: false, copy: false, edit: false, annotate: true, forms: true, extract: false },
+            metadata: Meta { title: "Confidentiel".into(), ..Default::default() },
+            pdfa: None,
+        };
+        apply(&path, None, &spec, &crate::tools::Job::silent()).unwrap();
+        assert!(block(e.open(path.clone(), None)).is_err(), "mot de passe exigé");
+        assert!(block(e.open(path.clone(), Some("faux".into()))).is_err());
+        let info = block(e.open(path.clone(), Some("lecture".into()))).unwrap();
+        assert!(info.encrypted);
+        assert_eq!(info.page_count, 14);
+        assert_eq!(info.metadata.title.as_deref(), Some("Confidentiel"));
+        assert!(!info.permissions.copy && !info.permissions.print && info.permissions.annotate);
+        // Le propriétaire a tous les droits.
+        let again = block(e.reload_with(info.id, Some("chef".into()))).unwrap();
+        assert_eq!(again.permissions, Perms::ALL);
+        // Rendu d'une page déchiffrée.
+        assert!(!block(e.page_text(info.id, 0)).unwrap().is_empty());
+    }
+}
+
+/// Formulaire rempli puis aplati : PDFium affiche les valeurs comme du
+/// contenu de page (texte extractible, plus de champs).
+#[test]
+fn formulaire_aplati_dans_pdfium() {
+    let src = fixture("Demande d’ouverture.pdf");
+    if !src.exists() {
+        return;
+    }
+    use crate::forms::{flatten, list, save, FormPlan};
+    let (e, _) = engine();
+    let bytes = std::fs::read(&src).unwrap();
+    let mut fields = list(&lopdf::Document::load_mem(&bytes).unwrap());
+    let email = fields.iter_mut().find(|f| f.name == "email").unwrap();
+    email.value = "camille@exemple.fr".into();
+    let mut extra = email.clone();
+    extra.is_new = true;
+    extra.label = "E-mail du conseiller".into();
+    extra.value = String::new();
+    extra.widgets[0].rect = crate::annot::geom::Rect { x: 330.0, y: 280.0, w: 220.0, h: 22.0 };
+    let plan = FormPlan { upsert: vec![email.clone(), extra], delete: vec![] };
+    let filled = save(bytes, None, &plan).unwrap();
+    let flat = flatten(&filled, None).unwrap();
+    let path = std::env::temp_dir().join(format!("aura-aplati-{}.pdf", std::process::id()));
+    std::fs::write(&path, &flat).unwrap();
+    let info = block(e.open(path.clone(), None)).unwrap();
+    assert!(!info.has_form, "plus de formulaire");
+    let words: String = block(e.page_text(info.id, 0)).unwrap().iter().map(|w| w.t.clone()).collect::<Vec<_>>().join(" ");
+    assert!(words.contains("Demande"), "contenu d'origine : {words}");
+    assert!(words.contains("Camille") && words.contains("camille@exemple.fr"), "valeurs aplaties : {words}");
+    let png = std::env::temp_dir().join(format!("aura-aplati-{}.png", std::process::id()));
+    block(e.thumbnail(path, png.clone(), 300)).unwrap();
+    assert!(std::fs::metadata(&png).unwrap().len() > 2000);
+}
+
+/// Conversion réelle du rapport de test : Word, Excel, texte, images, puis
+/// retour en PDF (par Word s'il est installé, sinon par le rendu natif).
+#[test]
+fn conversion_du_rapport() {
+    if !have_fixtures() {
+        return;
+    }
+    use crate::convert::{run, ConvertSpec};
+    let (e, _) = engine();
+    let dir = std::env::temp_dir().join(format!("aura-conv-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("Rapport.pdf");
+    std::fs::copy(fixture("Rapport Q1 2025.pdf"), &src).unwrap();
+    let spec = |target: &str| ConvertSpec { target: target.into(), dpi: 72, keep_layout: true, auto_ocr: false, per_page: false, langs: vec![] };
+    let files = vec![src.to_string_lossy().to_string()];
+    let job = crate::tools::Job::silent();
+
+    let out = run(&e, &files, &spec("txt"), None, &job).unwrap();
+    let txt = std::fs::read_to_string(&out[0].path).unwrap();
+    assert!(txt.contains("Q1 2025") && txt.contains('\u{c}'), "texte et sauts de page");
+
+    let out = run(&e, &files, &spec("docx"), None, &job).unwrap();
+    assert!(out[0].path.ends_with(".docx") && out[0].size > 2000);
+    let docx = out[0].path.clone();
+
+    let out = run(&e, &files, &spec("xlsx"), None, &job).unwrap();
+    assert!(out[0].path.ends_with(".xlsx"));
+
+    let out = run(&e, &files, &spec("png"), None, &job).unwrap();
+    assert_eq!(out[0].pages, 14, "une image par page");
+    assert!(std::path::Path::new(&out[0].path).is_dir());
+
+    // Retour en PDF du document Word produit.
+    let back = run(&e, &[docx], &spec("pdf"), None, &job).unwrap();
+    let doc = lopdf::Document::load(&back[0].path).unwrap();
+    assert!(doc.get_pages().len() >= 10, "{} pages", doc.get_pages().len());
+}
+
+/// OCR d'une page numérisée inclinée : texte reconnu, PDF recherchable,
+/// page redressée ; conversion en texte avec OCR automatique.
+#[test]
+fn ocr_page_numerisee() {
+    let src = fixture("Scan contrat.pdf");
+    if !src.exists() {
+        return;
+    }
+    let (e, _) = engine();
+    let dir = std::env::temp_dir().join(format!("aura-ocr-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("Scan contrat.pdf");
+    std::fs::copy(&src, &path).unwrap();
+    let info = block(e.open(path.clone(), None)).unwrap();
+    assert!(info.scanned);
+    let spec = crate::ocr::job::OcrSpec { langs: vec!["fra".into()], searchable: true, deskew: true, all_pages: false, in_place: false };
+    let out = crate::ocr::job::run(&e, info.id, &spec, &crate::tools::Job::silent()).unwrap();
+    assert!(out.path.ends_with("Scan contrat (OCR).pdf"));
+    let ocr = block(e.open(out.path.clone().into(), None)).unwrap();
+    let text: String = block(e.page_text(ocr.id, 0)).unwrap().iter().map(|w| w.t.clone()).collect::<Vec<_>>().join(" ");
+    for w in ["Contrat", "prestation", "Vauclair", "règlement", "Bruxelles"] {
+        assert!(text.contains(w), "« {w} » absent de : {text}");
+    }
+    let raw = std::fs::read(&out.path).unwrap();
+    assert!(raw.windows(2).any(|w| w == b"cm"), "page redressée");
+    // Conversion en texte d'un document numérisé : l'OCR automatique est appliqué.
+    let spec = crate::convert::ConvertSpec { target: "txt".into(), dpi: 300, keep_layout: false, auto_ocr: true, per_page: false, langs: vec!["fra".into()] };
+    let res = crate::convert::run(&e, &[path.to_string_lossy().to_string()], &spec, Some(&crate::ocr::convert_ocr), &crate::tools::Job::silent()).unwrap();
+    let txt = std::fs::read_to_string(&res[0].path).unwrap();
+    assert!(txt.contains("Atelier Nord"), "{txt}");
+}

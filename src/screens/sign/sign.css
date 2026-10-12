@@ -1,0 +1,538 @@
+/* Module Signer — reproduit Sign.dc.html. */
+
+.signw__main {
+  flex: 999 1 560px;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-center);
+  overflow: hidden;
+}
+.signw__viewer {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.signw__viewer .viewer {
+  padding-top: 0;
+}
+.signw__side {
+  flex: 1 1 340px;
+  max-width: 380px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow: auto;
+}
+
+/* ---- Bannière d'état */
+.sbanner {
+  width: 640px;
+  max-width: calc(100% - 32px);
+  margin: 18px auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(110, 106, 246, 0.1);
+  transition: background 0.4s;
+  flex: none;
+}
+.sbanner__ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background: rgba(110, 106, 246, 0.2);
+  color: var(--accent-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.4s, color 0.4s;
+  flex: none;
+}
+.sbanner--ok {
+  background: rgba(79, 203, 145, 0.1);
+}
+.sbanner--ok .sbanner__ic {
+  background: var(--success);
+  color: var(--bg-app);
+}
+.sbanner--warn {
+  background: rgba(242, 184, 75, 0.1);
+}
+.sbanner--warn .sbanner__ic {
+  background: rgba(242, 184, 75, 0.2);
+  color: var(--warning-text);
+}
+.sbanner--bad {
+  background: var(--danger-soft);
+}
+.sbanner--bad .sbanner__ic {
+  background: var(--danger);
+  color: #fff;
+}
+.sbanner__ic .spinner {
+  width: 14px;
+  height: 14px;
+}
+.sbanner__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sbanner__t {
+  font: var(--fw-medium) 13.5px/1.2 var(--font);
+}
+.sbanner__text .muted {
+  font-size: var(--fs-sm);
+}
+.sbanner__n {
+  font: var(--fw-medium) var(--fs-sm) / 1 var(--font);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* ---- Couche de signature sur les pages */
+.slayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+.slayer.is-placing {
+  cursor: copy;
+}
+.sslot {
+  position: absolute;
+  appearance: none;
+  border: 1.5px dashed var(--accent);
+  background: rgba(110, 106, 246, 0.07);
+  color: #4b47d6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: var(--fw-medium) 12px/1.2 var(--font);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  padding: 4px;
+  text-align: center;
+  animation: popin-fade 0.3s var(--ease) both;
+}
+.sslot:hover:not(:disabled) {
+  background: rgba(110, 106, 246, 0.14);
+}
+.sslot:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.sbadge {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  animation: popin 0.4s var(--ease-pop) both;
+}
+.sbadge .i {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.4;
+}
+.sbadge--ok {
+  background: #1f9d6a;
+}
+.sbadge--warn {
+  background: #c7871a;
+}
+.sbadge--bad {
+  background: var(--danger);
+}
+.sbadge--accent {
+  background: var(--accent);
+}
+.splace {
+  position: absolute;
+  border-radius: 6px;
+  outline: 1.5px dashed var(--accent);
+  outline-offset: 2px;
+  background: rgba(110, 106, 246, 0.05);
+  cursor: move;
+  touch-action: none;
+  animation: popin-fade 0.25s var(--ease) both;
+}
+.splace.is-field {
+  background: rgba(242, 240, 234, 0.85);
+}
+.splace__x {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  border: 0;
+  padding: 0;
+  background: var(--bg-control-selected);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.splace__x .i {
+  width: 12px;
+  height: 12px;
+}
+.splace__h {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  cursor: nwse-resize;
+}
+.sprev {
+  pointer-events: none;
+  white-space: nowrap;
+  user-select: none;
+}
+.sprev {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.sprev__cap {
+  font-family: Helvetica, Arial, sans-serif;
+  fill: #59595f;
+}
+.sprev--ink {
+  animation: sink 0.8s var(--ease) both;
+}
+.sprev__draw {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: sdraw 1.2s cubic-bezier(0.45, 0, 0.2, 1) forwards;
+}
+@keyframes sink {
+  from { opacity: 0; filter: blur(3px); transform: translateY(4px); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+@keyframes sdraw {
+  to { stroke-dashoffset: 0; }
+}
+.sinked {
+  position: absolute;
+  pointer-events: none;
+  animation: sfade 1.6s ease both;
+}
+@keyframes sfade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---- Panneau de droite */
+.ssec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.srow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.srow .muted {
+  font-size: var(--fs-sm);
+}
+.sfield {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.slabel {
+  font-size: var(--fs-md);
+  color: var(--text-2);
+}
+.sp {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.serror {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+}
+.spad {
+  position: relative;
+  background: var(--paper);
+  border-radius: 12px;
+  height: 150px;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+}
+.spad svg {
+  display: block;
+}
+.spad__line {
+  stroke: var(--paper-line);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+  fill: none;
+}
+.spad__demo {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  opacity: 0.35;
+  animation: sdraw 1.6s cubic-bezier(0.45, 0, 0.2, 1) 0.3s forwards;
+}
+.sfonts {
+  display: grid;
+  gap: 8px;
+}
+.sfont {
+  appearance: none;
+  border: 0;
+  background: var(--paper);
+  border-radius: 12px;
+  height: 62px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.sfont:hover {
+  transform: translateY(-2px);
+}
+.sfont[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--accent);
+}
+.sfont:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+.simport {
+  appearance: none;
+  height: 150px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--border-dashed);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  font: var(--fw-medium) var(--fs-md) / 1.2 var(--font);
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.simport:hover {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  background: rgba(110, 106, 246, 0.05);
+}
+.simport .muted {
+  font-size: var(--fs-sm);
+}
+.simport__bub {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: var(--bg-control);
+  color: var(--accent-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.simport__img {
+  max-width: 90%;
+  max-height: 120px;
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 6px;
+}
+.scert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #1c1d22;
+}
+.scert__ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(242, 184, 75, 0.14);
+  color: var(--warning-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background 0.3s, color 0.3s;
+}
+.scert__ic.is-ok {
+  background: rgba(79, 203, 145, 0.14);
+  color: var(--success);
+}
+.scert__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.scert__text .muted {
+  font-size: var(--fs-sm);
+}
+.scert__name {
+  font: var(--fw-medium) 13px/1.2 var(--font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scert-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ssteps {
+  padding: 14px;
+  border-radius: 12px;
+  background: #1c1d22;
+}
+.sactions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sactions .btn--lg {
+  height: 44px;
+  font-size: 14px;
+}
+.sitem {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #1c1d22;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sitem:hover {
+  background: #212228;
+}
+.sitem:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.sitem__ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background 0.3s, color 0.3s;
+}
+.sitem__ic .spinner {
+  width: 14px;
+  height: 14px;
+}
+.sitem__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sitem__text .muted {
+  font-size: var(--fs-sm);
+}
+.sitem__who {
+  font: var(--fw-medium) 13px/1.2 var(--font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sitem__field {
+  color: var(--text-muted);
+  font-weight: var(--fw-regular);
+}
+.sitem__msg {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--text-faint);
+}
+.sitem__chip {
+  font: var(--fw-medium) 11.5px/1 var(--font);
+  padding: 5px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex: none;
+}
+.sitem__ic--ok,
+.sitem__chip--ok {
+  background: rgba(79, 203, 145, 0.16);
+  color: var(--success);
+}
+.sitem__ic--warn,
+.sitem__chip--warn {
+  background: rgba(242, 184, 75, 0.16);
+  color: var(--warning-text);
+}
+.sitem__ic--bad,
+.sitem__chip--bad {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+.sitem__ic--accent,
+.sitem__chip--accent {
+  background: rgba(110, 106, 246, 0.16);
+  color: var(--accent-text);
+}
+.screate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.screate > .muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}

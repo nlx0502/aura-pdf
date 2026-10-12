@@ -91,14 +91,21 @@ export const WIDTHS = [1, 1.5, 2, 3];
 
 // ---------------------------------------------------------------- zones de texte
 
-export type FontFamily = "sans" | "serif" | "mono";
+/** « sans », « serif », « mono » (polices standard du PDF) ou nom d'une police installée. */
+export type FontFamily = string;
 
 /** Polices écran métriquement proches des polices standard PDF (Helvetica, Times, Courier). */
-export const FONT_CSS: Record<FontFamily, string> = {
+export const FONT_CSS: Record<"sans" | "serif" | "mono", string> = {
   sans: "Arial, Helvetica, sans-serif",
   serif: "'Times New Roman', Times, serif",
   mono: "'Courier New', Courier, monospace",
 };
+
+/** Pile CSS d'une police (famille standard ou police installée). */
+export function fontCss(font: string): string {
+  if (font === "sans" || font === "serif" || font === "mono") return FONT_CSS[font];
+  return `"${font.replace(/"/g, "")}", Arial, sans-serif`;
+}
 
 /** Marge intérieure et interligne (identiques à l'apparence PDF, voir ap.rs). */
 export const TEXT_PAD = 4;
@@ -110,7 +117,7 @@ let measureCtx: CanvasRenderingContext2D | null = null;
 export function layoutText(a: Pick<Annot, "text" | "font" | "bold" | "italic" | "fontSize">, width: number): string[] {
   if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
   const ctx = measureCtx!;
-  ctx.font = `${a.italic ? "italic " : ""}${a.bold ? "bold " : ""}${a.fontSize}px ${FONT_CSS[a.font]}`;
+  ctx.font = `${a.italic ? "italic " : ""}${a.bold ? "bold " : ""}${a.fontSize}px ${fontCss(a.font)}`;
   const max = Math.max(10, width - 2 * TEXT_PAD);
   const lines: string[] = [];
   for (const para of a.text.split("\n")) {

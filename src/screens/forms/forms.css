@@ -1,0 +1,566 @@
+/* Module Formulaires — reproduit Forms.dc.html. */
+
+.formsw {
+  overflow: hidden;
+}
+.forms__left {
+  flex: 0 0 260px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+}
+.forms__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+}
+.pill-count {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.forms__main {
+  flex: 1 1 560px;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-center);
+  overflow: hidden;
+}
+.forms__main .viewer {
+  padding-top: 0;
+}
+.forms__side {
+  flex: 0 0 310px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+.forms__notice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-sm);
+}
+
+/* ---- Liste des champs */
+.flist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.flist__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  background: #1c1d22;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.fitem {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: background 0.2s, box-shadow 0.3s;
+  animation: rise 0.38s var(--ease) both;
+}
+.fitem:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.fitem--cur {
+  background: rgba(110, 106, 246, 0.14);
+}
+.fitem--fresh {
+  box-shadow: 0 0 0 2px rgba(110, 106, 246, 0.5);
+}
+.fitem:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.fitem__ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--bg-control);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.fitem__t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fitem__l {
+  font: var(--fw-medium) 13px/1.2 var(--font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fitem__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex: none;
+  transition: background 0.3s;
+}
+
+/* ---- Ajouter un champ */
+.fadd {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding: 0 4px;
+}
+.fadd > .muted {
+  font-weight: var(--fw-medium);
+  color: var(--text-2);
+}
+.fadd__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.fadd__k {
+  appearance: none;
+  border: 0;
+  background: #1c1d22;
+  border-radius: 12px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font: var(--fw-medium) 12px/1.2 var(--font);
+  color: var(--text-2);
+  transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.fadd__k .i {
+  box-sizing: content-box;
+  padding: 8px;
+  border-radius: 10px;
+  background: #24252c;
+  color: var(--accent-text);
+  transition: background 0.2s, color 0.2s;
+}
+.fadd__k:hover:not(:disabled),
+.fadd__k[aria-pressed="true"] {
+  background: #24252c;
+  color: #fff;
+  transform: translateY(-2px);
+}
+.fadd__k:hover:not(:disabled) .i,
+.fadd__k[aria-pressed="true"] .i {
+  background: var(--accent);
+  color: #fff;
+}
+.fadd__k[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--accent-outline);
+}
+.fadd__k:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.fadd__k:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.fplace {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  max-width: calc(100% - 32px);
+  padding: 9px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-float);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 0 0 1px var(--border-strong), 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+
+/* ---- Champs sur la page (rendu fidèle à l'apparence enregistrée dans le PDF) */
+.flayer {
+  position: absolute;
+  inset: 0;
+}
+.flayer--placing {
+  cursor: crosshair;
+}
+.flayer--placing .fw,
+.flayer--placing .fcap {
+  pointer-events: none;
+}
+.fw {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  outline: none;
+  transition: box-shadow 0.2s;
+  animation: fw-in 0.4s var(--ease) both;
+}
+.fw:hover {
+  box-shadow: 0 0 0 1px rgba(110, 106, 246, 0.55);
+}
+.fw:focus-within,
+.fw--cur {
+  box-shadow: 0 0 0 2px rgba(110, 106, 246, 0.7);
+}
+.fw--req:not(:focus-within) {
+  box-shadow: inset 0 0 0 1px rgba(242, 184, 75, 0.55);
+}
+.fw--bad {
+  box-shadow: 0 0 0 2px var(--danger) !important;
+}
+.fw--fresh {
+  animation: fw-glow 1.2s ease-out both;
+}
+.fw__in {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  padding: 0 0.3em;
+  resize: none;
+}
+textarea.fw__in {
+  padding: 0.2em 0.3em;
+  line-height: 1.15;
+}
+.fw__in::placeholder {
+  color: #9c9a92;
+  opacity: 1;
+}
+select.fw__in {
+  cursor: pointer;
+  padding-right: 1.3em;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 0.9em) 55%, calc(100% - 0.55em) 55%;
+  background-size: 0.35em 0.35em;
+  background-repeat: no-repeat;
+}
+input[type="date"].fw__in {
+  padding-right: 0.1em;
+}
+.fw--check,
+.fw--radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: "Segoe UI Symbol", var(--font) !important;
+}
+.fw__mark {
+  line-height: 1;
+  animation: popin-fade 0.25s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.fw--sig {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9c9a92 !important;
+  cursor: pointer;
+}
+.fw:disabled {
+  cursor: default;
+}
+.fcap {
+  position: absolute;
+  font-family: Helvetica, Arial, sans-serif;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+.fcap--cur {
+  text-decoration: underline dotted rgba(110, 106, 246, 0.6);
+}
+/* Cadre du champ sélectionné : poignée de déplacement, coin de redimensionnement. */
+.fsel {
+  position: absolute;
+  border: 1.5px dashed rgba(110, 106, 246, 0.85);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 3;
+}
+.fsel__grip {
+  position: absolute;
+  left: -1px;
+  top: -24px;
+  width: 22px;
+  height: 20px;
+  border: 0;
+  border-radius: 6px 6px 6px 0;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: move;
+  pointer-events: auto;
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.5);
+}
+.fsel__grip svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.fsel__knob {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  cursor: nwse-resize;
+  pointer-events: auto;
+}
+.fghost {
+  position: absolute;
+  border: 1.5px dashed var(--accent);
+  background: rgba(110, 106, 246, 0.08);
+  border-radius: 4px;
+  pointer-events: none;
+}
+/* Aplatissement : les champs se figent l'un après l'autre (« flash »). */
+.is-flattening .fw {
+  animation: fw-flash 0.9s ease both;
+}
+@keyframes fw-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fw-glow {
+  0% { box-shadow: 0 0 0 0 rgba(110, 106, 246, 0.55); }
+  100% { box-shadow: 0 0 0 10px rgba(110, 106, 246, 0); }
+}
+@keyframes fw-flash {
+  0% { box-shadow: inset 0 0 0 999px rgba(110, 106, 246, 0.25); }
+  100% { box-shadow: none; }
+}
+
+/* ---- Symboles des cases */
+.fmarks {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.fmark {
+  appearance: none;
+  border: 0;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--bg-control);
+  color: var(--text-2);
+  font: 15px/1 "Segoe UI Symbol", var(--font);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.fmark:hover {
+  background: var(--bg-control-hover);
+  color: #fff;
+}
+.fmark[aria-checked="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-text-strong);
+  box-shadow: inset 0 0 0 1px var(--accent-outline);
+}
+.fprops__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---- Progression */
+.fprog {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #1c1d22;
+}
+.fring {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex: none;
+}
+.fring svg {
+  transform: rotate(-90deg);
+}
+.fring__bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 7;
+}
+.fring__fg {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 213.6;
+  transition: stroke-dashoffset 0.7s var(--ease), stroke 0.4s;
+}
+.fring__t {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--fw-semibold) 18px/1 var(--font);
+  letter-spacing: -0.02em;
+}
+.fprog__t {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.fprog__req {
+  font-size: var(--fs-sm);
+  transition: color 0.3s;
+}
+
+/* ---- Propriétés */
+.fprops {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fprops__f {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  animation: rise 0.38s var(--ease) both;
+}
+.fprops .sfield {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.fprops .field-wrap {
+  width: 100%;
+}
+.fprops__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.fprops__opts {
+  height: auto;
+  padding: 8px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.fprops__del {
+  justify-content: flex-start;
+  color: #ff9c9c;
+  margin-left: -10px;
+  align-self: flex-start;
+}
+
+/* ---- Enregistrer / aplatir */
+.forms__foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.fflat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fflat__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fflat__head h3 {
+  margin: 0;
+  font: var(--fw-semibold) var(--fs-lg) / 1.2 var(--font);
+}
+.fflat__btns {
+  display: flex;
+  gap: 8px;
+}
+.fflat__btns > * {
+  flex: 1;
+}
+.fflat--done {
+  flex-direction: row;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(79, 203, 145, 0.1);
+}
+.fflat__t {
+  flex: 1;
+  font-size: 13px;
+}
+
+/* Pictogrammes au trait (maquette). */
+.formsw svg.i {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

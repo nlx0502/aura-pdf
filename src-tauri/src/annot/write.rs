@@ -14,8 +14,15 @@ use super::model::{rgb, Annot, Kind};
 use super::pdf::{classify, deref, get, now_pdf_date, page_annots, page_geom, text_object, Role};
 
 /// Annotation (nouvelle ou régénérée) → dictionnaire complet et flux d'apparence.
-fn annot_dict(a: &Annot, g: &PageGeom, page_ref: ObjectId, ap_ref: ObjectId, date: &str) -> (Dictionary, Stream) {
-    let b = build(a, g);
+fn annot_dict(a: &Annot, g: &PageGeom, page_ref: ObjectId, ap_ref: ObjectId, date: &str, objs: &mut Document) -> (Dictionary, Stream) {
+    let mut b = build(a, g);
+    // Police du système : sous-ensemble intégré, référencé par la ressource /AuraF.
+    if let Some(f) = b.embed.take() {
+        let id = crate::sysfonts::embed(objs, &f, &a.text);
+        let mut fonts = b.resources.get(b"Font").ok().and_then(|o| o.as_dict().ok()).cloned().unwrap_or_default();
+        fonts.set(super::ap::SYS_FONT_RES, id);
+        b.resources.set("Font", fonts);
+    }
     let (r, gc, bl) = rgb(&a.color);
     let mut d = dictionary! {
         "Type" => "Annot",
@@ -185,7 +192,7 @@ pub fn save(bytes: Vec<u8>, password: Option<&str>, annots: &[Annot]) -> Result<
             if let (Role::Editable(_), Some(a)) = (o.role, by_source.get(&(i as u32))) {
                 let ap_ref = inc.new_document.new_object_id();
                 if a.geom_dirty {
-                    let (d, stream) = annot_dict(a, &plan.geom, plan.page_id, ap_ref, &date);
+                    let (d, stream) = annot_dict(a, &plan.geom, plan.page_id, ap_ref, &date, &mut inc.new_document);
                     inc.new_document.set_object(ap_ref, Object::Stream(stream));
                     match o.oid {
                         // Même numéro d'objet : les réponses existantes restent rattachées.
@@ -225,7 +232,7 @@ pub fn save(bytes: Vec<u8>, password: Option<&str>, annots: &[Annot]) -> Result<
         // Nouvelles annotations.
         for a in model.iter().filter(|a| a.source.is_none()) {
             let ap_ref = inc.new_document.new_object_id();
-            let (d, stream) = annot_dict(a, &plan.geom, plan.page_id, ap_ref, &date);
+            let (d, stream) = annot_dict(a, &plan.geom, plan.page_id, ap_ref, &date, &mut inc.new_document);
             inc.new_document.set_object(ap_ref, Object::Stream(stream));
             let rect = d.get(b"Rect").cloned().unwrap_or(Object::Null);
             let id = inc.new_document.add_object(Object::Dictionary(d));

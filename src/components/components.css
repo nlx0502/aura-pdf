@@ -961,7 +961,9 @@ select.field {
   width: 22px;
   height: 22px;
   border-radius: 11px;
-  border: 0;
+  /* Liseré : les couleurs sombres (encre noire) restent visibles sur le fond. */
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-sizing: border-box;
   cursor: pointer;
   padding: 0;
   transition: transform var(--dur) cubic-bezier(0.3, 1.5, 0.5, 1), box-shadow var(--dur);
@@ -1083,4 +1085,93 @@ select.field {
   background: #17181c;
   color: var(--text-muted);
   font-size: 13.5px;
+}
+
+/* ---------------------------------------------------------------- Choix de police */
+.fpick {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.fpick > .seg {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.fpick__more {
+  appearance: none;
+  border: 0;
+  height: 34px;
+  max-width: 120px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-inset);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  color: var(--text-2);
+  font: var(--fw-medium) var(--fs-sm) / 1 var(--font);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  flex: none;
+  transition: color var(--dur), box-shadow var(--dur), background var(--dur);
+}
+.fpick__more:hover {
+  color: #fff;
+  background: var(--bg-control);
+}
+.fpick__more.is-on {
+  color: var(--accent-text-strong);
+  background: var(--accent-softer);
+  box-shadow: inset 0 0 0 1px var(--accent-outline);
+}
+.fpick__more:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.fpick__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.fpop {
+  width: 280px;
+}
+.fpop__list {
+  max-height: 280px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0 -6px;
+}
+.fpop__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fpop__item.is-active {
+  background: var(--bg-ghost-hover);
+}
+.fpop__item[aria-selected="true"] {
+  color: var(--accent-text-strong);
+}
+.fpop__empty {
+  padding: 10px;
+  font-size: var(--fs-sm);
+}
+.fpop__hint {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
 }

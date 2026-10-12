@@ -55,6 +55,8 @@ pub struct DocInfo {
     pub has_form: bool,
     pub signature_count: u32,
     pub encrypted: bool,
+    /// Droits de l'utilisateur (tous si le document n'est pas chiffré).
+    pub permissions: crate::security::Perms,
     pub scanned: bool,
     pub tagged: bool,
 }

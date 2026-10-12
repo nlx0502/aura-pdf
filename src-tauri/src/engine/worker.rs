@@ -35,6 +35,8 @@ struct OpenDoc {
 
 #[path = "editing.rs"]
 mod editing;
+#[path = "extract.rs"]
+mod extract;
 pub use editing::RedactHit;
 
 struct SearchState {
@@ -177,6 +179,9 @@ fn fail(msg: Msg, err: AppError) {
         Msg::AnnotLoad { reply, .. } => drop(reply.send(Err(err))),
         Msg::AnnotSave { reply, .. } => drop(reply.send(Err(err))),
         Msg::EditApply { reply, .. } => drop(reply.send(Err(err))),
+        Msg::Reload { reply, .. } => drop(reply.send(Err(err))),
+        Msg::Credentials { reply, .. } => drop(reply.send(Err(err))),
+        Msg::Extract { reply, .. } => drop(reply.send(Err(err))),
         Msg::EditLinks { reply, .. } => drop(reply.send(Err(err))),
         Msg::RedactFind { reply, .. } => drop(reply.send(Err(err))),
         Msg::Layers { reply, .. } => drop(reply.send(Err(err))),
@@ -253,6 +258,17 @@ impl Worker {
             Msg::AnnotSave { doc, annots, reply } => {
                 let _ = reply.send(self.annot_save(doc, &annots));
             }
+            Msg::Reload { doc, password, reply } => {
+                let _ = reply.send(self.reload(doc, password));
+            }
+            Msg::Extract { doc, page, dpi, text, reply } => {
+                let r = self.get(doc).and_then(|d| extract::extract_page(d, page, dpi, text));
+                let _ = reply.send(r);
+            }
+            Msg::Credentials { doc, reply } => {
+                let r = self.docs.get(&doc).ok_or_else(AppError::not_found).map(|o| (o.path.clone(), o.password.clone()));
+                let _ = reply.send(r);
+            }
             Msg::EditApply { doc, plan, out, reply } => {
                 let _ = reply.send(self.edit_apply(doc, &plan, out));
             }
@@ -323,6 +339,25 @@ impl Worker {
         Ok((info, fresh))
     }
 
+    /// Relit le fichier sous le même identifiant (après une signature, par exemple).
+    fn reload(&mut self, doc: u32, new_password: Option<Option<String>>) -> AppResult<DocInfo> {
+        let (path, password, gen) = {
+            let open = self.docs.get(&doc).ok_or_else(AppError::not_found)?;
+            (open.path.clone(), new_password.unwrap_or_else(|| open.password.clone()), open.gen.clone())
+        };
+        let meta = std::fs::metadata(&path)?;
+        let pdf = self.pdfium.load_pdf_from_file(&path, password.as_deref()).map_err(|e| load_error(e, password.is_some()))?;
+        let mut info = build_info(doc, &path, meta.len(), &pdf)?;
+        with_permissions(&mut info, &path, password.as_deref());
+        if let Some(old) = self.docs.remove(&doc) {
+            if let Some(r) = old.render_path {
+                let _ = std::fs::remove_file(r);
+            }
+        }
+        self.docs.insert(doc, OpenDoc { doc: pdf, gen, path, password, hidden: HashMap::new(), render_path: None, content_dirty: false });
+        Ok(info)
+    }
+
     // ---------------------------------------------------------------- impression
 
     fn print_start(
@@ -386,7 +421,8 @@ impl Worker {
 
         let id = self.next_id;
         self.next_id += 1;
-        let info = build_info(id, path, meta.len(), &doc)?;
+        let mut info = build_info(id, path, meta.len(), &doc)?;
+        with_permissions(&mut info, path, password);
 
         let gen = Arc::new(AtomicU64::new(0));
         self.gens.write().insert(id, gen.clone());
@@ -749,6 +785,17 @@ fn non_empty(s: Option<PdfDocumentMetadataTag>) -> Option<String> {
     s.map(|t| t.value().trim().to_string()).filter(|v| !v.is_empty())
 }
 
+/// Droits effectifs d'un document chiffré (lus par lopdf : pdfium-render ne
+/// connaît pas les révisions AES-256).
+fn with_permissions(info: &mut DocInfo, path: &Path, password: Option<&str>) {
+    if info.encrypted {
+        match crate::security::inspect(path, password) {
+            Ok(s) => info.permissions = s.effective(),
+            Err(e) => eprintln!("permissions illisibles : {e}"),
+        }
+    }
+}
+
 fn build_info(id: u32, path: &Path, file_size: u64, doc: &PdfDocument) -> AppResult<DocInfo> {
     let pages: Vec<PageSize> = doc
         .pages()
@@ -810,10 +857,8 @@ fn build_info(id: u32, path: &Path, file_size: u64, doc: &PdfDocument) -> AppRes
         .map(|(i, a)| AttachmentInfo { index: i as u32, name: a.name(), size: a.len() as u64 })
         .collect();
 
-    let encrypted = !matches!(
-        doc.permissions().security_handler_revision(),
-        Ok(PdfSecurityHandlerRevision::Unprotected) | Err(_)
-    );
+    // (Révision 5 ou 6, AES-256 : non reconnue par pdfium-render, donc `Err`.)
+    let encrypted = !matches!(doc.permissions().security_handler_revision(), Ok(PdfSecurityHandlerRevision::Unprotected));
 
     let name = path
         .file_name()
@@ -834,6 +879,7 @@ fn build_info(id: u32, path: &Path, file_size: u64, doc: &PdfDocument) -> AppRes
         has_form: doc.form().is_some(),
         signature_count: doc.signatures().len() as u32,
         encrypted,
+        permissions: crate::security::Perms::ALL,
         scanned: looks_scanned(doc),
         tagged: false,
     })

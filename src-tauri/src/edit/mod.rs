@@ -88,8 +88,12 @@ pub struct Numbering {
     pub position: String,
     #[serde(default = "default_small")]
     pub size: f32,
+    /// Numéro de la première page numérotée.
     #[serde(default = "default_one")]
     pub start: u32,
+    /// Première page (page de garde) sans numéro.
+    #[serde(default)]
+    pub skip_first: bool,
     #[serde(default = "default_gray")]
     pub color: String,
 }
@@ -178,13 +182,38 @@ pub(crate) fn load(path: &Path, password: Option<&str>) -> AppResult<Document> {
 
 /// Applique le plan au fichier `src` et écrit le résultat dans `out`
 /// (fichier temporaire puis remplacement : `out` n'est jamais à moitié écrit).
-pub fn apply(src: &Path, password: Option<&str>, plan: &Plan, out: &Path) -> AppResult<()> {
+///
+/// Document chiffré : `keep` est l'état de chiffrement du fichier d'origine ;
+/// le résultat est chiffré à nouveau avec la même clé (mêmes mots de passe et
+/// mêmes permissions).
+pub fn apply(src: &Path, password: Option<&str>, plan: &Plan, out: &Path, keep: Option<&lopdf::encryption::EncryptionState>) -> AppResult<()> {
     let mut doc = load(src, password)?;
-    if doc.is_encrypted() || doc.trailer.has(b"Encrypt") {
-        return Err(AppError::new("edit", "Les documents protégés par mot de passe ne peuvent pas encore être modifiés."));
+    if doc.trailer.has(b"Encrypt") {
+        // Mot de passe absent ou refusé : le contenu n'a pas été déchiffré.
+        return Err(AppError::new("edit", "Le document protégé n’a pas pu être déchiffré."));
     }
-    let bytes = build(&mut doc, plan).map_err(|e| AppError::new("edit", e))?;
+    let id = doc.trailer.get(b"ID").ok().cloned();
+    let own = doc.encryption_state.take();
+    crate::security::strip_xref_streams(&mut doc);
+    let mut bytes = build(&mut doc, plan).map_err(|e| AppError::new("edit", e))?;
+    if let Some(state) = keep.or(own.as_ref()) {
+        bytes = reencrypt(&bytes, state, id).map_err(|e| AppError::new("edit", e))?;
+    }
     write_atomic(out, &bytes)
+}
+
+/// Chiffre un document en clair avec un état existant (l'identifiant de
+/// fichier d'origine est conservé : la clé AES-128 en dépend).
+pub(crate) fn reencrypt(bytes: &[u8], state: &lopdf::encryption::EncryptionState, id: Option<lopdf::Object>) -> Result<Vec<u8>, String> {
+    let mut doc = Document::load_mem(bytes).map_err(|e| format!("relecture impossible ({e})"))?;
+    if let Some(id) = id {
+        doc.trailer.set("ID", id);
+    }
+    doc.encrypt(state).map_err(|e| format!("chiffrement impossible ({e})"))?;
+    crate::security::complete_encrypt_dict(&mut doc);
+    let mut out = Vec::new();
+    doc.save_to(&mut out).map_err(|e| format!("écriture impossible ({e})"))?;
+    Ok(out)
 }
 
 pub(crate) fn write_atomic(out: &Path, bytes: &[u8]) -> AppResult<()> {

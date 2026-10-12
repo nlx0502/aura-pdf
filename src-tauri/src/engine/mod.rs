@@ -128,6 +128,27 @@ pub(crate) enum Msg {
         annots: Vec<crate::annot::Annot>,
         reply: oneshot::Sender<AppResult<(DocInfo, Vec<crate::annot::Annot>)>>,
     },
+    /// Relit le fichier (modifié par un outil) sous le même identifiant.
+    Reload {
+        doc: u32,
+        /// Nouveau mot de passe (après une modification de la sécurité).
+        password: Option<Option<String>>,
+        reply: oneshot::Sender<AppResult<DocInfo>>,
+    },
+    /// Contenu d'une page pour la conversion (texte mis en forme, image).
+    Extract {
+        doc: u32,
+        page: u32,
+        dpi: Option<f32>,
+        text: bool,
+        reply: oneshot::Sender<AppResult<crate::convert::model::PageData>>,
+    },
+    /// Chemin et mot de passe d'un document ouvert (le mot de passe ne quitte
+    /// jamais le processus Rust).
+    Credentials {
+        doc: u32,
+        reply: oneshot::Sender<AppResult<(PathBuf, Option<String>)>>,
+    },
     EditApply {
         doc: u32,
         plan: crate::edit::Plan,
@@ -275,6 +296,22 @@ impl Engine {
 
     pub async fn annot_save(&self, doc: u32, annots: Vec<crate::annot::Annot>) -> AppResult<(DocInfo, Vec<crate::annot::Annot>)> {
         self.ask(|reply| Msg::AnnotSave { doc, annots, reply }).await
+    }
+
+    pub async fn reload(&self, doc: u32) -> AppResult<DocInfo> {
+        self.ask(|reply| Msg::Reload { doc, password: None, reply }).await
+    }
+
+    pub async fn reload_with(&self, doc: u32, password: Option<String>) -> AppResult<DocInfo> {
+        self.ask(|reply| Msg::Reload { doc, password: Some(password.filter(|p| !p.is_empty())), reply }).await
+    }
+
+    pub async fn extract(&self, doc: u32, page: u32, dpi: Option<f32>, text: bool) -> AppResult<crate::convert::model::PageData> {
+        self.ask(|reply| Msg::Extract { doc, page, dpi, text, reply }).await
+    }
+
+    pub async fn credentials(&self, doc: u32) -> AppResult<(PathBuf, Option<String>)> {
+        self.ask(|reply| Msg::Credentials { doc, reply }).await
     }
 
     pub async fn edit_apply(&self, doc: u32, plan: crate::edit::Plan, out: Option<PathBuf>) -> AppResult<Option<DocInfo>> {

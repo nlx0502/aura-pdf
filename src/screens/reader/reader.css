@@ -377,6 +377,12 @@
   transform-origin: 0 0;
   font-family: sans-serif;
 }
+/* Copie interdite par le propriétaire du document. */
+.viewer--nocopy .textlayer {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
 .textlayer span::selection {
   background: rgba(110, 106, 246, 0.32);
   color: transparent;

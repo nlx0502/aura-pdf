@@ -5,6 +5,8 @@ import { Button, Chip, Icons, Modal, ModalHeader, ProgressBar, Segmented, Steppe
 import { useApp } from "../../stores/app";
 import { api, asAppError, type PaperFormat } from "../../lib/api";
 import { pickImages } from "../../lib/files";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { convertApi, runJob, type ConvertInfo } from "../../lib/convert";
 import { localImageUrl } from "../../lib/render";
 import "./create.css";
 
@@ -37,7 +39,11 @@ function ensurePdf(name: string) {
   return /\.pdf$/i.test(n) ? n : `${n}.pdf`;
 }
 
-/** Fenêtre « Créer un PDF » (vierge, images ; Office, scanner et presse-papiers au jalon 8). */
+const OFFICE_EXT = ["docx", "doc", "rtf", "odt", "xlsx", "xls", "ods", "csv", "pptx", "ppt", "odp"];
+
+const baseName = (p: string) => p.split(/[\\/]/).pop() ?? p;
+
+/** Fenêtre « Créer un PDF » : vierge, images, document Office, scanner, presse-papiers. */
 export function CreateDialog() {
   const { t } = useTranslation();
   const create = useApp((s) => s.create);
@@ -55,6 +61,11 @@ export function CreateDialog() {
   const [building, setBuilding] = useState(false);
   const [pct, setPct] = useState(0);
   const [built, setBuilt] = useState<string | null>(null);
+  const [docPath, setDocPath] = useState<string | null>(null);
+  const [scans, setScans] = useState<string[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [ocr, setOcr] = useState(true);
+  const [office, setOffice] = useState<ConvertInfo | null>(null);
   const timer = useRef<number>(0);
 
   // Réinitialiser à chaque ouverture.
@@ -66,6 +77,9 @@ export function CreateDialog() {
     setBuilt(null);
     setBuilding(false);
     setPct(0);
+    setDocPath(null);
+    setScans([]);
+    void convertApi.info().then(setOffice).catch(() => {});
   }, [create.open, create.source, create.images, t]);
 
   useEffect(() => () => window.clearInterval(timer.current), []);
@@ -82,8 +96,27 @@ export function CreateDialog() {
     if (s !== "image" && name === t("createDlg.imagesName")) setName(t("createDlg.defaultName"));
   };
 
-  const supported = source === "blank" || source === "image";
-  const cantBuild = building || !!built || !supported || !name.trim() || (source === "image" && images.length === 0);
+  const cantBuild =
+    building || !!built || !name.trim() || (source === "image" && images.length === 0) || (source === "doc" && !docPath) || (source === "scan" && scans.length === 0);
+
+  const pickDoc = async () => {
+    const p = await openDialog({ multiple: false, directory: false, title: t("createDlg.pickDoc"), filters: [{ name: t("createDlg.officeFilter"), extensions: OFFICE_EXT }] });
+    if (typeof p !== "string") return;
+    setDocPath(p);
+    setName(`${baseName(p).replace(/\.[^.]+$/, "")}.pdf`);
+  };
+
+  const scan = async () => {
+    setScanning(true);
+    try {
+      const p = await convertApi.scan();
+      if (p) setScans((cur) => [...cur, p]);
+    } catch (e) {
+      toast.error(asAppError(e).message);
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const build = async () => {
     const user = await api.userInfo().catch(() => ({ documentsDir: null }));
@@ -99,10 +132,21 @@ export function CreateDialog() {
     // Progression visuelle pendant la génération (le cœur ne publie pas d'étapes pour une création si courte).
     timer.current = window.setInterval(() => setPct((p) => Math.min(92, p + 7)), 70);
     try {
+      const langs = ["fra", "eng"];
       if (source === "blank") {
         await api.createPdf({ kind: "blank", format, landscape: land, pages, style }, out);
-      } else {
-        await api.createPdf({ kind: "images", paths: images, format, landscape: land, onePerPage: onePer }, out);
+      } else if (source === "image") {
+        const spec = { kind: "images" as const, paths: images, format, landscape: land, onePerPage: onePer };
+        if (ocr) await runJob((job) => convertApi.createOcr(job, spec, out, langs));
+        else await api.createPdf(spec, out);
+      } else if (source === "scan") {
+        const spec = { kind: "scans" as const, paths: scans };
+        if (ocr) await runJob((job) => convertApi.createOcr(job, spec, out, langs));
+        else await api.createPdf(spec, out);
+      } else if (source === "doc" && docPath) {
+        await runJob((job) => convertApi.document(job, docPath, out));
+      } else if (source === "clip") {
+        await convertApi.clipboard(out);
       }
       window.clearInterval(timer.current);
       setPct(100);
@@ -119,9 +163,15 @@ export function CreateDialog() {
   const long = 300;
   const short = Math.round(long / fmt.r);
   const pat = PATTERNS[source === "blank" ? style : "blank"];
-  const shownImages = onePer ? images.slice(0, 1) : images.slice(0, 4);
+  const shownImages = source === "scan" ? scans.slice(-1) : onePer ? images.slice(0, 1) : images.slice(0, 4);
   const pageCountLabel =
-    source === "blank" ? `1 / ${pages}` : source === "image" ? `1 / ${onePer ? Math.max(1, images.length) : Math.max(1, Math.ceil(images.length / 4))}` : "1 / 1";
+    source === "blank"
+      ? `1 / ${pages}`
+      : source === "image"
+        ? `1 / ${onePer ? Math.max(1, images.length) : Math.max(1, Math.ceil(images.length / 4))}`
+        : source === "scan"
+          ? `${Math.max(1, scans.length)} / ${Math.max(1, scans.length)}`
+          : "1 / 1";
 
   return (
     <Modal open={create.open} onClose={close} label={t("createDlg.title")} width={900} locked={building}>
@@ -151,7 +201,7 @@ export function CreateDialog() {
               backgroundSize: pat[1],
             }}
           >
-            {source === "image" && (
+            {(source === "image" || (source === "scan" && scans.length > 0)) && (
               <div className="sheet__imgs" style={{ gridTemplateColumns: `repeat(${shownImages.length > 1 ? 2 : 1}, minmax(0, 1fr))` }}>
                 {shownImages.map((p, i) => (
                   <img key={p} src={localImageUrl(p)} alt="" className="sheet__img" style={{ animationDelay: `${i * 60}ms` }} />
@@ -159,7 +209,7 @@ export function CreateDialog() {
                 {!shownImages.length && <span className="sheet__none">{t("createDlg.noImages")}</span>}
               </div>
             )}
-            {(source === "doc" || source === "scan" || source === "clip") && (
+            {(source === "doc" || (source === "scan" && scans.length === 0) || source === "clip") && (
               <div className={`sheet__mock ${source === "scan" ? "sheet__mock--scan" : ""}`}>
                 <span className="ln" style={{ width: "40%", height: 3, background: source === "doc" ? "#2563C9" : "#57554F" }} />
                 <span className="ln" style={{ width: "76%", height: 7, background: "#2A2B30" }} />
@@ -220,18 +270,46 @@ export function CreateDialog() {
                 </ul>
               )}
               <SwitchRow label={t("createDlg.onePerPage")} checked={onePer} onChange={setOnePer} />
-              <SwitchRow label={t("createDlg.ocr")} checked={false} onChange={() => {}} disabled />
+              <SwitchRow label={t("createDlg.ocr")} checked={ocr} onChange={setOcr} />
             </div>
           )}
 
-          {!supported && (
+          {source === "scan" && (
+            <div className="cdlg__group rise-sm">
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button size="lg" icon={<Icons.scan />} style={{ flex: 1 }} onClick={() => void scan()} disabled={scanning || building}>
+                  {scanning ? t("createDlg.scanning") : scans.length ? t("createDlg.scanMore", { count: scans.length }) : t("createDlg.scanFirst")}
+                </Button>
+                {scans.length > 0 && (
+                  <Button size="lg" variant="ghost" onClick={() => setScans([])}>
+                    {t("createDlg.clearImages")}
+                  </Button>
+                )}
+              </div>
+              <SwitchRow label={t("createDlg.ocr")} checked={ocr} onChange={setOcr} />
+            </div>
+          )}
+
+          {source === "doc" && (
+            <div className="cdlg__group rise-sm">
+              <Button size="lg" icon={<Icons.fileText />} onClick={() => void pickDoc()}>
+                {docPath ? baseName(docPath) : t("createDlg.pickDoc")}
+              </Button>
+              <p className="cdlg__later">
+                <Icons.info />
+                {office?.word || office?.excel || office?.powerpoint ? t("createDlg.officeOn") : t("createDlg.officeOff")}
+              </p>
+            </div>
+          )}
+
+          {source === "clip" && (
             <p className="cdlg__later rise-sm">
               <Icons.info />
-              {t("createDlg.later", { n: 8 })}
+              {t("createDlg.clipHint")}
             </p>
           )}
 
-          {source !== "doc" && (
+          {source !== "doc" && source !== "clip" && source !== "scan" && (
             <div className="cdlg__field">
               <span className="muted">{t("createDlg.format")}</span>
               <div className="cdlg__chips" style={{ alignItems: "center" }}>

@@ -3,7 +3,7 @@
 Lecteur et éditeur PDF **libre, gratuit et hors ligne** pour Windows : lire,
 annoter, éditer, signer et gérer vos PDF, sans compte ni télémétrie.
 
-> État : **jalon 4** (fondations, accueil, lecture, impression, annotation, édition). Voir la feuille de route ci-dessous.
+> État : **jalon 8** (fondations, accueil, lecture, impression, annotation, édition, fusion/division, compression, signature, formulaires, sécurité, conversion et OCR). Voir la feuille de route ci-dessous.
 
 ## Fonctionnalités disponibles (jalon 1)
 
@@ -38,7 +38,37 @@ annoter, éditer, signer et gérer vos PDF, sans compte ni télémétrie.
   téléphones, cartes bancaires, mots choisis ou zones tracées : le contenu est retiré
   du fichier, pas masqué), modification du texte et des images existants, ajout de
   texte, d'images et de liens ; calques du document (OCG) dans la lecture.
+  Polices installées utilisables dans les zones de texte et le texte modifié.
   Détails : [docs/JALON-4.md](docs/JALON-4.md).
+- **Fusionner et diviser** (menu Outils) : fusion de PDF et d'images par glisser-déposer,
+  signets par fichier, sommaire, format A4 ; division par plages, par taille ou par
+  signets avec aperçu coloré. **Compresser** : analyse du poids, niveaux prédéfinis ou
+  réglages (résolution, qualité JPEG, gris, polices, nettoyage), estimation puis rapport
+  avant/après. Détails : [docs/JALON-5.md](docs/JALON-5.md).
+- **Signer** : signature dessinée, tapée (trois styles manuscrits) ou importée, placée sur
+  la page ou dans un champ ; signature numérique PDF avec un certificat `.pfx` / `.p12`
+  (ou un certificat personnel créé dans l'application), horodatage RFC 3161 facultatif,
+  co-signature ; vérification des signatures (intégrité, chaîne de confiance Windows,
+  modifications ultérieures). Détails : [docs/JALON-6.md](docs/JALON-6.md).
+- **Formulaires** : remplissage des formulaires AcroForm directement sur la page (texte,
+  e-mail, date, listes, choix, cases), progression et champs obligatoires, création de
+  champs (texte, e-mail, date, liste, case, boutons radio, signature) déplaçables et
+  redimensionnables, libellé visible, texte indicatif, mise en forme (police, taille,
+  couleurs, fond, contour plein / pointillé / souligné, symbole des cases), obligatoire,
+  lecture seule, **aplatissement** (annulable). Rendu identique dans Acrobat (vérifié).
+- **Sécurité** : mot de passe d'ouverture avec jauge de robustesse, chiffrement
+  **AES-256** ou AES-128, mot de passe propriétaire et six permissions (impression, copie,
+  modification, annotation, formulaires, extraction de pages) appliquées par Aura,
+  métadonnées, archivage **PDF/A-1b, 2b, 3b** avec contrôle de conformité. Les documents
+  protégés s'annotent, s'éditent et se remplissent en restant chiffrés.
+  Détails : [docs/JALON-7.md](docs/JALON-7.md).
+- **Convertir et OCR** : PDF vers Word (.docx), Excel (.xlsx, tableaux et nombres
+  reconnus), images (PNG, JPEG, 150 à 600 ppp) et texte ; images, Word, Excel et
+  PowerPoint vers PDF (par Microsoft Office s'il est installé, sinon conversion
+  intégrée des documents Word) ; **OCR hors ligne Tesseract** (français, anglais,
+  allemand, néerlandais) : PDF recherchable, pages redressées. Accueil : créer un PDF
+  depuis un document Office, le **scanner** (WIA) ou le **presse-papiers**.
+  Détails : [docs/JALON-8.md](docs/JALON-8.md).
 - **Palette de commandes** (Ctrl+K), paramètres (animations, prénom, mode sombre par défaut).
 - **Erreurs claires** : mot de passe requis ou incorrect, fichier endommagé, fichier introuvable.
 - **Accessibilité** : navigation au clavier, focus visible, libellés pour lecteurs d'écran,
@@ -88,6 +118,9 @@ src-tauri/src/            Cœur Rust
   library.rs              Récents, préférences, emplacements (JSON local)
   annot/                  Annotations (lopdf) : lecture, apparences, enregistrement incrémental
   edit/                   Éditer (lopdf) : pages, ajouts, liens, calques, caviardage glyphe par glyphe
+  tools/                  Outils (lopdf) : fusion, division, compression (tâches annulables)
+  sysfonts.rs             Polices installées : mesure, sous-ensembles TrueType, intégration
+  sign/                   Signature : apparence, CMS, certificats, vérification
   create.rs               Création de PDF
   platform.rs             Code propre au système (portage macOS)
 ```
@@ -122,11 +155,11 @@ Les PDF de test sont générés par `python scripts/make_fixtures.py`.
 1. ✅ Fondations : thème, composants, accueil, en-tête et menu Outils, lecture
 2. ✅ Impression complète (Ctrl+P)
 3. ✅ Annotation
-4. Édition et organisation des pages, caviardage
-5. Fusion et division, compression
-6. Signature manuscrite et numérique
-7. Formulaires, sécurité (AES-256, permissions, PDF/A)
-8. Conversion, OCR (Tesseract), création depuis Office, scanner, presse-papiers
+4. ✅ Édition et organisation des pages, caviardage
+5. ✅ Fusion et division, compression
+6. ✅ Signature manuscrite et numérique
+7. ✅ Formulaires, sécurité (AES-256, permissions, PDF/A)
+8. ✅ Conversion, OCR (Tesseract), création depuis Office, scanner, presse-papiers
 9. Finitions : installateur définitif, audit d'accessibilité et de performances
 
 ## Licence

@@ -19,6 +19,16 @@ const GS_RES: &str = "AuraWmGS";
 const EDGE: f32 = 28.0;
 const SIDE: f32 = 40.0;
 
+/// Numéro affiché sur la page `i` (index 0) et dernier numéro, ou `None` pour
+/// une page de garde non numérotée. `start` est le numéro de la première page numérotée.
+pub fn page_number(i: u32, pages: u32, start: u32, skip_first: bool) -> Option<(u32, u32)> {
+    let first = if skip_first { 1 } else { 0 };
+    if i < first {
+        return None;
+    }
+    Some((start + i - first, start + pages.saturating_sub(first + 1)))
+}
+
 /// Remplace `{n}` et `{total}`.
 pub fn fill(template: &str, n: u32, total: u32) -> String {
     template.replace("{n}", &n.to_string()).replace("{total}", &total.to_string())
@@ -99,8 +109,9 @@ pub fn apply(doc: &mut Document, pages: &[ObjectId], plan: &Plan) -> Result<(), 
                 lines.push((t, (w - tw) / 2.0, y, hf.size, hf.color.clone(), if top { "Header" } else { "Footer" }));
             }
         }
-        if let Some(nb) = numbering {
-            let t = fill(&nb.format, i as u32 + nb.start.max(1), total + nb.start.max(1) - 1);
+        if let Some((num, last)) = numbering.and_then(|nb| page_number(i as u32, total, nb.start, nb.skip_first)) {
+            let nb = numbering.unwrap();
+            let t = fill(&nb.format, num, last);
             let tw = text_width(&t, nb.size, false, 0.0);
             let pos = nb.position.as_bytes();
             let y = if pos.first() == Some(&b't') { EDGE + nb.size * 0.75 } else { h - EDGE };
@@ -207,6 +218,15 @@ mod tests {
     fn modele_de_numerotation() {
         assert_eq!(fill("Page {n} sur {total}", 3, 12), "Page 3 sur 12");
         assert_eq!(fill("{n} / {total}", 1, 2), "1 / 2");
+    }
+
+    #[test]
+    fn page_de_garde() {
+        assert_eq!(page_number(0, 10, 1, false), Some((1, 10)));
+        assert_eq!(page_number(0, 10, 2, true), None);
+        assert_eq!(page_number(1, 10, 2, true), Some((2, 10)));
+        // Page de garde exclue du décompte : la page 2 porte le numéro 1.
+        assert_eq!(page_number(1, 10, 1, true), Some((1, 9)));
     }
 
     #[test]

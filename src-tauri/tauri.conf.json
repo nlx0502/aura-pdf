@@ -46,7 +46,12 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "resources/pdfium/pdfium.dll": "resources/pdfium/pdfium.dll"
+      "resources/pdfium/pdfium.dll": "resources/pdfium/pdfium.dll",
+      "resources/tessdata/fra.traineddata": "resources/tessdata/fra.traineddata",
+      "resources/tessdata/eng.traineddata": "resources/tessdata/eng.traineddata",
+      "resources/tessdata/deu.traineddata": "resources/tessdata/deu.traineddata",
+      "resources/tessdata/nld.traineddata": "resources/tessdata/nld.traineddata",
+      "resources/tessdata/LICENSE": "resources/tessdata/LICENSE"
     },
     "fileAssociations": [
       {

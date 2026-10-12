@@ -149,13 +149,27 @@ impl Worker {
     /// Enregistre le plan : dans le fichier lui-même (`out` absent, le document
     /// est alors rouvert sous un nouvel identifiant) ou dans un autre fichier.
     pub(super) fn edit_apply(&mut self, doc: u32, plan: &crate::edit::Plan, out: Option<PathBuf>) -> AppResult<Option<DocInfo>> {
-        let (path, encrypted, dirty) = {
+        let (path, password, dirty) = {
             let open = self.docs.get(&doc).ok_or_else(AppError::not_found)?;
-            (open.path.clone(), open.password.is_some(), open.content_dirty)
+            (open.path.clone(), open.password.clone(), open.content_dirty)
         };
-        if encrypted {
-            return Err(AppError::new("edit", "Les documents protégés par mot de passe ne peuvent pas encore être modifiés."));
-        }
+        // Document chiffré : droits vérifiés, chiffrement d'origine conservé.
+        let maybe_encrypted = std::fs::read(&path).map(|b| b.windows(8).any(|w| w == b"/Encrypt")).unwrap_or(false);
+        let keep = if !maybe_encrypted {
+            None
+        } else {
+            let orig = crate::edit::load(&path, password.as_deref())?;
+            match orig.encryption_state {
+                Some(state) => {
+                    let perms = crate::security::inspect(&path, password.as_deref()).map_err(|e| AppError::new("edit", e))?.effective();
+                    if !perms.edit && !perms.extract {
+                        return Err(AppError::new("edit", "Le propriétaire du document n’autorise pas sa modification."));
+                    }
+                    Some(state)
+                }
+                None => None,
+            }
+        };
         // Modifications de contenu faites dans PDFium : écrites d'abord dans un fichier intermédiaire.
         let mut tmp: Option<PathBuf> = None;
         if dirty {
@@ -177,7 +191,7 @@ impl Worker {
         }
         let src = tmp.clone().unwrap_or_else(|| path.clone());
         let dest = out.clone().unwrap_or_else(|| path.clone());
-        let result = crate::edit::apply(&src, None, plan, &dest);
+        let result = crate::edit::apply(&src, password.as_deref(), plan, &dest, keep.as_ref());
         if let Some(t) = tmp {
             let _ = std::fs::remove_file(t);
         }
@@ -195,7 +209,7 @@ impl Worker {
         if self.search.as_ref().map(|s| s.doc == doc).unwrap_or(false) {
             self.search = None;
         }
-        self.open(&path, None).map(Some)
+        self.open(&path, password.as_deref()).map(Some)
     }
 
     pub(super) fn layers(&self, doc: u32) -> AppResult<Vec<Layer>> {

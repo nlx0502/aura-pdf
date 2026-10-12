@@ -138,7 +138,8 @@ export const useApp = create<AppStore>((set, get) => ({
   },
 
   setScreen: (screen) => set({ screen }),
-  setModule: (module) => set({ module, screen: get().tabs.length ? "reader" : get().screen }),
+  // Les outils Fusion et Compresser fonctionnent aussi sans document ouvert.
+  setModule: (module) => set({ module, screen: get().tabs.length || module === "fusion" || module === "compress" || module === "convert" ? "reader" : get().screen }),
   goHome: () => {
     set({ screen: "home", focus: false });
     void get().refreshRecents();

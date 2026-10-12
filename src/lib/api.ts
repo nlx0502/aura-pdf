@@ -31,6 +31,21 @@ export interface DocMetadata {
   modified?: string;
 }
 
+export interface Permissions {
+  print: boolean;
+  copy: boolean;
+  edit: boolean;
+  annotate: boolean;
+  forms: boolean;
+  /** Insérer, faire pivoter, supprimer ou extraire des pages. */
+  extract: boolean;
+}
+
+export const ALL_PERMISSIONS: Permissions = { print: true, copy: true, edit: true, annotate: true, forms: true, extract: true };
+
+/** Droits d'un document (les anciennes réponses sans droits valent « tous »). */
+export const perms = (info: { permissions?: Permissions }): Permissions => info.permissions ?? ALL_PERMISSIONS;
+
 export interface DocInfo {
   id: number;
   path: string;
@@ -45,6 +60,8 @@ export interface DocInfo {
   hasForm: boolean;
   signatureCount: number;
   encrypted: boolean;
+  /** Droits de l'utilisateur (tous si le document n'est pas chiffré). */
+  permissions: Permissions;
   scanned: boolean;
   tagged: boolean;
 }
@@ -119,7 +136,8 @@ export interface AppErrorPayload {
 
 export type CreateSpec =
   | { kind: "blank"; format: PaperFormat; landscape: boolean; pages: number; style: "blank" | "lines" | "grid" | "dots" }
-  | { kind: "images"; paths: string[]; format: PaperFormat; landscape: boolean; onePerPage: boolean };
+  | { kind: "images"; paths: string[]; format: PaperFormat; landscape: boolean; onePerPage: boolean }
+  | { kind: "scans"; paths: string[] };
 
 export type PaperFormat = "a4" | "a5" | "a3" | "letter";
 

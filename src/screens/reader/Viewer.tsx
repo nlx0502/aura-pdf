@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { api } from "../../lib/api";
+import { api, perms } from "../../lib/api";
 import {
   anchorAt,
   anchorPoint,
@@ -53,7 +53,24 @@ interface Anim {
  * autour du point visé), puis la nouvelle disposition est appliquée en gardant
  * ce point immobile à l'écran.
  */
-export function Viewer({ tab, active, annotate = false }: { tab: DocTab; active: boolean; annotate?: boolean }) {
+/** Dernière génération de vue envoyée au moteur, par document. */
+const viewGens = new Map<number, number>();
+
+export function Viewer({
+  tab,
+  active,
+  annotate = false,
+  overlay,
+  renderForms,
+}: {
+  tab: DocTab;
+  active: boolean;
+  annotate?: boolean;
+  /** Couche propre à un module (ex. signature), dans le repère de chaque page. */
+  overlay?: (page: number, scale: number) => React.ReactNode;
+  /** Rendu des champs de formulaire par PDFium (sinon : réglage des calques de l'onglet). */
+  renderForms?: boolean;
+}) {
   const annots = useDocAnnots(tab.key);
   // Révision du rendu : annotations, contenu modifié (Éditer), visibilité des calques.
   const editRev = useEdit((s) => (s.docs[tab.key]?.docId === tab.info.id ? s.docs[tab.key].rev : 0));
@@ -67,7 +84,9 @@ export function Viewer({ tab, active, annotate = false }: { tab: DocTab; active:
   const pending = useRef<{ anchor: Anchor; sx: number; sy: number; fromRot: number } | null>(null);
   const zoomOrigin = useRef<{ sx: number; sy: number; ms: number } | null>(null);
   const instantNext = useRef(true);
-  const genRef = useRef(1);
+  // La génération de vue continue d'un montage à l'autre (changement de module,
+  // fichier réécrit) : le moteur ne la fait jamais redescendre.
+  const genRef = useRef(viewGens.get(tab.info.id) ?? 1);
   const genTimer = useRef(0);
   const commitTimer = useRef(0);
   const tabRef = useRef(tab);
@@ -75,7 +94,8 @@ export function Viewer({ tab, active, annotate = false }: { tab: DocTab; active:
   const doc = tab.info.id;
 
   const bumpGen = useCallback(() => {
-    genRef.current += 1;
+    genRef.current = Math.max(genRef.current, viewGens.get(doc) ?? 0) + 1;
+    viewGens.set(doc, genRef.current);
     window.clearTimeout(genTimer.current);
     genTimer.current = window.setTimeout(() => void api.setViewGen(doc, genRef.current).catch(() => {}), 60);
   }, [doc]);
@@ -341,7 +361,7 @@ export function Viewer({ tab, active, annotate = false }: { tab: DocTab; active:
   };
 
   return (
-    <div ref={scrollRef} className="viewer" onScroll={onScroll} tabIndex={-1}>
+    <div ref={scrollRef} className={`viewer ${perms(tab.info).copy ? "" : "viewer--nocopy"}`} onScroll={onScroll} tabIndex={-1} onCopy={(e) => !perms(tab.info).copy && e.preventDefault()}>
       <div className="viewer__content" style={{ width: layout.width, height: layout.height }}>
         <div className="viewer__layer" style={layerStyle}>
           {mounted.map((i) => (
@@ -355,7 +375,7 @@ export function Viewer({ tab, active, annotate = false }: { tab: DocTab; active:
               rot={committed.rot}
               dark={tab.dark}
               annots={tab.layers.annotations}
-              forms={tab.layers.forms}
+              forms={renderForms ?? tab.layers.forms}
               settled={!anim}
               visible={visibleBox(layout.boxes[i])}
               getGen={getGen}
@@ -364,7 +384,9 @@ export function Viewer({ tab, active, annotate = false }: { tab: DocTab; active:
               onGoto={(p) => useApp.getState().jumpTo(tab.key, p)}
               rev={annotRev}
               overlay={
-                annots?.loaded ? (
+                overlay ? (
+                  overlay(i, layout.scale)
+                ) : annots?.loaded ? (
                   <AnnotLayer tabKey={tab.key} docId={doc} page={i} size={tab.info.pages[i]} scale={layout.scale} interactive={annotate && !anim} />
                 ) : null
               }

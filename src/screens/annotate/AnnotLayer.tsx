@@ -7,7 +7,7 @@ import {
   blankAnnot,
   bounds,
   COLORS,
-  FONT_CSS,
+  fontCss,
   layoutText,
   LINE_HEIGHT,
   MARKUP_TOOLS,
@@ -360,7 +360,7 @@ function Shape({ a }: { a: Annot }) {
           <text
             fill={c}
             textAnchor={anchor}
-            style={{ fontFamily: FONT_CSS[a.font], fontSize: a.fontSize, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? "italic" : "normal" }}
+            style={{ fontFamily: fontCss(a.font), fontSize: a.fontSize, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? "italic" : "normal" }}
           >
             {lines.map((l, i) => (
               <tspan key={i} x={tx} y={r.y + TEXT_PAD + a.fontSize * 0.86 + i * a.fontSize * LINE_HEIGHT} xmlSpace="preserve">
@@ -445,7 +445,7 @@ function TextEditor({ a, scale, tabKey }: { a: Annot; scale: number; tabKey: str
         padding: TEXT_PAD * scale,
         fontSize: a.fontSize * scale,
         lineHeight: LINE_HEIGHT,
-        fontFamily: FONT_CSS[a.font],
+        fontFamily: fontCss(a.font),
         fontWeight: a.bold ? 700 : 400,
         fontStyle: a.italic ? "italic" : "normal",
         textAlign: (["left", "center", "right"] as const)[a.align] ?? "left",

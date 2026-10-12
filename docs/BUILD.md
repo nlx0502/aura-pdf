@@ -25,6 +25,29 @@ build `chromium/8086`) est versionnée dans `src-tauri/resources/pdfium/` avec
 ses licences. Pour la mettre à jour, remplacer `pdfium.dll`, `VERSION` et le
 dossier `licenses/` par ceux de l'archive `pdfium-win-x64.tgz`.
 
+## Tesseract (OCR)
+
+Tesseract 5 et ses dépendances (Leptonica, libpng, libjpeg-turbo, libtiff,
+libwebp, OpenJPEG, giflib, zlib, libarchive…) sont liés **statiquement** dans
+l'exécutable. Ils se compilent une fois avec vcpkg (environ 1 h) :
+
+```bash
+git clone https://github.com/microsoft/vcpkg D:/DevTools/vcpkg
+```
+
+```bash
+D:/DevTools/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+```
+
+```bash
+D:/DevTools/vcpkg/vcpkg.exe install tesseract:x64-windows-static-md
+```
+
+`build.rs` cherche les bibliothèques dans `D:\DevTools\vcpkg` ; un autre
+emplacement se donne par la variable `AURA_VCPKG_ROOT`. Les données de langue
+(`tessdata_fast` : français, anglais, allemand, néerlandais) sont dans
+`src-tauri/resources/tessdata/` et installées avec l'application.
+
 ## Lancer en développement
 
 ```bash

@@ -12,10 +12,18 @@ import { AppBar } from "./shell/AppBar";
 import { CommandPalette, toggleFullscreen } from "./shell/CommandPalette";
 import { PasswordDialog, SettingsDialog } from "./shell/Dialogs";
 import { PrintDialog } from "./screens/print/PrintDialog";
-import { ModulePlaceholder } from "./shell/ModulePlaceholder";
+import { Security } from "./screens/security/Security";
+import { ConvertTool } from "./screens/tools/ConvertTool";
+import { useConvert } from "./stores/convert";
+import { useForms } from "./stores/forms";
+import { Forms } from "./screens/forms/Forms";
 import { Annotate } from "./screens/annotate/Annotate";
 import { requestCloseTab, saveTab, UnsavedDialog, useQuitGuard } from "./shell/Unsaved";
 import { Edit } from "./screens/edit/Edit";
+import { Sign } from "./screens/sign/Sign";
+import { MergeTool } from "./screens/tools/MergeTool";
+import { CompressTool } from "./screens/tools/CompressTool";
+import { useMergeTool } from "./stores/tools";
 import { useEdit } from "./stores/edit";
 import { useAnnots } from "./stores/annot";
 import { useApp } from "./stores/app";
@@ -55,7 +63,7 @@ function useShortcuts() {
         } else if (k === "s") {
           e.preventDefault();
           if (tab) {
-            if (useEdit.getState().docs[tab.key]?.dirty || useAnnots.getState().docs[tab.key]?.dirty) void saveTab(tab.key);
+            if (useEdit.getState().docs[tab.key]?.dirty || useAnnots.getState().docs[tab.key]?.dirty || useForms.getState().docs[tab.key]?.dirty) void saveTab(tab.key);
             else toast.info(t("reader.nothingToSave"));
           }
         } else if (k === "w") {
@@ -124,7 +132,13 @@ function useFileEvents() {
           useDrag.setState({ dragging: true, x: p.position.x / dpr, y: p.position.y / dpr });
         } else if (p.type === "drop") {
           useDrag.setState({ dragging: false });
-          if (p.paths.length) void useApp.getState().openFiles(p.paths);
+          if (!p.paths.length) return;
+          const st = useApp.getState();
+          // Outil Fusion : les fichiers déposés rejoignent la liste à fusionner.
+          if (st.screen === "reader" && st.module === "fusion" && useMergeTool.getState().tab === "merge") void useMergeTool.getState().add(p.paths);
+          // Outil Convertir : les fichiers déposés rejoignent la file.
+          else if (st.screen === "reader" && st.module === "convert" && useConvert.getState().tab === "conv") useConvert.getState().addFiles(p.paths);
+          else void st.openFiles(p.paths);
         } else {
           useDrag.setState({ dragging: false });
         }
@@ -168,6 +182,13 @@ export default function App() {
         <Annotate />
       </>
     );
+  else if (screen === "reader" && module === "signer" && hasTabs)
+    body = (
+      <>
+        <AppBar />
+        <Sign />
+      </>
+    );
   else if (screen === "reader" && module === "editer" && hasTabs)
     body = (
       <>
@@ -175,11 +196,32 @@ export default function App() {
         <Edit />
       </>
     );
-  else if (screen === "reader" && module !== "lire" && module !== "annoter" && module !== "editer")
+  else if (screen === "reader" && module === "securite" && hasTabs)
     body = (
       <>
         <AppBar />
-        <ModulePlaceholder module={module} />
+        <Security />
+      </>
+    );
+  else if (screen === "reader" && module === "forms" && hasTabs)
+    body = (
+      <>
+        <AppBar />
+        <Forms />
+      </>
+    );
+  else if (screen === "reader" && (module === "fusion" || module === "compress"))
+    body = (
+      <>
+        <AppBar />
+        {module === "fusion" ? <MergeTool /> : <CompressTool />}
+      </>
+    );
+  else if (screen === "reader" && module === "convert")
+    body = (
+      <>
+        <AppBar />
+        <ConvertTool />
       </>
     );
   else if (screen === "reader" && hasTabs)

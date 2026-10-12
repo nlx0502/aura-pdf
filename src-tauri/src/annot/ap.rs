@@ -8,7 +8,7 @@ use lopdf::{dictionary, Dictionary, Object};
 
 use super::geom::{PageGeom, Rect};
 use super::model::{rgb, Annot, Kind, STAMPS};
-use super::text::{pdf_string, text_width, text_width_in, wrap_in};
+use super::text::{pdf_string, text_width, text_width_in};
 
 pub struct Built {
     pub subtype: &'static str,
@@ -19,6 +19,30 @@ pub struct Built {
     /// Flux d'apparence normale.
     pub content: Vec<u8>,
     pub resources: Dictionary,
+    /// Police du système à intégrer (ressource /AuraF) : l'appelant crée les objets.
+    pub embed: Option<crate::sysfonts::Loaded>,
+}
+
+/// Ressource de la police du système intégrée dans une apparence.
+pub const SYS_FONT_RES: &str = "AuraF";
+
+/// Découpe en lignes avec une fonction de mesure (mêmes règles que `wrap_in`).
+fn wrap_measure(text: &str, max_w: f32, measure: &dyn Fn(&str) -> f32) -> Vec<String> {
+    let mut out = Vec::new();
+    for para in text.split('\n') {
+        let mut line = String::new();
+        for word in para.split(' ') {
+            let candidate = if line.is_empty() { word.to_string() } else { format!("{line} {word}") };
+            if !line.is_empty() && measure(&candidate) > max_w {
+                out.push(std::mem::take(&mut line));
+                line = word.to_string();
+            } else {
+                line = candidate;
+            }
+        }
+        out.push(line);
+    }
+    out
 }
 
 /// Marge intérieure et interligne des zones de texte (identiques côté interface).
@@ -169,6 +193,7 @@ pub fn build(a: &Annot, g: &PageGeom) -> Built {
     let mut dict = Dictionary::new();
     let mut ext = dictionary! { "Type" => "ExtGState", "CA" => Object::Real(a.opacity), "ca" => Object::Real(a.opacity) };
     let mut fonts = Dictionary::new();
+    let mut embed: Option<crate::sysfonts::Loaded> = None;
 
     let quads = |rects: &[Rect]| -> Object {
         let mut v = Vec::new();
@@ -320,25 +345,57 @@ pub fn build(a: &Annot, g: &PageGeom) -> Built {
                 p.rounded_rect(&rc.inflate(-a.width / 2.0), 3.0);
                 p.op("S");
             }
-            let (res, base) = super::model::base_font(&a.font, a.bold, a.italic);
-            fonts.set(res, font(base));
+            // Police du système (intégrée en sous-ensemble) ou police standard.
+            let sys = if matches!(a.font.as_str(), "sans" | "serif" | "mono") { None } else { crate::sysfonts::load(&a.font, a.bold, a.italic) };
+            let res = match &sys {
+                Some(_) => SYS_FONT_RES,
+                None => {
+                    let (res, base) = super::model::base_font(&a.font, a.bold, a.italic);
+                    fonts.set(res, font(base));
+                    res
+                }
+            };
+            let measure = |s: &str| match &sys {
+                Some(f) => f.text_width(s, fs),
+                None => text_width_in(s, fs, &a.font, a.bold),
+            };
             // Texte limité à la boîte.
             p.op(format!("q {} {} {} {} re W n", n(rc.x), n(rc.y), n(rc.w), n(rc.h)));
             p.op(format!("{col} rg BT /{res} {} Tf", n(fs)));
+            // Gras ou italique absents de la famille : simulés (contour, inclinaison).
+            let fake_bold = sys.as_ref().map(|f| f.fake_bold).unwrap_or(false);
+            let skew = if sys.as_ref().map(|f| f.fake_italic).unwrap_or(false) { 0.2 } else { 0.0 };
+            if fake_bold {
+                p.op(format!("{} RG 2 Tr {} w", col.replace(" rg", ""), n(fs * 0.03)));
+            }
             let inner = rc.w - 2.0 * TEXT_PAD;
-            let lines = wrap_in(&a.text, fs, inner, &a.font, a.bold);
+            let lines = wrap_measure(&a.text, inner, &measure);
             for (i, line) in lines.iter().enumerate() {
-                let lw = text_width_in(line, fs, &a.font, a.bold);
+                let lw = measure(line);
                 let x = match a.align {
                     1 => rc.x + TEXT_PAD + (inner - lw) / 2.0,
                     2 => rc.x + rc.w - TEXT_PAD - lw,
                     _ => rc.x + TEXT_PAD,
                 };
                 let y = rc.y + TEXT_PAD + fs * 0.86 + i as f32 * fs * LINE_HEIGHT;
-                p.op(format!("1 0 0 -1 {} {} Tm", n(x), n(y)));
-                p.raw(&pdf_string(line)).op(" Tj");
+                p.op(format!("1 0 {} -1 {} {} Tm", n(-skew), n(x), n(y)));
+                match &sys {
+                    Some(f) => {
+                        let Object::String(b, _) = crate::sysfonts::encode(f, line) else { unreachable!() };
+                        let hexs: String = b.iter().map(|x| format!("{x:02X}")).collect();
+                        p.op(format!("<{hexs}> Tj"));
+                    }
+                    None => {
+                        p.raw(&pdf_string(line)).op(" Tj");
+                    }
+                }
             }
             p.op("ET Q");
+            if let Some(f) = &sys {
+                // Famille retrouvée à la relecture (« Calibri|gras|italique »).
+                dict.set("AuraFont", Object::string_literal(format!("{}|{}|{}", f.family, a.bold as u8, a.italic as u8)));
+            }
+            embed = sys;
             dict.set("DA", Object::string_literal(format!("{col} rg /{res} {} Tf", n(fs))));
             dict.set("Q", a.align.min(2) as i64);
             dict.set("BS", dictionary! { "W" => Object::Real(if border.is_some() { a.width } else { 0.0 }) });
@@ -386,7 +443,7 @@ pub fn build(a: &Annot, g: &PageGeom) -> Built {
     if !fonts.is_empty() {
         resources.set("Font", Object::Dictionary(fonts));
     }
-    Built { subtype, rect: g.rect_to_user(&bounds), dict, content: p.0, resources }
+    Built { subtype, rect: g.rect_to_user(&bounds), dict, content: p.0, resources, embed }
 }
 
 #[cfg(test)]

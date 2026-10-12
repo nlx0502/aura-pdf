@@ -1,7 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, IconButton, Icons } from "../../components";
-import { fillNumber, MM, shownSize, toggleSelection, type EditPage, type EditSettings } from "../../lib/edit";
+import { fillNumber, MM, pageNumber, shownSize, toggleSelection, type EditPage, type EditSettings } from "../../lib/edit";
 import { savePdfAs } from "../../lib/files";
 import { stripExt } from "../../lib/format";
 import { Prio, renderPage } from "../../lib/render";
@@ -268,6 +268,7 @@ export function Overlays({ settings: s, n, total, w, h, crop }: { settings: Edit
     wmSize = Math.min(160, Math.max(12, (span * 0.75) / Math.max(0.01, boldWidth1(wm))));
   }
   const pos = s.numbering.position;
+  const num = pageNumber(n - 1, total, s.numbering.start, s.numbering.skipFirst);
   const numStyle: React.CSSProperties = {
     fontSize: fs(9),
     ...(pos[0] === "t" ? { top: pct(28, h) } : { bottom: pct(26, h) }),
@@ -290,9 +291,9 @@ export function Overlays({ settings: s, n, total, w, h, crop }: { settings: Edit
           {fillNumber(s.header.footer.trim(), n, total)}
         </span>
       )}
-      {s.numbering.on && (
+      {s.numbering.on && num && (
         <span className="eov__num" style={numStyle}>
-          {fillNumber(s.numbering.format, n, total)}
+          {fillNumber(s.numbering.format, num.n, num.total)}
         </span>
       )}
       {crop && (

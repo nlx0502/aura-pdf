@@ -8,12 +8,19 @@
 
 mod annot;
 mod commands;
+mod convert;
+mod ocr;
 mod create;
 mod edit;
 mod engine;
+mod forms;
 mod error;
 mod library;
 mod platform;
+mod security;
+mod sign;
+mod sysfonts;
+mod tools;
 mod print;
 mod protocol;
 
@@ -28,6 +35,8 @@ use library::Library;
 
 pub struct AppState {
     pub engine: Engine,
+    /// Émission d'événements vers l'interface (progression des outils).
+    pub emit: engine::Emitter,
     pub library: Library,
     /// Fichiers passés en ligne de commande (association .pdf, « Ouvrir avec »).
     pub startup_files: Mutex<Vec<String>>,
@@ -75,7 +84,13 @@ pub fn run() {
             let emitter: engine::Emitter = Arc::new(move |name: &str, payload: serde_json::Value| {
                 let _ = handle.emit(name, payload);
             });
-            let engine = Engine::start(pdfium_dir(app), emitter);
+            if let Ok(res) = app.path().resource_dir() {
+                let t = res.join("resources").join("tessdata");
+                if t.join("fra.traineddata").exists() {
+                    ocr::set_data_dir(t);
+                }
+            }
+            let engine = Engine::start(pdfium_dir(app), emitter.clone());
             let data_dir = app
                 .path()
                 .app_data_dir()
@@ -83,6 +98,7 @@ pub fn run() {
             let library = Library::load(data_dir);
             app.manage(AppState {
                 engine,
+                emit: emitter,
                 library,
                 startup_files: Mutex::new(files_from_args(std::env::args())),
             });
@@ -126,6 +142,34 @@ pub fn run() {
             commands::layers_set,
             commands::content_list,
             commands::content_apply,
+            commands::system_fonts,
+            commands::tool_inspect,
+            commands::tool_analyze,
+            commands::split_by_size,
+            commands::merge_start,
+            commands::split_start,
+            commands::compress_start,
+            commands::tool_cancel,
+            commands::reload_document,
+            commands::sign_report,
+            commands::cert_inspect,
+            commands::cert_create,
+            commands::sign_start,
+            commands::security_info,
+            commands::pdfa_check,
+            commands::security_apply,
+            commands::security_reload,
+            commands::forms_list,
+            commands::forms_save,
+            commands::forms_flatten,
+            commands::forms_restore,
+            commands::convert_info,
+            commands::convert_start,
+            commands::document_pdf,
+            commands::ocr_start,
+            commands::create_pdf_ocr,
+            commands::scan_acquire,
+            commands::clipboard_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement d’Aura PDF");

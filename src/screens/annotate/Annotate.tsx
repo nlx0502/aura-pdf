@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FontPicker } from "../../components/FontPicker";
 import { ColorDots, IconButton, Icons, Segmented, Slider, Stepper, ToastHost, type IconName } from "../../components";
 import {
   blankAnnot,
   bounds,
   COLORS,
-  FONT_CSS,
   rgba,
   STAMPS,
   stampSize,
@@ -15,11 +15,11 @@ import {
   WIDTHS,
   type Annot,
   type AnnotKind,
-  type FontFamily,
   type Tool,
 } from "../../lib/annot";
 import type { TextStyle } from "../../stores/annot";
 import { isMod, isTyping, shortcut } from "../../lib/platform";
+import { perms } from "../../lib/api";
 import { useAnnots, useDocAnnots } from "../../stores/annot";
 import { useActiveTab, useApp, type DocTab } from "../../stores/app";
 import { Viewer } from "../reader/Viewer";
@@ -122,7 +122,7 @@ function AnnotateInner({ tab }: { tab: DocTab }) {
   }, [tab.key]);
 
   if (!d?.loaded) return <div className="workspace" />;
-  const readOnly = tab.info.encrypted;
+  const readOnly = !perms(tab.info).annotate;
 
   return (
     <div className="workspace annotate">
@@ -378,17 +378,7 @@ function TextPanel({ tab, sel }: { tab: DocTab; sel: Annot | null }) {
       <h2 className="title">{t("annot.textStyle")}</h2>
       <div className="aside__field">
         <span className="aside__label">{t("annot.font")}</span>
-        <Segmented<FontFamily>
-          block
-          label={t("annot.font")}
-          value={v.font}
-          onChange={(font) => apply({ font })}
-          options={(["sans", "serif", "mono"] as const).map((f) => ({
-            value: f,
-            title: t(`annot.fontsLong.${f}`),
-            label: <span style={{ fontFamily: FONT_CSS[f], fontSize: 13 }}>{t(`annot.fonts.${f}`)}</span>,
-          }))}
-        />
+        <FontPicker block value={v.font} onChange={(font) => apply({ font })} />
       </div>
       <div className="aside__row aside__row--center">
         <span className="aside__label">{t("annot.fontSize")}</span>

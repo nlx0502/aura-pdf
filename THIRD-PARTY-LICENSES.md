@@ -22,8 +22,12 @@ sont listées dès maintenant pour valider le choix de licence.
 | Geist (police) | Typographie de l'interface | **SIL Open Font License 1.1** | <https://github.com/vercel/geist-font> (paquet `@fontsource/geist-sans`, MIT) |
 | Lucide (icônes) | Icônes de l'interface | **ISC** | <https://lucide.dev> (paquet `lucide-react`) |
 | WebView2 (bootstrapper) | Moteur d'affichage Windows | Licence Microsoft redistribuable | installé par l'installateur si absent |
-| Tesseract + données fra/eng | OCR hors ligne — jalon 8 | Apache-2.0 | <https://github.com/tesseract-ocr> |
-| qpdf | Chiffrement AES-256, linéarisation — jalons 5 et 7 | Apache-2.0 | <https://github.com/qpdf/qpdf> |
+| Tesseract 5.5 (lié statiquement) | OCR hors ligne | Apache-2.0 | <https://github.com/tesseract-ocr/tesseract> (compilé par vcpkg) |
+| ↳ Leptonica | Traitement d'image pour Tesseract | BSD-2-Clause | <http://leptonica.org> |
+| ↳ libpng, zlib, libjpeg-turbo, libtiff, libwebp, giflib, OpenJPEG | Formats d'image | libpng, zlib, IJG/BSD-3, libtiff (BSD), BSD-3, MIT, BSD-2 | via vcpkg |
+| ↳ libarchive, xz, zstd, lz4, bzip2, libcurl, OpenSSL | Dépendances de construction de Tesseract (non utilisées par Aura : aucun accès réseau) | BSD-2, 0BSD/domaine public, BSD-3, BSD-2, bzip2, curl (MIT-like), Apache-2.0 | via vcpkg |
+| Données `tessdata_fast` fra, eng, deu, nld | Langues de l'OCR | Apache-2.0 | <https://github.com/tesseract-ocr/tessdata_fast> — `src-tauri/resources/tessdata/` |
+| Profil ICC sRGB v2 compact | Profil de sortie des PDF/A (archivage) | **CC0 1.0** (domaine public) | <https://github.com/saucecontrol/Compact-ICC-Profiles> — `src-tauri/resources/icc/` |
 
 Les textes complets des licences de PDFium et de ses composants sont copiés
 dans `src-tauri/resources/pdfium/licenses/`.
@@ -34,10 +38,17 @@ dans `src-tauri/resources/pdfium/licenses/`.
 |---|---|
 | tauri, tauri-build, tauri-plugin-dialog, tauri-plugin-opener, tauri-plugin-single-instance | MIT OU Apache-2.0 |
 | pdfium-render | MIT OU Apache-2.0 |
-| lopdf (annotations, organisation des pages, caviardage) | MIT |
+| lopdf (annotations, organisation des pages, caviardage, formulaires, chiffrement AES-128 / AES-256) | MIT |
 | windows (API Windows : impression) | MIT OU Apache-2.0 |
 | regex (recherche des données à caviarder) | MIT OU Apache-2.0 |
+| ttf-parser (polices installées : mesure, sous-ensembles) | MIT OU Apache-2.0 |
+| RustCrypto : cms, x509-cert, der, spki, rsa, p256, p384, ecdsa, sha1, sha2, signature, const-oid (signature numérique) | MIT OU Apache-2.0 |
+| p12-keystore (certificats PKCS #12) | MIT OU Apache-2.0 |
+| rustls-native-certs (autorités racines du système) | MIT OU Apache-2.0 OU ISC |
+| ureq (horodatage RFC 3161, HTTP) | MIT OU Apache-2.0 |
 | image | MIT OU Apache-2.0 |
+| zip (documents Word et Excel), roxmltree (lecture des .docx) | MIT |
+| arboard (presse-papiers) | MIT OU Apache-2.0 |
 | serde, serde_json | MIT OU Apache-2.0 |
 | tokio | MIT |
 | parking_lot, crossbeam-channel | MIT OU Apache-2.0 |
@@ -70,3 +81,23 @@ cargo install cargo-license && cd src-tauri && cargo license
 | @tauri-apps/cli | MIT OU Apache-2.0 |
 | playwright-core (captures d'écran) | Apache-2.0 |
 | NSIS (générateur d'installateur) | zlib/libpng |
+
+## Polices des signatures manuscrites
+
+Fournies avec l'application (`src-tauri/resources/fonts/`, avec leur licence) :
+
+| Police | Auteur | Licence |
+|---|---|---|
+| Caveat | Impallari Type | SIL Open Font License 1.1 |
+| Mrs Saint Delafield | Alejandro Paul (Sudtipos) | SIL Open Font License 1.1 |
+| Homemade Apple | Font Diner | Apache License 2.0 |
+
+## Polices Windows intégrées aux documents
+
+Lors d'une conversion PDF/A, les polices standard non intégrées (Helvetica,
+Times, Courier) sont remplacées par leurs équivalents installés avec Windows
+(Arial, Times New Roman, Courier New), intégrés en sous-ensemble. Ces polices
+ne sont pas distribuées avec Aura PDF : elles proviennent du système de
+l'utilisateur, et leur licence (indicateur d'intégration OS/2 « Editable » ou
+« Installable ») autorise leur intégration dans les documents. Les polices dont
+la licence interdit l'intégration (« Restricted ») ne sont jamais utilisées.

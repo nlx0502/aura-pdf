@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Chip, IconButton, Icons } from "../../components";
 import type { Rect } from "../../lib/api";
-import { FONT_CSS } from "../../lib/annot";
+import { fontCss } from "../../lib/annot";
 import { editApi, rectFrom, type ContentItem, type ContentOp, type TextSpec } from "../../lib/edit";
 import { pickImage } from "../../lib/files";
 import { localImageUrl, Prio, renderPage } from "../../lib/render";
@@ -427,7 +427,7 @@ function InlineEditor({ item, scale, onDone }: { item: ContentItem; scale: numbe
         width: (r.w * 1.03 + 6) * scale,
         minHeight: (r.h + 6) * scale,
         height: (Math.max(r.h, (text.split("\n").length + Math.floor(text.length / 90)) * item.size * item.lineHeight) + 6) * scale,
-        fontFamily: FONT_CSS[item.font],
+        fontFamily: fontCss(item.font),
         fontSize: item.size * scale,
         lineHeight: item.lineHeight,
         fontWeight: item.bold ? 700 : 400,

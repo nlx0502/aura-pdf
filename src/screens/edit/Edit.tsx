@@ -5,6 +5,7 @@ import { formatSize, stripExt } from "../../lib/format";
 import { paperName } from "../../lib/edit";
 import { pickPdfs } from "../../lib/files";
 import { isMod, isTyping, shortcut } from "../../lib/platform";
+import { perms } from "../../lib/api";
 import { useActiveTab, type DocTab } from "../../stores/app";
 import { useDocEdit, useEdit, type DocEdit, type EditMode } from "../../stores/edit";
 import { PagesGrid } from "./PagesGrid";
@@ -28,7 +29,9 @@ export function Edit() {
 function EditInner({ tab, d }: { tab: DocTab; d: DocEdit }) {
   const { t } = useTranslation();
   const store = useEdit();
-  const readOnly = tab.info.encrypted;
+  // Pages : droit d'assemblage ou de modification ; contenu : droit de modification.
+  const readOnly = !perms(tab.info).edit && !perms(tab.info).extract;
+  const contentReadOnly = !perms(tab.info).edit;
   const insertRef = useRef<HTMLButtonElement>(null);
   const [insertOpen, setInsertOpen] = useState(false);
 
@@ -135,9 +138,9 @@ function EditInner({ tab, d }: { tab: DocTab; d: DocEdit }) {
         </header>
         {readOnly && <p className="enotice">{t("edit.readOnly")}</p>}
         {!readOnly && tab.info.signatureCount > 0 && <p className="enotice">{t("edit.signedWarn")}</p>}
-        {d.mode === "pages" ? <PagesGrid tab={tab} d={d} readOnly={readOnly} /> : <ContentView tab={tab} d={d} readOnly={readOnly} />}
+        {d.mode === "pages" ? <PagesGrid tab={tab} d={d} readOnly={readOnly} /> : <ContentView tab={tab} d={d} readOnly={contentReadOnly} />}
       </main>
-      <EditSide tab={tab} d={d} readOnly={readOnly} />
+      <EditSide tab={tab} d={d} readOnly={contentReadOnly} />
     </div>
   );
 }

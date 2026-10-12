@@ -24,7 +24,7 @@ pub struct ContentItem {
     /// Boîte en points d'affichage.
     pub rect: Rect,
     pub text: String,
-    pub font: &'static str,
+    pub font: String,
     pub bold: bool,
     pub italic: bool,
     pub size: f32,
@@ -114,8 +114,11 @@ fn hex(c: PdfColor) -> String {
 }
 
 /// Famille, gras, italique d'une police d'après son nom et ses attributs.
-fn font_style(f: &PdfFont) -> (&'static str, bool, bool) {
-    let name = f.name().to_ascii_lowercase();
+fn font_style(f: &PdfFont) -> (String, bool, bool) {
+    let raw = f.name();
+    let name = raw.to_ascii_lowercase();
+    // Police installée sur le poste (« ABCDEF+Calibri-Bold » → « Calibri ») : proposée telle quelle.
+    let installed = crate::sysfonts::match_family(&raw);
     let family = if f.is_fixed_pitch() || name.contains("courier") || name.contains("mono") || name.contains("consol") {
         "mono"
     } else if f.is_serif() || ["times", "georgia", "garamond", "cambria", "serif", "minion", "book"].iter().any(|k| name.contains(k)) {
@@ -125,7 +128,7 @@ fn font_style(f: &PdfFont) -> (&'static str, bool, bool) {
     };
     let bold = name.contains("bold") || name.contains("black") || name.contains("heavy") || name.contains("semibold") || f.weight().map(|w| matches!(w, PdfFontWeight::Weight600 | PdfFontWeight::Weight700Bold | PdfFontWeight::Weight800 | PdfFontWeight::Weight900)).unwrap_or(false);
     let italic = name.contains("italic") || name.contains("oblique") || f.is_italic();
-    (family, bold, italic)
+    (installed.unwrap_or_else(|| family.to_string()), bold, italic)
 }
 
 struct Run {
@@ -134,7 +137,7 @@ struct Run {
     baseline: f32,
     size: f32,
     text: String,
-    font: &'static str,
+    font: String,
     bold: bool,
     italic: bool,
     color: String,
@@ -189,7 +192,7 @@ pub fn list(page: &PdfPage) -> Vec<ContentItem> {
                 ids: vec![i as u32],
                 rect,
                 text: String::new(),
-                font: "sans",
+                font: "sans".into(),
                 bold: false,
                 italic: false,
                 size: 0.0,
@@ -230,7 +233,7 @@ fn group(mut runs: Vec<Run>) -> Vec<ContentItem> {
         baseline: f32,
         size: f32,
         text: String,
-        first: (&'static str, bool, bool, String),
+        first: (String, bool, bool, String),
     }
     let mut ls: Vec<Line> = lines
         .into_iter()
@@ -256,7 +259,7 @@ fn group(mut runs: Vec<Run>) -> Vec<ContentItem> {
                 baseline: l[0].baseline,
                 size,
                 text: text.trim_end().to_string(),
-                first: (l[0].font, l[0].bold, l[0].italic, l[0].color.clone()),
+                first: (l[0].font.clone(), l[0].bold, l[0].italic, l[0].color.clone()),
             }
         })
         .collect();
@@ -405,8 +408,19 @@ fn place_text(doc: &mut PdfDocument, page_index: u32, spec: &TextSpec) -> Result
     };
     let lin = display_matrix(&g);
     let family = spec.font.as_str();
-    let token = std_font(doc, family, spec.bold, spec.italic);
-    let lines = wrap(&spec.text, spec.rect.w.max(size), &|s| text_width_in(s, size, family, spec.bold));
+    // Police du système : sous-ensemble des glyphes du texte, intégré au document.
+    let sys = if matches!(family, "sans" | "serif" | "mono") { None } else { crate::sysfonts::load(family, spec.bold, spec.italic) };
+    let token = match &sys {
+        Some(f) => doc.fonts_mut().load_true_type_from_bytes(&f.subset(&spec.text), true)?,
+        None => std_font(doc, family, spec.bold, spec.italic),
+    };
+    let measure = |s: &str| match &sys {
+        Some(f) => f.text_width(s, size),
+        None => text_width_in(s, size, family, spec.bold),
+    };
+    let lines = wrap(&spec.text, spec.rect.w.max(size), &measure);
+    let fake_bold = sys.as_ref().map(|f| f.fake_bold).unwrap_or(false);
+    let skew = if sys.as_ref().map(|f| f.fake_italic).unwrap_or(false) { 0.2 } else { 0.0 };
     let first_base = spec.baseline.unwrap_or(spec.rect.y + size * 0.8);
     let (r, gg, b) = rgb(&spec.color);
     let color = PdfColor::new((r * 255.0).round() as u8, (gg * 255.0).round() as u8, (b * 255.0).round() as u8, 255);
@@ -416,7 +430,7 @@ fn place_text(doc: &mut PdfDocument, page_index: u32, spec: &TextSpec) -> Result
         if line.trim().is_empty() {
             continue;
         }
-        let w = text_width_in(line, size, family, spec.bold);
+        let w = measure(line);
         let x = match spec.align {
             1 => spec.rect.x + (spec.rect.w - w) / 2.0,
             2 => spec.rect.x + spec.rect.w - w,
@@ -425,9 +439,17 @@ fn place_text(doc: &mut PdfDocument, page_index: u32, spec: &TextSpec) -> Result
         let y = first_base + k as f32 * size * spec.line_height;
         let mut obj = PdfPageTextObject::new(doc, line, token, PdfPoints::new(size))?;
         obj.set_fill_color(color)?;
-        // Ligne de base horizontale à l'écran, quelle que soit la rotation de la page.
+        if fake_bold {
+            // Gras absent de la famille : contour de la couleur du texte.
+            obj.set_render_mode(PdfPageTextRenderMode::FilledThenStroked)?;
+            obj.set_stroke_color(color)?;
+            obj.set_stroke_width(PdfPoints::new(size * 0.03))?;
+        }
+        // Ligne de base horizontale à l'écran, quelle que soit la rotation de la page
+        // (inclinaison si l'italique est absent de la famille).
         let (e, f) = g.to_user(x, y);
-        obj.reset_matrix(PdfMatrix::new(lin[0], lin[1], -lin[2], -lin[3], e, f))?;
+        let (a, b, c, d) = (lin[0], lin[1], -lin[2], -lin[3]);
+        obj.reset_matrix(PdfMatrix::new(a, b, c + skew * a, d + skew * b, e, f))?;
         page.objects_mut().add_text_object(obj)?;
     }
     Ok(())

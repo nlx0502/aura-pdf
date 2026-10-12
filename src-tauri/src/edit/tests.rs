@@ -132,7 +132,7 @@ fn rognage_et_ajouts() {
     let mut p = plan(vec![orig(0), orig(1)]);
     p.crop = Some(Margins { top: 50.0, bottom: 20.0, left: 30.0, right: 10.0 });
     p.pages[0].crop = true;
-    p.numbering = Some(Numbering { format: "{n} / {total}".into(), position: "br".into(), size: 9.0, start: 1, color: "#000000".into() });
+    p.numbering = Some(Numbering { format: "{n} / {total}".into(), position: "br".into(), size: 9.0, start: 1, skip_first: false, color: "#000000".into() });
     p.header = Some(HeaderFooter { header: "Dossier d’audit".into(), footer: String::new(), size: 9.0, color: "#333333".into() });
     p.watermark = Some(Watermark { text: "CONFIDENTIEL".into(), opacity: 0.2, color: "#6E6AF6".into(), angle: 35.0 });
     let out = rebuild(doc, &p);
@@ -255,11 +255,13 @@ fn rapport_complet() {
     let p2 = pages.iter_mut().find(|p| matches!(p.src, PageSrc::Orig { index: 1 })).unwrap();
     p2.redact = vec![Rect { x: 50.0, y: 40.0, w: 200.0, h: 20.0 }];
     let mut p = plan(pages);
-    p.numbering = Some(Numbering { format: "Page {n} sur {total}".into(), position: "bc".into(), size: 9.0, start: 1, color: "#000".into() });
+    p.numbering = Some(Numbering { format: "Page {n} sur {total}".into(), position: "bc".into(), size: 9.0, start: 2, skip_first: true, color: "#000".into() });
     let out = rebuild(doc, &p);
     assert_eq!(out.get_pages().len() as u32, n - 1);
     // Signets et pièce jointe conservés.
     assert!(out.catalog().unwrap().has(b"Outlines"));
     assert!(out.catalog().unwrap().has(b"Names"));
-    assert!(page_text(&out, 0).contains(&format!("Page 1 sur {}", n - 1)));
+    // Page de garde sans numéro, la suivante porte le n° 2.
+    assert!(!page_text(&out, 0).contains(&format!("sur {}", n - 1)), "page de garde numérotée");
+    assert!(page_text(&out, 1).contains(&format!("Page 2 sur {}", n - 1)));
 }

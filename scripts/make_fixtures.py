@@ -7,7 +7,10 @@ Produit dans tests/fixtures/ :
   - Gros document.pdf   : 600 pages (performances, virtualisation) ;
   - Paysage.pdf         : pages de tailles et d'orientations mélangées ;
   - Données sensibles.pdf : IBAN, e-mails, téléphones (caviardage) ;
-  - Plan avec calques.pdf : contenu optionnel (calques).
+  - Plan avec calques.pdf : contenu optionnel (calques) ;
+  - Accord de consortium.pdf : deux champs de signature ;
+  - Demande d’ouverture.pdf : formulaire AcroForm (texte, liste, choix, date, case) ;
+  - Scan contrat.pdf : page numérisée inclinée, sans texte (OCR ; nécessite Pillow).
 """
 import os
 import zlib
@@ -325,6 +328,177 @@ def build_layers(path: str):
     pdf.save(path, catalog, info)
 
 
+def build_contract(path: str):
+    """Accord à signer : deux champs de signature vides en dernière page."""
+    pdf = Pdf()
+    catalog = pdf.reserve()
+    pages_obj = pdf.reserve()
+    f1 = pdf.add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    f2 = pdf.add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+    w, h = 595.28, 841.89
+
+    def line(y, text, size=11, font=b"/F1", x=64):
+        return b"BT %s %d Tf %.1f %.1f Td (" % (font, size, x, y) + esc(text) + b") Tj ET"
+
+    body = [
+        "Le présent accord entre en vigueur à la date de la dernière signature. Conformément au",
+        "règlement (UE) n° 910/2014, la signature électronique apposée par chaque partie a la",
+        "même valeur qu’une signature manuscrite.",
+        "",
+        "Toute modification du document après signature invalide automatiquement les sceaux",
+        "électroniques.",
+    ]
+    pages = []
+    for n in (1, 2):
+        ops = [b"0.42 0.42 0.39 rg", line(h - 60, "Réf. EIDAS-2025-FR-88942", 9), line(h - 60, f"Page {n} sur 2", 9, x=w - 120), b"0.43 0.42 0.96 rg", line(h - 120, "ACCORD DE CONSORTIUM", 10, b"/F2"), b"0.1 0.1 0.12 rg"]
+        if n == 1:
+            ops += [line(h - 156, "Objet et parties", 22, b"/F2")]
+            ops += [line(h - 200 - i * 18, t) for i, t in enumerate(["La société A et la société B conviennent de collaborer au projet décrit en annexe.", "Chaque partie conserve la propriété de ses apports antérieurs."])]
+        else:
+            ops += [line(h - 156, "Engagement de confidentialité", 22, b"/F2"), line(h - 200, "Article 12 — Entrée en vigueur", 13, b"/F2")]
+            ops += [line(h - 226 - i * 18, t) for i, t in enumerate(body)]
+            ops += [b"0.42 0.42 0.39 rg", line(h - 380, "Pour la société A", 10), line(h - 380, "Pour la société B", 10, x=316)]
+        pages.append(pdf.add(stream(b"\n".join(ops))))
+    fields = []
+    page_ids = []
+    for i, c in enumerate(pages):
+        pid = pdf.reserve()
+        page_ids.append(pid)
+        annots = b""
+        if i == 1:
+            for name, x in (("Société A", 64), ("Société B", 316)):
+                fid = pdf.add(b"<< /Type /Annot /Subtype /Widget /FT /Sig /T " + utf16(name) + b" /Rect [%d %.1f %d %.1f] /P %d 0 R /F 4 >>" % (x, h - 500, x + 215, h - 396, pid))
+                fields.append(fid)
+            annots = b" /Annots [%s]" % b" ".join(b"%d 0 R" % f for f in fields)
+        pdf.set(pid, b"<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %.2f %.2f] /Contents %d 0 R /Resources << /Font << /F1 %d 0 R /F2 %d 0 R >> >>%s >>" % (pages_obj, w, h, c, f1, f2, annots))
+    pdf.set(pages_obj, b"<< /Type /Pages /Kids [%s] /Count 2 >>" % b" ".join(b"%d 0 R" % p for p in page_ids))
+    pdf.set(catalog, b"<< /Type /Catalog /Pages %d 0 R /AcroForm << /Fields [%s] >> >>" % (pages_obj, b" ".join(b"%d 0 R" % f for f in fields)))
+    info = pdf.add(b"<< /Title " + utf16("Accord de consortium") + b" >>")
+    pdf.save(path, catalog, info)
+
+
+def build_form(path: str):
+    """Formulaire AcroForm : texte, liste, choix, date, case, signature."""
+    pdf = Pdf()
+    catalog = pdf.reserve()
+    pages_obj = pdf.reserve()
+    page = pdf.reserve()
+    f1 = pdf.add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    f2 = pdf.add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+    zadb = pdf.add(b"<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>")
+    w, h = 595.28, 841.89
+
+    def line(y, text, size=11, font=b"/F1", x=64):
+        return b"BT %s %d Tf %.1f %.1f Td (" % (font, size, x, y) + esc(text) + b") Tj ET"
+
+    ops = [b"0.42 0.42 0.39 rg", line(h - 60, "Réf. AP-2025-089", 9), line(h - 60, "Page 1", 9, x=w - 100),
+           b"0.43 0.42 0.96 rg", line(h - 110, "FORMULAIRE", 10, b"/F2"), b"0.1 0.1 0.12 rg",
+           line(h - 140, "Demande d’ouverture de compte", 22, b"/F2"), b"0.42 0.42 0.39 rg",
+           line(h - 162, "Les champs marqués d’un astérisque sont obligatoires.", 10)]
+    labels = [(h - 200, "Nom complet *"), (h - 260, "Adresse e-mail *"), (h - 320, "Type de compte *"),
+              (h - 380, "Fréquence des relevés"), (h - 440, "Date de naissance"), (h - 560, "Signature du demandeur")]
+    ops += [b"0.1 0.1 0.12 rg"] + [line(y, t, 10, b"/F2") for y, t in labels]
+    ops += [line(h - 402, "Mensuelle", 10, x=84), line(h - 402, "Trimestrielle", 10, x=204), line(h - 402, "Annuelle", 10, x=344)]
+    ops += [line(h - 506, "J’accepte les conditions générales *", 10, x=84)]
+    # Cadres des champs.
+    ops += [b"0.6 0.6 0.62 RG 0.6 w"] + [b"64 %.1f 330 22 re S" % (y - 30) for y in (h - 200, h - 260, h - 320, h - 440)]
+    content = pdf.add(stream(b"\n".join(ops)))
+    da = b"/Helv 11 Tf 0 g"
+    fields = []
+
+    def text(name, label, y, ff=0, extra=b"", value=None):
+        v = b" /V " + utf16(value) if value else b""
+        fid = pdf.add(b"<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + esc(name) + b") /TU " + utf16(label)
+                      + b" /Rect [64 %.1f 394 %.1f] /P %d 0 R /F 4 /Ff %d /DA (%s)%s%s /MK << /BG [1 1 1] >> >>" % (y - 30, y - 8, page, ff, da, v, extra))
+        fields.append(fid)
+
+    text("nom", "Nom complet", h - 200, 2, value="Camille Laurent")
+    text("email", "Adresse e-mail", h - 260, 2)
+    combo = pdf.add(b"<< /Type /Annot /Subtype /Widget /FT /Ch /T (type) /TU " + utf16("Type de compte")
+                    + b" /Rect [64 %.1f 394 %.1f] /P %d 0 R /F 4 /Ff %d /DA (%s) /Opt [(Particulier) (Professionnel) (Association)] >>" % (h - 350, h - 328, page, 2 | (1 << 17), da))
+    fields.append(combo)
+    # Choix (boutons radio) : un parent, trois widgets.
+    radio = pdf.reserve()
+    kids = []
+    for i, (x, opt) in enumerate(((66, "Mensuelle"), (186, "Trimestrielle"), (326, "Annuelle"))):
+        on = pdf.add(stream(b"0.1 0.1 0.12 rg 9.5 6 m 9.5 7.9 7.9 9.5 6 9.5 c 4.1 9.5 2.5 7.9 2.5 6 c 2.5 4.1 4.1 2.5 6 2.5 c 7.9 2.5 9.5 4.1 9.5 6 c f", b"/Type /XObject /Subtype /Form /BBox [0 0 12 12] "))
+        off = pdf.add(stream(b"", b"/Type /XObject /Subtype /Form /BBox [0 0 12 12] "))
+        state = opt.encode()
+        kid = pdf.add(b"<< /Type /Annot /Subtype /Widget /Parent %d 0 R /Rect [%d %.1f %d %.1f] /P %d 0 R /F 4 /AS /%s /MK << /BC [0 0 0] >> /AP << /N << /%s %d 0 R /Off %d 0 R >> >> >>"
+                      % (radio, x, h - 406, x + 12, h - 394, page, state if i == 0 else b"Off", state, on, off))
+        kids.append(kid)
+    pdf.set(radio, b"<< /FT /Btn /Ff %d /T (frequence) /TU " % ((1 << 15) | (1 << 14)) + utf16("Fréquence des relevés")
+            + b" /V /Mensuelle /Kids [%s] >>" % b" ".join(b"%d 0 R" % k for k in kids))
+    fields.append(radio)
+    text("naissance", "Date de naissance", h - 440, 0, b" /AA << /F << /S /JavaScript /JS (AFDate_FormatEx\\(\"dd/mm/yyyy\"\\);) >> >>")
+    check_on = pdf.add(stream(b"q 0.1 0.1 0.12 rg BT /ZaDb 10 Tf 1.5 2.5 Td (4) Tj ET Q", b"/Type /XObject /Subtype /Form /BBox [0 0 12 12] /Resources << /Font << /ZaDb %d 0 R >> >> " % zadb))
+    check_off = pdf.add(stream(b"", b"/Type /XObject /Subtype /Form /BBox [0 0 12 12] "))
+    check = pdf.add(b"<< /Type /Annot /Subtype /Widget /FT /Btn /T (cgu) /TU " + utf16("J’accepte les conditions générales")
+                    + b" /Rect [66 %.1f 78 %.1f] /P %d 0 R /F 4 /Ff 2 /V /Off /AS /Off /MK << /BC [0 0 0] /CA (4) >> /AP << /N << /Oui %d 0 R /Off %d 0 R >> >> >>" % (h - 510, h - 498, page, check_on, check_off))
+    fields.append(check)
+    sig = pdf.add(b"<< /Type /Annot /Subtype /Widget /FT /Sig /T (signature) /TU " + utf16("Signature du demandeur") + b" /Rect [64 %.1f 300 %.1f] /P %d 0 R /F 4 >>" % (h - 640, h - 570, page))
+    fields.append(sig)
+    widgets = [f for f in fields if f != radio] + kids
+    pdf.set(page, b"<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %.2f %.2f] /Contents %d 0 R /Resources << /Font << /F1 %d 0 R /F2 %d 0 R >> >> /Annots [%s] >>"
+            % (pages_obj, w, h, content, f1, f2, b" ".join(b"%d 0 R" % x for x in widgets)))
+    pdf.set(pages_obj, b"<< /Type /Pages /Kids [%d 0 R] /Count 1 >>" % page)
+    pdf.set(catalog, b"<< /Type /Catalog /Pages %d 0 R /AcroForm << /Fields [%s] /NeedAppearances true /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv %d 0 R /ZaDb %d 0 R >> >> >> >>"
+            % (pages_obj, b" ".join(b"%d 0 R" % f for f in fields), f1, zadb))
+    info = pdf.add(b"<< /Title " + utf16("Demande d’ouverture de compte") + b" >>")
+    pdf.save(path, catalog, info)
+
+
+def build_scan(path: str):
+    """Page numérisée (image seule, légèrement inclinée et bruitée) pour l'OCR.
+    Nécessite Pillow (facultatif : le fichier est ignoré sinon)."""
+    try:
+        from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    except ImportError:
+        print("Pillow absent : « Scan contrat.pdf » non généré.")
+        return
+    import random
+    dpi = 200
+    w, h = int(8.27 * dpi), int(11.69 * dpi)
+    img = Image.new("L", (w, h), 246)
+    d = ImageDraw.Draw(img)
+    fonts = os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts")
+    def font(name, size):
+        try:
+            return ImageFont.truetype(os.path.join(fonts, name), size)
+        except OSError:
+            return ImageFont.load_default()
+    title, body, small = font("arialbd.ttf", 58), font("arial.ttf", 34), font("arial.ttf", 30)
+    x, y = 170, 230
+    d.text((x, y), "Contrat de prestation", font=title, fill=30)
+    y += 100
+    d.text((x, y), "Référence 2025-114", font=small, fill=70)
+    y += 110
+    lines = [
+        "Entre les soussignés, la société Atelier Nord, ci-après « le prestataire »,",
+        "et la société Vauclair, ci-après « le client », il a été convenu ce qui suit.",
+        "",
+        "Article 1 — Le prestataire réalise les travaux décrits en annexe",
+        "dans un délai de quarante-cinq jours à compter de la signature.",
+        "",
+        "Article 2 — Le règlement intervient à réception de la facture.",
+        "",
+        "Fait à Bruxelles, en deux exemplaires originaux.",
+        "",
+        "Signatures des parties",
+    ]
+    for line in lines:
+        if line:
+            d.text((x, y), line, font=body, fill=35)
+        y += 62
+    random.seed(7)
+    img = img.rotate(1.6, resample=Image.BICUBIC, expand=False, fillcolor=246)
+    img = img.filter(ImageFilter.GaussianBlur(0.7))
+    px = img.load()
+    for _ in range(9000):
+        px[random.randrange(w), random.randrange(h)] = random.randrange(150, 230)
+    img.save(path, "PDF", resolution=dpi, title="Scan contrat")
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     build_report(os.path.join(OUT, "Rapport Q1 2025.pdf"))
@@ -333,6 +507,9 @@ if __name__ == "__main__":
     build_encrypted(os.path.join(OUT, "Protégé (aura).pdf"))
     build_sensitive(os.path.join(OUT, "Données sensibles.pdf"))
     build_layers(os.path.join(OUT, "Plan avec calques.pdf"))
+    build_contract(os.path.join(OUT, "Accord de consortium.pdf"))
+    build_form(os.path.join(OUT, "Demande d’ouverture.pdf"))
+    build_scan(os.path.join(OUT, "Scan contrat.pdf"))
     with open(os.path.join(OUT, "Endommagé.pdf"), "wb") as f:
         f.write(b"%PDF-1.7\nceci n'est pas un PDF valide\n")
     print("PDF de test générés dans", os.path.abspath(OUT))

@@ -37,7 +37,8 @@ export function Segmented<T extends string>({ options, value, onChange, label, b
     const measure = () => {
       const idx = options.findIndex((o) => o.value === value);
       const btn = root.querySelectorAll<HTMLButtonElement>(".seg__btn")[idx];
-      if (btn) setInd({ x: btn.offsetLeft, w: btn.offsetWidth });
+      // Aucune option choisie (valeur hors liste) : pas d'indicateur.
+      setInd(btn ? { x: btn.offsetLeft, w: btn.offsetWidth } : null);
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -64,8 +65,9 @@ export function Segmented<T extends string>({ options, value, onChange, label, b
       onKeyDown={onKey}
     >
       {ind && <span className="seg__ind" aria-hidden="true" style={{ width: ind.w, transform: `translateX(${ind.x}px)` }} />}
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = o.value === value;
+        const focusable = on || (i === 0 && !options.some((x) => x.value === value));
         return (
           <button
             key={o.value}
@@ -77,7 +79,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, b
             aria-pressed={tabs ? undefined : on}
             aria-label={o.ariaLabel}
             title={o.title}
-            tabIndex={on ? 0 : -1}
+            tabIndex={focusable ? 0 : -1}
             onClick={() => onChange(o.value)}
           >
             {o.icon}
