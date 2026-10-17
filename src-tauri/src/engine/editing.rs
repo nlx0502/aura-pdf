@@ -236,6 +236,7 @@ impl Worker {
             open.doc = pdf;
             open.hidden.clear();
             open.render_path = Some(tmp);
+            open.hidden_layers = Some(hidden.to_vec());
         }
         if let Some(p) = prev_render {
             let _ = std::fs::remove_file(p);

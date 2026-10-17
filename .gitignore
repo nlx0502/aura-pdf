@@ -7,3 +7,6 @@ src-tauri/gen/
 Thumbs.db
 # Captures temporaires des scripts
 /shot.png
+
+# PDFium pour macOS (téléchargé par la CI ou par scripts/fetch-pdfium.sh)
+src-tauri/resources/pdfium/libpdfium.dylib

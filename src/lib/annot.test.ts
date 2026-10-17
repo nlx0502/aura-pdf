@@ -38,3 +38,17 @@ describe("géométrie", () => {
     expect(h[0][1]).toBeCloseTo(-h[2][1]);
   });
 });
+
+describe("redimensionnement", () => {
+  it("poignées", async () => {
+    const { dragHandle, resize } = await import("./annot");
+    const r = { x: 10, y: 10, w: 100, h: 50 };
+    expect(dragHandle(r, 4, 20, 10)).toEqual({ x: 10, y: 10, w: 120, h: 60 });
+    expect(dragHandle(r, 0, -10, -10)).toEqual({ x: 0, y: 0, w: 110, h: 60 });
+    expect(dragHandle(r, 1, 50, 5)).toEqual({ x: 10, y: 15, w: 100, h: 45 });
+    expect(dragHandle(r, 4, 100, 0, true)).toEqual({ x: 10, y: 10, w: 200, h: 100 });
+    expect(dragHandle(r, 3, -200, 0).w).toBe(100); // retournement : largeur absolue
+    const g = resize({ rect: null, ink: [[[10, 10], [110, 60]]], line: null } as never, r, { x: 0, y: 0, w: 50, h: 25 });
+    expect(g.ink).toEqual([[[0, 0], [50, 25]]]);
+  });
+});

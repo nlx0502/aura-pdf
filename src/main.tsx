@@ -11,6 +11,10 @@ import { useForms } from "./stores/forms";
 import { useConvert } from "./stores/convert";
 import { useCompressTool, useMergeTool } from "./stores/tools";
 import { useApp } from "./stores/app";
+import { IS_MAC } from "./lib/platform";
+
+// Mac : barre de titre transparente, feux tricolores natifs (voir shell.css).
+if (IS_MAC) document.documentElement.classList.add("is-mac");
 
 // En développement : accès à l'état pour les scripts de capture (scripts/shot.mjs).
 if (import.meta.env.DEV) {

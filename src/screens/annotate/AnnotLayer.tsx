@@ -21,6 +21,9 @@ import {
   translate,
   wordRects,
   type Annot,
+  dragHandle,
+  resize,
+  resizable,
 } from "../../lib/annot";
 import { pageWords } from "../../lib/pagedata";
 import { useAnnots, useDocAnnots } from "../../stores/annot";
@@ -41,7 +44,8 @@ type Draft =
   | { kind: "markup"; from: number; to: number }
   | { kind: "box"; x0: number; y0: number; x1: number; y1: number }
   | { kind: "pen"; pts: [number, number][] }
-  | { kind: "move"; id: string; x0: number; y0: number; dx: number; dy: number };
+  | { kind: "move"; id: string; x0: number; y0: number; dx: number; dy: number }
+  | { kind: "resize"; id: string; handle: number; x0: number; y0: number; dx: number; dy: number; keep: boolean };
 
 /** Annotations d'une page : dessin, sélection, création et déplacement. */
 export const AnnotLayer = memo(function AnnotLayer({ tabKey, docId, page, size, scale, interactive }: Props) {
@@ -152,6 +156,8 @@ export const AnnotLayer = memo(function AnnotLayer({ tabKey, docId, page, size, 
       setDraft({ ...draft, x1, y1 });
     } else if (draft.kind === "move") {
       setDraft({ ...draft, dx: x - draft.x0, dy: y - draft.y0 });
+    } else if (draft.kind === "resize") {
+      setDraft({ ...draft, dx: x - draft.x0, dy: y - draft.y0, keep: e.shiftKey });
     }
   };
 
@@ -188,7 +194,19 @@ export const AnnotLayer = memo(function AnnotLayer({ tabKey, docId, page, size, 
     } else if (draft.kind === "move") {
       if (Math.abs(draft.dx) + Math.abs(draft.dy) < 0.5) return;
       store.commit(tabKey, (l) => l.map((a) => (a.id === draft.id ? { ...a, ...translate(a, draft.dx, draft.dy), geomDirty: true } : a)));
+    } else if (draft.kind === "resize") {
+      if (Math.abs(draft.dx) + Math.abs(draft.dy) < 0.5) return;
+      store.commit(tabKey, (l) => l.map((a) => (a.id === draft.id ? applyResize(a, draft) : a)));
     }
+  };
+
+  /** Poignée de redimensionnement saisie. */
+  const startResize = (e: React.PointerEvent, a: Annot, handle: number) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const [x, y] = toPt(e);
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    setDraft({ kind: "resize", id: a.id, handle, x0: x, y0: y, dx: 0, dy: 0, keep: e.shiftKey });
   };
 
   const startMove = (e: React.PointerEvent, a: Annot) => {
@@ -202,7 +220,12 @@ export const AnnotLayer = memo(function AnnotLayer({ tabKey, docId, page, size, 
   };
 
   // Annotation affichée (déplacement en cours appliqué).
-  const shown = (a: Annot): Annot => (draft?.kind === "move" && draft.id === a.id ? { ...a, ...translate(a, draft.dx, draft.dy), geomDirty: true } : a);
+  const shown = (a: Annot): Annot =>
+    draft?.kind === "move" && draft.id === a.id
+      ? { ...a, ...translate(a, draft.dx, draft.dy), geomDirty: true }
+      : draft?.kind === "resize" && draft.id === a.id
+        ? applyResize(a, draft)
+        : a;
   const selected = list.find((a) => a.id === d.selected);
   const capture = interactive && tool !== "select";
   const W = size.w * scale;
@@ -255,6 +278,9 @@ export const AnnotLayer = memo(function AnnotLayer({ tabKey, docId, page, size, 
         {draft?.kind === "pen" && <polyline points={draft.pts.map((p) => p.join(",")).join(" ")} fill="none" stroke={style.color} strokeWidth={style.width} strokeLinecap="round" strokeLinejoin="round" />}
         {draft?.kind === "box" && <DraftBox tool={tool} d={draft} color={style.color} width={style.width} />}
         {selected && interactive && <SelectionFrame r={bounds(shown(selected))} />}
+        {selected && interactive && tool === "select" && !selected.locked && editing !== selected.id && resizable(selected) && (
+          <Handles a={shown(selected)} scale={scale} onGrab={(e, h) => startResize(e, selected, h)} />
+        )}
       </svg>
 
       {/* Zones de texte en cours de saisie */}
@@ -401,6 +427,60 @@ function DraftBox({ tool, d, color, width }: { tool: string; d: { x0: number; y0
   }
   const r = { x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) };
   return tool === "ellipse" ? <ellipse {...common} cx={r.x + r.w / 2} cy={r.y + r.h / 2} rx={r.w / 2} ry={r.h / 2} /> : <rect {...common} x={r.x} y={r.y} width={r.w} height={r.h} rx={3} />;
+}
+
+/** Annotation après déplacement d'une poignée. */
+function applyResize(a: Annot, d: { handle: number; dx: number; dy: number; keep: boolean }): Annot {
+  if ((a.kind === "arrow" || a.kind === "line") && a.line && d.handle >= 8) {
+    const l = [...a.line] as [number, number, number, number];
+    const i = d.handle === 8 ? 0 : 2;
+    l[i] += d.dx;
+    l[i + 1] += d.dy;
+    return { ...a, line: l, geomDirty: true };
+  }
+  const from = bounds(a);
+  const to = dragHandle(from, d.handle, d.dx, d.dy, d.keep || a.kind === "stamp");
+  return { ...a, ...resize(a, from, to), geomDirty: true };
+}
+
+/** Poignées de la sélection (coins et milieux, ou extrémités d'une ligne). */
+function Handles({ a, scale, onGrab }: { a: Annot; scale: number; onGrab: (e: React.PointerEvent, h: number) => void }) {
+  const s = 9 / scale;
+  const pad = 4;
+  if ((a.kind === "arrow" || a.kind === "line") && a.line) {
+    const l = a.line;
+    return (
+      <g className="ann__handles">
+        {[8, 9].map((h) => (
+          <circle key={h} className="ann__handle ann__handle--pt" cx={h === 8 ? l[0] : l[2]} cy={h === 8 ? l[1] : l[3]} r={s * 0.6} onPointerDown={(e) => onGrab(e, h)} />
+        ))}
+      </g>
+    );
+  }
+  const r = bounds(a);
+  const x0 = r.x - pad;
+  const y0 = r.y - pad;
+  const x1 = r.x + r.w + pad;
+  const y1 = r.y + r.h + pad;
+  const xm = (x0 + x1) / 2;
+  const ym = (y0 + y1) / 2;
+  const pts: [number, number, string][] = [
+    [x0, y0, "nwse"],
+    [xm, y0, "ns"],
+    [x1, y0, "nesw"],
+    [x1, ym, "ew"],
+    [x1, y1, "nwse"],
+    [xm, y1, "ns"],
+    [x0, y1, "nesw"],
+    [x0, ym, "ew"],
+  ];
+  return (
+    <g className="ann__handles">
+      {pts.map(([x, y, c], h) => (
+        <rect key={h} className="ann__handle" x={x - s / 2} y={y - s / 2} width={s} height={s} rx={s * 0.25} style={{ cursor: `${c}-resize` }} onPointerDown={(e) => onGrab(e, h)} />
+      ))}
+    </g>
+  );
 }
 
 function SelectionFrame({ r }: { r: Rect }) {

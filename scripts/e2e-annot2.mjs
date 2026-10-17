@@ -6,7 +6,14 @@ const browser = await chromium.connectOverCDP(`http://127.0.0.1:${process.env.SH
 const ctx = browser.contexts()[0];
 const page = ctx.pages().find((p) => !p.url().startsWith("devtools")) ?? ctx.pages()[0];
 const wait = (ms) => page.waitForTimeout(ms);
-const pt = async (x, y) =>
+const pt = async (x, y) => {
+  // Page 1 rendue (le visualiseur peut se reconstruire après un enregistrement).
+  await page.waitForSelector('.page[data-page="0"] .alayer__svg', { timeout: 15000 }).catch(async () => {
+    console.log("page 1 absente :", await page.evaluate(() => [...document.querySelectorAll(".page")].map((e) => e.dataset.page).join(",")));
+  });
+  return ptNow(x, y);
+};
+const ptNow = async (x, y) =>
   page.evaluate(
     ([x, y]) => {
       const svg = document.querySelector('.page[data-page="0"] .alayer__svg');
@@ -17,11 +24,18 @@ const pt = async (x, y) =>
   );
 const count = () => page.evaluate(() => document.querySelectorAll(".aitem").length);
 
-await page.evaluate(() => {
-  const s = window.__aura.getState();
-  s.jumpTo(s.active, 0);
-});
-await wait(800);
+// État neutre : aucun champ de saisie actif (le commentaire saisi à l'étape précédente).
+await page.evaluate(() => document.activeElement?.blur?.());
+// Retour en page 1 (le document vient peut-être d'être rechargé après Ctrl+S).
+for (let i = 0; i < 20; i++) {
+  await page.evaluate(() => {
+    const s = window.__aura.getState();
+    s.jumpTo(s.active, 0);
+  });
+  await wait(400);
+  if (await page.evaluate(() => !!document.querySelector('.page[data-page="0"] .alayer__svg'))) break;
+}
+await wait(400);
 await page.keyboard.press("Escape");
 const before = await count();
 // Zone de texte : clic, saisie, validation par clic ailleurs.

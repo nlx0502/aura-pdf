@@ -45,6 +45,18 @@ fn font_dirs() -> Vec<PathBuf> {
     if let Some(l) = dirs::data_local_dir() {
         v.push(l.join("Microsoft").join("Windows").join("Fonts"));
     }
+    if cfg!(target_os = "macos") {
+        // Arial, Times New Roman, Courier New… sont dans « Supplemental ».
+        v.extend(["/System/Library/Fonts", "/System/Library/Fonts/Supplemental", "/Library/Fonts"].map(PathBuf::from));
+        if let Some(h) = dirs::home_dir() {
+            v.push(h.join("Library").join("Fonts"));
+        }
+    } else if cfg!(all(unix, not(target_os = "macos"))) {
+        v.extend(["/usr/share/fonts", "/usr/local/share/fonts"].map(PathBuf::from));
+        if let Some(h) = dirs::home_dir() {
+            v.push(h.join(".local").join("share").join("fonts"));
+        }
+    }
     v
 }
 

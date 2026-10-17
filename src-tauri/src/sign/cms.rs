@@ -17,6 +17,58 @@ pub const OID_CONTENT_TYPE: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2
 pub const OID_MESSAGE_DIGEST: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.9.4");
 pub const OID_SIGNING_TIME: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.9.5");
 pub const OID_TIMESTAMP_TOKEN: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.9.16.2.14");
+/// ESS signing-certificate-v2 (RFC 5035), exigé par PAdES.
+pub const OID_SIGNING_CERT_V2: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113549.1.9.16.2.47");
+
+/// Élément DER (étiquette, longueur, contenu).
+fn tlv(tag: u8, content: &[u8]) -> Vec<u8> {
+    let mut out = vec![tag];
+    let n = content.len();
+    if n < 128 {
+        out.push(n as u8);
+    } else {
+        let bytes: Vec<u8> = n.to_be_bytes().iter().copied().skip_while(|b| *b == 0).collect();
+        out.push(0x80 | bytes.len() as u8);
+        out.extend(bytes);
+    }
+    out.extend_from_slice(content);
+    out
+}
+
+/// SigningCertificateV2 ::= SEQUENCE { certs SEQUENCE OF ESSCertIDv2 }, avec
+/// ESSCertIDv2 ::= SEQUENCE { certHash OCTET STRING } (SHA-256 implicite).
+pub fn signing_certificate_v2(cert: &Certificate) -> Result<Any, String> {
+    use sha2::Digest;
+    let hash = sha2::Sha256::digest(cert.to_der().map_err(|e| e.to_string())?);
+    let der = tlv(0x30, &tlv(0x30, &tlv(0x30, &tlv(0x04, &hash))));
+    Any::from_der(&der).map_err(|e| e.to_string())
+}
+
+/// Empreinte SHA-256 du certificat déclarée dans l'attribut signing-certificate-v2.
+pub fn signing_certificate_hash(v: &Any) -> Option<Vec<u8>> {
+    // SEQUENCE { SEQUENCE { SEQUENCE { [AlgorithmIdentifier] OCTET STRING … } } }
+    let der = v.to_der().ok()?;
+    let inner = |b: &[u8]| -> Option<(u8, Vec<u8>, usize)> {
+        let tag = *b.first()?;
+        let (len, hdr) = if b[1] & 0x80 == 0 {
+            (b[1] as usize, 2)
+        } else {
+            let n = (b[1] & 0x7f) as usize;
+            (b[2..2 + n].iter().fold(0usize, |a, x| (a << 8) | *x as usize), 2 + n)
+        };
+        Some((tag, b.get(hdr..hdr + len)?.to_vec(), hdr + len))
+    };
+    let (_, l1, _) = inner(&der)?;
+    let (_, l2, _) = inner(&l1)?;
+    let (_, l3, _) = inner(&l2)?;
+    let (tag, first, used) = inner(&l3)?;
+    if tag == 0x04 {
+        return Some(first);
+    }
+    // Algorithme explicite puis empreinte.
+    let (tag2, second, _) = inner(&l3[used..])?;
+    (tag2 == 0x04).then_some(second)
+}
 
 fn attr(oid: ObjectIdentifier, value: Any) -> Result<Attribute, String> {
     let mut values: SetOfVec<AttributeValue> = SetOfVec::new();
@@ -30,17 +82,21 @@ fn any<T: Encode>(v: &T) -> Result<Any, String> {
 }
 
 /// Conteneur CMS détaché pour l'empreinte SHA-256 `digest` du document.
-pub fn build(signer: &Signer, digest: &[u8], tsa: Option<&str>) -> Result<Vec<u8>, String> {
+///
+/// `pades` : profil PAdES de base (B-B) — attribut signing-certificate-v2, sans
+/// signing-time (la date est portée par le dictionnaire de signature /M).
+pub fn build(signer: &Signer, digest: &[u8], tsa: Option<&str>, pades: bool) -> Result<Vec<u8>, String> {
     let cert = &signer.chain[0];
     let now = der::DateTime::from_system_time(std::time::SystemTime::now()).map_err(|e| e.to_string())?;
-    let attrs = vec![
-        attr(OID_CONTENT_TYPE, any(&OID_DATA)?)?,
-        attr(OID_SIGNING_TIME, any(&x509_cert::time::Time::UtcTime(der::asn1::UtcTime::from_date_time(now).map_err(|e| e.to_string())?))?)?,
-        attr(OID_MESSAGE_DIGEST, any(&OctetString::new(digest).map_err(|e| e.to_string())?)?)?,
-    ];
+    let mut attrs = vec![attr(OID_CONTENT_TYPE, any(&OID_DATA)?)?, attr(OID_MESSAGE_DIGEST, any(&OctetString::new(digest).map_err(|e| e.to_string())?)?)?];
+    if pades {
+        attrs.push(attr(OID_SIGNING_CERT_V2, signing_certificate_v2(cert)?)?);
+    } else {
+        attrs.push(attr(OID_SIGNING_TIME, any(&x509_cert::time::Time::UtcTime(der::asn1::UtcTime::from_date_time(now).map_err(|e| e.to_string())?))?)?);
+    }
     let signed_attrs: SignedAttributes = SetOfVec::try_from(attrs).map_err(|e| e.to_string())?;
     let to_sign = signed_attrs.to_der().map_err(|e| e.to_string())?;
-    let (sig, sig_alg) = signer.key.sign(&to_sign);
+    let (sig, sig_alg) = signer.key.sign(&to_sign)?;
 
     let mut unsigned_attrs: Option<UnsignedAttributes> = None;
     if let Some(url) = tsa {

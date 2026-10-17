@@ -16,7 +16,7 @@ describe("signature", () => {
   });
 
   it("bilan des signatures", () => {
-    const sig = (status: "valid" | "untrusted" | "invalid") => ({ field: "", kind: "digital" as const, signer: "", issuer: "", status, messages: [], date: null, timestamp: null, reason: null, location: null, modifiedAfter: false, page: 0, rect: null });
+    const sig = (status: "valid" | "untrusted" | "invalid") => ({ field: "", kind: "digital" as const, signer: "", issuer: "", status, messages: [], date: null, timestamp: null, reason: null, location: null, modifiedAfter: false, certified: null, pades: false, page: 0, rect: null });
     const r: SignReport = { signatures: [sig("valid"), sig("untrusted"), sig("invalid")], empty: [{ field: "B", page: 1, rect: { x: 0, y: 0, w: 1, h: 1 } }] };
     expect(summary(r)).toEqual({ signed: 3, total: 4, invalid: 1, untrusted: 1 });
     expect(summary(null)).toEqual({ signed: 0, total: 0, invalid: 0, untrusted: 0 });

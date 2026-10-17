@@ -77,12 +77,56 @@ function TabsRow() {
   const editDirtyJson = useEdit((s) => JSON.stringify(Object.fromEntries(Object.entries(s.docs).map(([k, v]) => [k, v.dirty]))));
   const dirty = { ...(JSON.parse(dirtyJson) as Record<string, boolean>) };
   for (const [k, v] of Object.entries(JSON.parse(editDirtyJson) as Record<string, boolean>)) if (v) dirty[k] = true;
+  // Réordonner les onglets en les faisant glisser (le dépôt de fichiers de la
+  // fenêtre empêche le glisser-déposer HTML ; on suit donc le pointeur).
+  const [drag, setDrag] = useState<{ key: string; dx: number } | null>(null);
+  const startDrag = (e: React.PointerEvent, key: string) => {
+    if (e.button !== 0) return;
+    const x0 = e.clientX;
+    let moved = false;
+    let base = x0;
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.abs(ev.clientX - x0) < 6) return;
+      moved = true;
+      const els = [...document.querySelectorAll<HTMLElement>(".tabs [data-tab]")];
+      const me = els.find((el) => el.dataset.tab === key);
+      if (!me) return;
+      // Échange avec le voisin dont le milieu est franchi.
+      const cur = els.indexOf(me);
+      const r = me.getBoundingClientRect();
+      // (La boîte inclut déjà le décalage appliqué à l'onglet.)
+      const center = r.left + r.width / 2;
+      let to = cur;
+      els.forEach((el, i) => {
+        if (el === me) return;
+        const b = el.getBoundingClientRect();
+        const mid = b.left + b.width / 2;
+        if (i > cur && center > mid) to = i;
+        if (i < cur && center < mid && to === cur) to = i;
+      });
+      if (to !== cur) {
+        const target = els[to].getBoundingClientRect();
+        base += to > cur ? target.width + 6 : -(target.width + 6);
+        useApp.getState().moveTab(key, to);
+      }
+      setDrag({ key, dx: ev.clientX - base });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setDrag(null);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   return (
-    <div className="tabs" role="tablist" aria-label={t("reader.openDocs")}>
+    <div className="tabs">
+      <div className="tabs__list" role="tablist" aria-label={t("reader.openDocs")}>
       {tabs.map((tb) => {
         const sel = tb.key === active;
         return (
-          <div key={tb.key} className={`tab rise-sm ${sel ? "tab--sel" : ""}`}>
+          <div key={tb.key} className={`tab rise-sm ${sel ? "tab--sel" : ""} ${drag?.key === tb.key ? "tab--drag" : ""}`} data-tab={tb.key} style={drag?.key === tb.key ? { transform: `translateX(${drag.dx}px)` } : undefined}>
             <button
               type="button"
               role="tab"
@@ -95,18 +139,28 @@ function TabsRow() {
                   requestCloseTab(tb.key);
                 }
               }}
+              onPointerDown={(e) => startDrag(e, tb.key)}
+              onKeyDown={(e) => {
+                // Alt+Maj+flèches : déplacer l'onglet au clavier.
+                if (e.altKey && e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+                  e.preventDefault();
+                  const i = tabs.findIndex((x) => x.key === tb.key);
+                  useApp.getState().moveTab(tb.key, i + (e.key === "ArrowLeft" ? -1 : 1));
+                }
+              }}
               title={tb.info.path}
             >
               <Icons.file className="i tab__icon" />
               <span className="ellipsis">{tb.info.name}</span>
               {dirty[tb.key] && <span className="tab__dirty" title={t("annot.unsaved")} aria-label={t("annot.unsaved")} />}
             </button>
-            <button type="button" className="btn btn--ghost btn--icon tab__close" aria-label={t("reader.closeTab", { name: tb.info.name })} onClick={() => requestCloseTab(tb.key)}>
+            <button type="button" className="btn btn--ghost btn--icon tab__close" aria-hidden="true" tabIndex={-1} title={t("reader.closeTab", { name: tb.info.name })} onClick={() => requestCloseTab(tb.key)}>
               <Icons.close size={12} />
             </button>
           </div>
         );
       })}
+      </div>
       <IconButton label={t("reader.newTab")} size="sm" icon={<Icons.plus />} onClick={() => set({ paletteOpen: true })} shortcut={shortcut("K")} />
     </div>
   );

@@ -260,3 +260,11 @@
 .palette__input::placeholder {
   color: var(--text-faint);
 }
+
+/* Mac : la barre de titre est transparente et les feux tricolores natifs se
+   placent en haut à gauche ; la barre d'Aura leur laisse la place. */
+.is-mac .appbar,
+.is-mac .home__bar {
+  padding-left: 88px;
+  padding-right: 16px;
+}

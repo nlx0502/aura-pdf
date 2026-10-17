@@ -150,7 +150,7 @@ export const PageView = memo(function PageView(p: PageViewProps) {
       style={{ left: p.box.x, top: p.box.y, width: p.box.w, height: p.box.h }}
       data-page={p.page}
       aria-label={`${t("reader.pageWord")} ${p.page + 1}`}
-      role="img"
+      role="group"
     >
       <canvas ref={canvasRef} className="page__canvas" aria-hidden="true" />
       {tiles.map((tile) => (
@@ -174,6 +174,7 @@ export const PageView = memo(function PageView(p: PageViewProps) {
             key={i}
             className="plink"
             href={l.uri ?? "#"}
+            aria-label={l.uri ?? t("reader.linkToPage", { n: (l.page ?? 0) + 1 })}
             title={l.uri ?? undefined}
             style={{ left: l.rect.x * s, top: l.rect.y * s, width: l.rect.w * s, height: l.rect.h * s }}
             onClick={(e) => {

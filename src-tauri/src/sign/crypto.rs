@@ -71,6 +71,8 @@ pub enum SignKey {
     Rsa(rsa::RsaPrivateKey),
     P256(p256::ecdsa::SigningKey),
     P384(p384::ecdsa::SigningKey),
+    /// Clé conservée par Windows (magasin personnel, carte à puce).
+    Store(super::store::StoreKey),
 }
 
 impl SignKey {
@@ -89,8 +91,9 @@ impl SignKey {
     }
 
     /// Signe `msg` ; renvoie la signature et l'algorithme à déclarer.
-    pub fn sign(&self, msg: &[u8]) -> (Vec<u8>, AlgorithmIdentifierOwned) {
-        match self {
+    pub fn sign(&self, msg: &[u8]) -> Result<(Vec<u8>, AlgorithmIdentifierOwned), String> {
+        use sha2::Digest;
+        Ok(match self {
             SignKey::Rsa(k) => {
                 let sk = rsa::pkcs1v15::SigningKey::<sha2::Sha256>::new(k.clone());
                 (sk.sign(msg).to_vec(), alg(OID_SHA256_RSA, true))
@@ -103,7 +106,12 @@ impl SignKey {
                 let s: p384::ecdsa::DerSignature = k.sign(msg);
                 (s.to_vec(), alg(OID_EC_SHA384, false))
             }
-        }
+            SignKey::Store(k) => match k.kind {
+                super::store::KeyKind::Rsa => (k.sign_digest(&sha2::Sha256::digest(msg))?, alg(OID_SHA256_RSA, true)),
+                super::store::KeyKind::P256 => (k.sign_digest(&sha2::Sha256::digest(msg))?, alg(OID_EC_SHA256, false)),
+                super::store::KeyKind::P384 => (k.sign_digest(&sha2::Sha384::digest(msg))?, alg(OID_EC_SHA384, false)),
+            },
+        })
     }
 }
 
@@ -212,6 +220,16 @@ pub fn cert_info(c: &Certificate) -> CertInfo {
     }
 }
 
+/// Ouvre un certificat : fichier PKCS #12, ou « store:… » pour le magasin Windows
+/// (le mot de passe est alors ignoré : Windows demande le PIN s'il le faut).
+pub fn load(path: &str, password: &str) -> Result<Signer, String> {
+    if path.starts_with(super::store::PREFIX) {
+        let (key, chain) = super::store::load(path)?;
+        return Ok(Signer { key: SignKey::Store(key), chain });
+    }
+    load_p12(Path::new(path), password)
+}
+
 /// Ouvre un certificat PKCS #12 (.pfx / .p12).
 pub fn load_p12(path: &Path, password: &str) -> Result<Signer, String> {
     let data = std::fs::read(path).map_err(|e| format!("Certificat illisible ({e})."))?;
@@ -243,6 +261,7 @@ fn public_spki(key: &SignKey) -> Option<Vec<u8>> {
         SignKey::Rsa(k) => k.to_public_key().to_public_key_der().ok().map(|d| d.as_bytes().to_vec()),
         SignKey::P256(k) => k.verifying_key().to_public_key_der().ok().map(|d| d.as_bytes().to_vec()),
         SignKey::P384(k) => k.verifying_key().to_public_key_der().ok().map(|d| d.as_bytes().to_vec()),
+        SignKey::Store(_) => None,
     }
 }
 
@@ -322,7 +341,7 @@ mod tests {
         assert!(info.self_signed && !info.expired);
         assert!(load_p12(&out, "faux").is_err());
         let s = load_p12(&out, "secret").unwrap();
-        let (sig, a) = s.key.sign(b"bonjour");
+        let (sig, a) = s.key.sign(b"bonjour").unwrap();
         assert_eq!(a.oid, OID_EC_SHA256);
         verify(&spki_der(&s.chain[0]), &a.oid, None, b"bonjour", &sig).unwrap();
         assert!(verify(&spki_der(&s.chain[0]), &a.oid, None, b"bonsoir", &sig).is_err());

@@ -5,7 +5,7 @@
 use pdfium_render::prelude::*;
 
 use super::{coord_config, to_display_rect};
-use crate::convert::model::{Line, PageData, PageImage, Span};
+use crate::convert::model::{Figure, Line, PageData, PageImage, Span};
 use crate::error::{AppError, AppResult};
 
 struct Ch {
@@ -43,7 +43,7 @@ fn style_of(ch: &PdfPageTextChar) -> (f32, bool, bool, String) {
     (ch.scaled_font_size().value, bold, italic, color)
 }
 
-pub(super) fn extract_page(doc: &PdfDocument, page: u32, dpi: Option<f32>, with_text: bool) -> AppResult<PageData> {
+pub(super) fn extract_page(doc: &PdfDocument, page: u32, dpi: Option<f32>, with_text: bool, with_figures: bool) -> AppResult<PageData> {
     let p = doc.pages().get(page as PdfPageIndex).map_err(AppError::internal)?;
     let cfg = coord_config();
     let (w, h) = {
@@ -83,7 +83,132 @@ pub(super) fn extract_page(doc: &PdfDocument, page: u32, dpi: Option<f32>, with_
         }
         None => None,
     };
-    Ok(PageData { w, h, lines, image })
+    let figures = if with_figures { find_figures(&p, &cfg, w, h, &mut lines) } else { Vec::new() };
+    Ok(PageData { w, h, lines, image, figures })
+}
+
+#[derive(Clone, Copy)]
+struct Bx {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+}
+
+impl Bx {
+    fn near(&self, o: &Bx, pad: f32) -> bool {
+        self.x - pad < o.x + o.w && o.x - pad < self.x + self.w && self.y - pad < o.y + o.h && o.y - pad < self.y + self.h
+    }
+    /// Voisins, ou alignés en rangée (ou en colonne) avec un écart modéré :
+    /// les barres d'un histogramme, par exemple.
+    fn related(&self, o: &Bx) -> bool {
+        if self.near(o, 6.0) {
+            return true;
+        }
+        let vo = (self.y + self.h).min(o.y + o.h) - self.y.max(o.y);
+        let ho = (self.x + self.w).min(o.x + o.w) - self.x.max(o.x);
+        let hgap = (self.x.max(o.x) - (self.x + self.w).min(o.x + o.w)).max(0.0);
+        let vgap = (self.y.max(o.y) - (self.y + self.h).min(o.y + o.h)).max(0.0);
+        (vo > 0.0 && (self.y + self.h - (o.y + o.h)).abs() < 2.0 || vo >= 0.5 * self.h.min(o.h)) && hgap <= 30.0f32.max(0.75 * self.w.min(o.w))
+            || (ho > 0.0 && (self.x - o.x).abs() < 2.0 || ho >= 0.5 * self.w.min(o.w)) && vgap <= 30.0f32.max(0.75 * self.h.min(o.h))
+    }
+    fn union(&self, o: &Bx) -> Bx {
+        let x = self.x.min(o.x);
+        let y = self.y.min(o.y);
+        Bx { x, y, w: (self.x + self.w).max(o.x + o.w) - x, h: (self.y + self.h).max(o.y + o.h) - y }
+    }
+    fn contains(&self, x: f32, y: f32) -> bool {
+        x >= self.x && x <= self.x + self.w && y >= self.y && y <= self.y + self.h
+    }
+}
+
+/// Illustrations de la page : images, et groupes de tracés vectoriels assez
+/// grands et pauvres en texte (graphiques, schémas). Les tableaux et les
+/// encadrés de texte restent du texte. Chaque zone est rendue en PNG (150 dpi)
+/// et les lignes de texte qu'elle couvre (légendes d'axes…) sont retirées.
+fn find_figures(p: &PdfPage, cfg: &PdfRenderConfig, w: f32, h: f32, lines: &mut Vec<Line>) -> Vec<Figure> {
+    let page_area = w * h;
+    let mut items: Vec<(Bx, bool)> = Vec::new();
+    for obj in p.objects().iter() {
+        let is_image = match obj.object_type() {
+            PdfPageObjectType::Image => true,
+            PdfPageObjectType::Path | PdfPageObjectType::Shading | PdfPageObjectType::XObjectForm => false,
+            _ => continue,
+        };
+        let Ok(q) = obj.bounds() else { continue };
+        let r = to_display_rect(p, cfg, q.to_rect());
+        let b = Bx { x: r.x.max(0.0), y: r.y.max(0.0), w: r.w.min(w), h: r.h.min(h) };
+        // Fonds de page et filets isolés : ignorés.
+        if b.w * b.h > page_area * 0.6 || (b.w < 1.5 && b.h < 1.5) {
+            continue;
+        }
+        items.push((b, is_image));
+        if items.len() > 4000 {
+            return Vec::new();
+        }
+    }
+    // Regroupement des objets voisins.
+    let mut groups: Vec<(Bx, usize, bool)> = Vec::new();
+    for (b, img) in items {
+        let mut g = (b, 1usize, img);
+        loop {
+            let Some(i) = groups.iter().position(|(o, _, _)| o.related(&g.0)) else { break };
+            let o = groups.swap_remove(i);
+            g = (g.0.union(&o.0), g.1 + o.1, g.2 || o.2);
+        }
+        groups.push(g);
+    }
+    let chars_in = |b: &Bx, lines: &[Line]| -> usize {
+        lines.iter().flat_map(|l| l.spans.iter()).filter(|s| b.contains(s.x + s.w / 2.0, s.y + s.h / 2.0)).map(|s| s.text.chars().count()).sum()
+    };
+    let zones: Vec<Bx> = groups
+        .into_iter()
+        .filter(|(b, n, img)| {
+            let area = b.w * b.h;
+            if b.w * b.h > page_area * 0.85 {
+                return false;
+            }
+            let big = if *img { area >= 400.0 && b.w >= 12.0 && b.h >= 12.0 } else { *n >= 3 && area >= 3000.0 && b.w >= 40.0 && b.h >= 30.0 };
+            // Peu de texte (moins de 1,2 caractère pour 1 000 pt²) : sinon tableau ou encadré.
+            big && (*img || (chars_in(b, lines) as f32) < area / 1000.0 * 1.2)
+        })
+        .map(|(b, _, _)| b)
+        .collect();
+    if zones.is_empty() {
+        return Vec::new();
+    }
+    let scale = 150.0 / 72.0;
+    let rc = PdfRenderConfig::new()
+        .set_target_width(((w * scale).round() as i32).clamp(16, 8000) as Pixels)
+        .set_maximum_height(12_000)
+        .render_annotations(true)
+        .render_form_data(true)
+        .set_reverse_byte_order(true)
+        .clear_before_rendering(true);
+    let Ok(bmp) = p.render_with_config(&rc) else { return Vec::new() };
+    let (bw, bh) = (bmp.width() as u32, bmp.height() as u32);
+    let Some(full) = image::RgbaImage::from_raw(bw, bh, bmp.as_raw_bytes()) else { return Vec::new() };
+    let k = bw as f32 / w;
+    let mut out = Vec::new();
+    for z in zones {
+        let (x0, y0) = ((z.x * k).floor().max(0.0) as u32, (z.y * k).floor().max(0.0) as u32);
+        let (x1, y1) = (((z.x + z.w) * k).ceil().min(bw as f32) as u32, ((z.y + z.h) * k).ceil().min(bh as f32) as u32);
+        if x1 <= x0 + 2 || y1 <= y0 + 2 {
+            continue;
+        }
+        let crop = image::imageops::crop_imm(&full, x0, y0, x1 - x0, y1 - y0).to_image();
+        let mut png = Vec::new();
+        if crop.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).is_err() {
+            continue;
+        }
+        // Le texte de la zone fait partie de l'image.
+        for l in lines.iter_mut() {
+            l.spans.retain(|s| !z.contains(s.x + s.w / 2.0, s.y + s.h / 2.0));
+        }
+        lines.retain(|l| !l.spans.is_empty());
+        out.push(Figure { x: z.x, y: z.y, w: z.w, h: z.h, png });
+    }
+    out
 }
 
 /// Caractères → segments (même style, sans grand écart) → lignes.

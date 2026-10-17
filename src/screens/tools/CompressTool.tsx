@@ -120,7 +120,7 @@ export function CompressTool() {
                 {levels.map((l) => {
                   const sz = a ? estimate(a, l.id === "custom" ? s.opts : PRESETS[l.id]).total : 0;
                   return (
-                    <button key={l.id} type="button" role="radio" className="clvl" aria-checked={s.level === l.id} aria-pressed={s.level === l.id} onClick={() => s.setLevel(l.id)} disabled={running}>
+                    <button key={l.id} type="button" role="radio" className="clvl" aria-checked={s.level === l.id} onClick={() => s.setLevel(l.id)} disabled={running}>
                       <span className="clvl__bars" aria-hidden="true">
                         {[6, 11, 18].map((h, i) => (
                           <span key={h} className={i < l.bars ? "f" : ""} style={{ height: h }} />

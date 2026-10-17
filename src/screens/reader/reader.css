@@ -436,6 +436,9 @@
   background: rgba(255, 255, 255, 0.08);
   outline: none;
 }
+.pagenav__input:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
 .pagenav__bar {
   width: 80px;
   height: 4px;
@@ -571,4 +574,21 @@
   background: rgba(8, 9, 11, 0.35);
   animation: fade 0.2s both;
   cursor: default;
+}
+
+/* Liste des onglets (rôle tablist) : sans effet sur la mise en page. */
+.tabs__list {
+  display: contents;
+}
+
+/* Onglet en cours de déplacement. */
+.tab--drag {
+  position: relative;
+  z-index: 2;
+  background: var(--bg-control-selected);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7);
+  transition: none;
+  /* L'animation d'entrée (transform maintenu) masquerait le déplacement. */
+  animation: none;
+  cursor: grabbing;
 }

@@ -1,0 +1,10 @@
+{
+  "bundle": {
+    "targets": [
+      "nsis"
+    ],
+    "resources": {
+      "resources/pdfium/pdfium.dll": "resources/pdfium/pdfium.dll"
+    }
+  }
+}

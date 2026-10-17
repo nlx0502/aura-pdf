@@ -1,11 +1,15 @@
 # Aura PDF
 
-Lecteur et éditeur PDF **libre, gratuit et hors ligne** pour Windows : lire,
+Lecteur et éditeur PDF **libre, gratuit et hors ligne** pour Windows et macOS : lire,
 annoter, éditer, signer et gérer vos PDF, sans compte ni télémétrie.
 
-> État : **jalon 8** (fondations, accueil, lecture, impression, annotation, édition, fusion/division, compression, signature, formulaires, sécurité, conversion et OCR). Voir la feuille de route ci-dessous.
+> État : **version 1.0.0** — les neuf jalons sont livrés (lecture, impression, annotation, édition, fusion/division, compression, signature PAdES et certification, formulaires, sécurité, conversion et OCR, accessibilité et installateur). Voir la feuille de route ci-dessous.
 
-## Fonctionnalités disponibles (jalon 1)
+## Fonctionnalités
+
+Le détail de chaque jalon figure dans [docs/](docs/) (`JALON-1.md` à `JALON-9.md`).
+
+### Lecture et accueil
 
 - **Accueil** : ouverture (bouton, Ctrl+O, glisser-déposer depuis l'Explorateur),
   carte « Reprendre la lecture », documents récents groupés (Aujourd'hui, Hier,
@@ -131,6 +135,42 @@ binaire par le protocole `aura://` et décodés hors du fil principal
 file de priorité ; les demandes devenues inutiles après un défilement ou un
 zoom sont abandonnées sans être calculées.
 
+## Installation
+
+- **Windows 10 et 11** : `Aura PDF_<version>_x64-setup.exe`. L'installateur
+  propose de faire d'Aura PDF l'application PDF par défaut.
+- **macOS 11 ou plus récent, puces Apple** : ouvrir `Aura PDF_<version>_aarch64.dmg`
+  et glisser Aura PDF dans Applications. L'application n'est pas notariée par
+  Apple (pas de compte développeur payant) ; au premier lancement :
+  - ouvrir Aura PDF une première fois (macOS refuse), puis Réglages Système ›
+    Confidentialité et sécurité › **Ouvrir quand même** ;
+  - ou, dans le Terminal : `xattr -dr com.apple.quarantine "/Applications/Aura PDF.app"`.
+
+  Pour en faire l'application PDF par défaut : clic droit sur un PDF ›
+  Lire les informations › Ouvrir avec : Aura PDF › **Tout modifier**.
+
+Différences sur Mac : impression par le service d'impression du système
+(CUPS) ; certificats et cartes à puce du trousseau ; documents Office convertis
+par LibreOffice s'il est installé (sinon conversion intégrée des .docx) ; pas de
+numérisation directe (utiliser Transfert d'images ou Aperçu, puis « Images »).
+
+## Politique de signature du code
+
+Signature gratuite du code fournie par [SignPath.io](https://signpath.io),
+certificat de [SignPath Foundation](https://signpath.org).
+
+- Auteurs et relecteurs : les mainteneurs du dépôt ;
+- Approbation de chaque signature : un mainteneur, après relecture de la
+  version (voir [docs/SIGNATURE-CODE.md](docs/SIGNATURE-CODE.md)).
+
+Seuls les paquets compilés par l'intégration continue du dépôt, à partir du
+code public, sont signés.
+
+**Confidentialité** : Aura PDF ne transmet aucune information à un autre
+système en réseau, sauf demande explicite de l'utilisateur (horodatage
+qualifié d'une signature : seule l'empreinte du document est envoyée au
+serveur d'horodatage choisi).
+
 ## Développement
 
 Voir [docs/BUILD.md](docs/BUILD.md) pour l'installation des outils.
@@ -150,6 +190,11 @@ cd src-tauri && cargo test --lib
 
 Les PDF de test sont générés par `python scripts/make_fixtures.py`.
 
+Sur Mac : `scripts/fetch-pdfium.sh` (bibliothèque PDFium) et
+`vcpkg install tesseract:arm64-osx` (variable `AURA_VCPKG_ROOT`), voir
+[docs/BUILD.md](docs/BUILD.md). L'intégration continue (`.github/workflows/`)
+compile, teste et produit l'installateur Windows et le DMG macOS.
+
 ## Feuille de route
 
 1. ✅ Fondations : thème, composants, accueil, en-tête et menu Outils, lecture
@@ -160,7 +205,7 @@ Les PDF de test sont générés par `python scripts/make_fixtures.py`.
 6. ✅ Signature manuscrite et numérique
 7. ✅ Formulaires, sécurité (AES-256, permissions, PDF/A)
 8. ✅ Conversion, OCR (Tesseract), création depuis Office, scanner, presse-papiers
-9. Finitions : installateur définitif, audit d'accessibilité et de performances
+9. ✅ Finitions : installateur 1.0.0, audits d'accessibilité et de performances, signature PAdES et cartes à puce, illustrations dans l'export Word, orientation OCR
 
 ## Licence
 

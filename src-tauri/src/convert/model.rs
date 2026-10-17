@@ -73,6 +73,17 @@ pub struct PageImage {
     pub rgba: Vec<u8>,
 }
 
+/// Illustration de la page (image ou graphique vectoriel), rendue en PNG.
+#[derive(Debug, Clone)]
+pub struct Figure {
+    /// Position et taille en points (repère d'affichage, origine en haut à gauche).
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub png: Vec<u8>,
+}
+
 #[derive(Debug, Clone)]
 pub struct PageData {
     /// Taille de la page en points (rotation appliquée).
@@ -80,6 +91,8 @@ pub struct PageData {
     pub h: f32,
     pub lines: Vec<Line>,
     pub image: Option<PageImage>,
+    /// Illustrations (export Word) ; les lignes qu'elles contiennent en sont retirées.
+    pub figures: Vec<Figure>,
 }
 
 impl PageData {

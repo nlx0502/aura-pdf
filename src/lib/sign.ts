@@ -18,6 +18,9 @@ export interface SigReport {
   reason: string | null;
   location: string | null;
   modifiedAfter: boolean;
+  /** Certification (DocMDP) : modifications permises, 1 à 3. */
+  certified: number | null;
+  pades: boolean;
   page: number | null;
   rect: Rect | null;
 }
@@ -42,6 +45,15 @@ export interface CertInfo {
   expired: boolean;
 }
 
+/** Certificat du magasin Windows : `id` (« store:… ») sert de chemin. */
+export interface StoreCert extends CertInfo {
+  id: string;
+  provider: string;
+}
+
+/** Le certificat désigné est-il dans le magasin Windows (pas de mot de passe à saisir) ? */
+export const isStoreCert = (path: string | null) => !!path && path.startsWith("store:");
+
 export type Visual = { kind: "draw"; strokes: [number, number][][] } | { kind: "type"; text: string; font: SigFont } | { kind: "image"; path: string };
 
 export type SigFont = "caveat" | "apple" | "delafield";
@@ -51,13 +63,15 @@ export interface SignRequest {
   rect: Rect;
   visual: { visual: Visual; color: string; caption: string[] };
   field: string | null;
-  cert: { path: string; password: string; tsa: string | null; reason: string; location: string } | null;
+  cert: { path: string; password: string; tsa: string | null; reason: string; location: string; pades: boolean; certify: number | null } | null;
   author: string;
 }
 
 export const signApi = {
   report: (path: string) => invoke<SignReport>("sign_report", { path }),
   certInspect: (path: string, password: string) => invoke<CertInfo>("cert_inspect", { path, password }),
+  /** Certificats personnels du magasin Windows (cartes à puce comprises). */
+  storeList: () => invoke<StoreCert[]>("cert_store_list"),
   certCreate: (name: string, email: string, organization: string, password: string, out: string) => invoke<CertInfo>("cert_create", { name, email, organization, password, out }),
   start: (job: number, path: string, req: SignRequest) => invoke<void>("sign_start", { job, path, req }),
   reload: (doc: number) => invoke<DocInfo>("reload_document", { doc }),

@@ -141,6 +141,7 @@ pub(crate) enum Msg {
         page: u32,
         dpi: Option<f32>,
         text: bool,
+        figures: bool,
         reply: oneshot::Sender<AppResult<crate::convert::model::PageData>>,
     },
     /// Chemin et mot de passe d'un document ouvert (le mot de passe ne quitte
@@ -307,7 +308,12 @@ impl Engine {
     }
 
     pub async fn extract(&self, doc: u32, page: u32, dpi: Option<f32>, text: bool) -> AppResult<crate::convert::model::PageData> {
-        self.ask(|reply| Msg::Extract { doc, page, dpi, text, reply }).await
+        self.ask(|reply| Msg::Extract { doc, page, dpi, text, figures: false, reply }).await
+    }
+
+    /// Texte et illustrations d'une page (export Word).
+    pub async fn extract_with_figures(&self, doc: u32, page: u32) -> AppResult<crate::convert::model::PageData> {
+        self.ask(|reply| Msg::Extract { doc, page, dpi: None, text: true, figures: true, reply }).await
     }
 
     pub async fn credentials(&self, doc: u32) -> AppResult<(PathBuf, Option<String>)> {

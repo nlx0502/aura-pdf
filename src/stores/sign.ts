@@ -18,6 +18,8 @@ import { useForms } from "./forms";
 
 export type SigMode = "draw" | "type" | "import";
 
+export type Certify = "0" | "1" | "2" | "3";
+
 export interface Placement {
   page: number;
   rect: Rect;
@@ -39,6 +41,8 @@ interface SignStore {
   certError: string | null;
   tsa: boolean;
   tsaUrl: string;
+  /** Certifier le document (DocMDP) : 0 non, sinon modifications permises 1 à 3. */
+  certify: Certify;
   reason: string;
   placement: Placement | null;
   reports: Record<string, SignReport | null>;
@@ -74,6 +78,7 @@ export const useSign = create<SignStore>((set, get) => ({
   certError: null,
   tsa: false,
   tsaUrl: DEFAULT_TSA,
+  certify: "0",
   reason: "",
   placement: null,
   reports: {},
@@ -184,7 +189,7 @@ export const useSign = create<SignStore>((set, get) => ({
           caption,
         },
         field: placement.field,
-        cert: s.certOn && s.certPath ? { path: s.certPath, password: s.certPassword, tsa: s.tsa ? s.tsaUrl : null, reason: s.reason, location: "" } : null,
+        cert: s.certOn && s.certPath ? { path: s.certPath, password: s.certPassword, tsa: s.tsa ? s.tsaUrl : null, reason: s.reason, location: "", pades: true, certify: s.certify === "0" ? null : Number(s.certify) } : null,
         author: name,
       });
     } catch (e) {

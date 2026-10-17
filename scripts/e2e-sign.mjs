@@ -57,7 +57,7 @@ check((await sign()).strokes[0].length > 20, "signature dessinée dans le pad");
 // ---- Certificat personnel créé puis choisi.
 await page.evaluate(async (c) => {
   await window.__TAURI_INTERNALS__.invoke("cert_create", { name: "Julien Martin", email: "julien@exemple.fr", organization: "Société B", password: "secret", out: c });
-  window.__auraSign.setState({ certOn: true, certPath: c, certPassword: "secret" });
+  window.__auraSign.setState({ certOn: true, certPath: c, certPassword: "secret", certify: "0" });
   await window.__auraSign.getState().checkCert();
 }, cert);
 await wait(300);
@@ -68,12 +68,19 @@ await page.locator(".sslot", { hasText: "Cliquez pour signer" }).nth(1).click();
 await wait(400);
 check((await sign()).placement?.field === "Société B", "champ choisi");
 await page.screenshot({ path: `${outDir}/j6-placement.png` });
+// Certification (DocMDP, formulaires et signatures permis) et profil PAdES.
+const certSw = page.locator(".srow", { hasText: "Certifier le document" }).locator("[role=switch]");
+await certSw.click();
+check(await until(async () => (await sign()).certify === "2", 3000), "certification activée");
+await page.locator(".srow", { hasText: "Certifier le document" }).scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${outDir}/j9-certifier.png` });
 await page.click(".sactions .btn--primary");
 await wait(200);
 await page.screenshot({ path: `${outDir}/j6-etapes.png` });
 check(await until(async () => (await report()).signatures.length === 1), "signature numérique posée");
 let r = await report();
 check(r.signatures[0].signer === "Julien Martin" && r.signatures[0].status === "untrusted" && r.signatures[0].field === "Société B", `vérifiée : ${r.signatures[0].status}`);
+check(r.signatures[0].certified === 2 && r.signatures[0].pades, "document certifié, profil PAdES");
 check(r.empty.length === 1, "il reste un champ");
 await wait(400);
 await page.screenshot({ path: `${outDir}/j6-signe-encre.png` });

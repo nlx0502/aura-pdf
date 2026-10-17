@@ -82,6 +82,8 @@ interface AppStore {
   openPath: (path: string, password?: string) => Promise<boolean>;
   closeTab: (key: string) => void;
   activate: (key: string) => void;
+  /** Déplace un onglet à la position `to`. */
+  moveTab: (key: string, to: number) => void;
   cycleTab: (dir: 1 | -1) => void;
   updateTab: (key: string, patch: Partial<DocTab> | ((t: DocTab) => Partial<DocTab>)) => void;
   jumpTo: (key: string, page: number, y?: number) => void;
@@ -170,6 +172,15 @@ export const useApp = create<AppStore>((set, get) => ({
   },
 
   activate: (key) => set({ active: key, screen: "reader" }),
+  moveTab: (key, to) =>
+    set((s) => {
+      const from = s.tabs.findIndex((t) => t.key === key);
+      if (from < 0 || from === to) return s;
+      const tabs = [...s.tabs];
+      const [t] = tabs.splice(from, 1);
+      tabs.splice(Math.max(0, Math.min(tabs.length, to)), 0, t);
+      return { tabs };
+    }),
 
   cycleTab: (dir) => {
     const { tabs, active } = get();

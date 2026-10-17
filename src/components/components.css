@@ -37,12 +37,12 @@
   transform: none;
 }
 .btn--primary {
-  background: var(--accent);
+  background: var(--accent-btn);
   color: #fff;
   box-shadow: var(--accent-glow);
 }
 .btn--primary:hover {
-  background: var(--accent-hover);
+  background: var(--accent-btn-hover);
   color: #fff;
 }
 .btn--ghost {
@@ -93,7 +93,7 @@
   margin-left: 2px;
 }
 .btn--primary .kbd {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.24);
   color: #fff;
 }
 

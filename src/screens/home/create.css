@@ -35,7 +35,7 @@
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
 }
-.src[aria-pressed="true"] {
+.src[aria-checked="true"] {
   background: rgba(110, 106, 246, 0.14);
   color: #fff;
 }
@@ -49,7 +49,7 @@
   justify-content: center;
   transition: background var(--dur), color var(--dur);
 }
-.src[aria-pressed="true"] .src__tile {
+.src[aria-checked="true"] .src__tile {
   background: var(--accent);
   color: #fff;
 }

@@ -62,9 +62,51 @@ fn pdfium_dir(app: &tauri::App) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources").join("pdfium")
 }
 
+/// Menu de l'application sur Mac. Le menu par défaut associe ⌘W à la fermeture
+/// de la fenêtre et ⌘Z à l'annulation native : ici ⌘W ferme l'onglet et ⌘Z
+/// annule dans Aura (raccourcis gérés par l'interface). Couper, copier, coller
+/// et tout sélectionner restent ceux du système (champs de saisie).
+#[cfg(target_os = "macos")]
+fn mac_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{AboutMetadata, Menu, PredefinedMenuItem as P, Submenu};
+    let about = AboutMetadata { name: Some("Aura PDF".into()), version: Some(app.package_info().version.to_string()), copyright: Some("© Aura PDF contributors — licence MIT".into()), ..Default::default() };
+    let app_menu = Submenu::with_items(
+        app,
+        "Aura PDF",
+        true,
+        &[
+            &P::about(app, Some("À propos d’Aura PDF"), Some(about))?,
+            &P::separator(app)?,
+            &P::services(app, Some("Services"))?,
+            &P::separator(app)?,
+            &P::hide(app, Some("Masquer Aura PDF"))?,
+            &P::hide_others(app, Some("Masquer les autres"))?,
+            &P::show_all(app, Some("Tout afficher"))?,
+            &P::separator(app)?,
+            &P::quit(app, Some("Quitter Aura PDF"))?,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        app,
+        "Édition",
+        true,
+        &[&P::cut(app, Some("Couper"))?, &P::copy(app, Some("Copier"))?, &P::paste(app, Some("Coller"))?, &P::select_all(app, Some("Tout sélectionner"))?],
+    )?;
+    let window = Submenu::with_items(
+        app,
+        "Fenêtre",
+        true,
+        &[&P::minimize(app, Some("Placer dans le Dock"))?, &P::maximize(app, Some("Réduire/agrandir"))?, &P::separator(app)?, &P::fullscreen(app, Some("Plein écran"))?],
+    )?;
+    Menu::with_items(app, &[&app_menu, &edit, &window])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    let builder = builder.menu(mac_menu);
+    builder
         // Une seule instance : un double-clic sur un PDF l'ouvre dans un nouvel onglet.
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             let files = files_from_args(argv);
@@ -153,6 +195,7 @@ pub fn run() {
             commands::reload_document,
             commands::sign_report,
             commands::cert_inspect,
+            commands::cert_store_list,
             commands::cert_create,
             commands::sign_start,
             commands::security_info,
@@ -171,6 +214,23 @@ pub fn run() {
             commands::scan_acquire,
             commands::clipboard_pdf,
         ])
-        .run(tauri::generate_context!())
-        .expect("erreur au lancement d’Aura PDF");
+        .build(tauri::generate_context!())
+        .expect("erreur au lancement d’Aura PDF")
+        .run(|_app, _event| {
+            // macOS : les documents ouverts depuis le Finder (double-clic, « Ouvrir
+            // avec », glisser sur l'icône du Dock) arrivent par cet événement et
+            // non par la ligne de commande.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &_event {
+                let files: Vec<String> = urls.iter().filter_map(|u| u.to_file_path().ok()).filter(|p| p.is_file()).map(|p| p.to_string_lossy().to_string()).collect();
+                if !files.is_empty() {
+                    // Au lancement, l'interface n'écoute pas encore : elle les
+                    // récupérera avec les fichiers de démarrage.
+                    if let Some(state) = _app.try_state::<AppState>() {
+                        state.startup_files.lock().extend(files.iter().cloned());
+                    }
+                    let _ = _app.emit("open-files", files);
+                }
+            }
+        });
 }

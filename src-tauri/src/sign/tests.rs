@@ -35,7 +35,7 @@ fn signature_numerique_cosignature_et_falsification() {
     let path = tmp("signe.pdf");
     std::fs::copy(&src, &path).unwrap();
     let original = std::fs::read(&path).unwrap();
-    let cr = |reason: &str| CertRequest { path: cert.to_string_lossy().into(), password: "secret".into(), tsa: None, reason: reason.into(), location: "Lyon".into() };
+    let cr = |reason: &str| CertRequest { path: cert.to_string_lossy().into(), password: "secret".into(), tsa: None, reason: reason.into(), location: "Lyon".into(), pades: true, certify: None };
     let req = SignRequest { page: 13, rect: Rect { x: 320.0, y: 640.0, w: 200.0, h: 80.0 }, visual: drawn(), field: None, cert: Some(cr("Approbation")), author: String::new() };
     sign(&path, &req, &Job::silent()).unwrap();
     // Mise à jour incrémentale : l'original est intact en tête du fichier.
@@ -115,7 +115,7 @@ fn signature_manuscrite_et_champ_existant() {
         rect: f.rect,
         visual: VisualSpec { visual: Visual::Type { text: "Société B".into(), font: "delafield".into() }, color: "#1F2A6B".into(), caption: vec![] },
         field: Some("Client".into()),
-        cert: Some(CertRequest { path: cert.to_string_lossy().into(), password: "x".into(), tsa: None, reason: String::new(), location: String::new() }),
+        cert: Some(CertRequest { path: cert.to_string_lossy().into(), password: "x".into(), tsa: None, reason: String::new(), location: String::new(), pades: true, certify: None }),
         author: String::new(),
     };
     sign(&path, &req, &Job::silent()).unwrap();
@@ -142,7 +142,7 @@ fn export_pour_openssl() {
         rect: Rect { x: 60.0, y: 700.0, w: 180.0, h: 70.0 },
         visual: drawn(),
         field: None,
-        cert: Some(CertRequest { path: p12, password: "secret".into(), tsa: std::env::var("AURA_TSA").ok(), reason: String::new(), location: String::new() }),
+        cert: Some(CertRequest { path: p12, password: "secret".into(), tsa: std::env::var("AURA_TSA").ok(), reason: String::new(), location: String::new(), pades: true, certify: std::env::var("AURA_CERTIFY").ok().and_then(|p| p.parse().ok()) }),
         author: String::new(),
     };
     sign(&path, &req, &Job::silent()).unwrap();
@@ -159,4 +159,46 @@ fn export_pour_openssl() {
     let Ok(lopdf::Object::String(c, _)) = v.get(b"Contents") else { panic!() };
     let len = 4 + (((c[2] as usize) << 8) | c[3] as usize);
     std::fs::write(out.join("signature.der"), &c[..len]).unwrap();
+}
+
+#[test]
+fn pades_et_certification() {
+    let src = fixture("Rapport Q1 2025.pdf");
+    if !src.exists() {
+        return;
+    }
+    let cert = tmp("cert-mdp.p12");
+    crypto::create_self_signed("Claire Dubois", "", "Aura", "secret", &cert).unwrap();
+    let path = tmp("certifie.pdf");
+    std::fs::copy(&src, &path).unwrap();
+    let cr = CertRequest { path: cert.to_string_lossy().into(), password: "secret".into(), tsa: None, reason: String::new(), location: String::new(), pades: true, certify: Some(2) };
+    let req = SignRequest { page: 0, rect: Rect { x: 320.0, y: 640.0, w: 200.0, h: 80.0 }, visual: drawn(), field: None, cert: Some(cr), author: String::new() };
+    sign(&path, &req, &Job::silent()).unwrap();
+
+    let bytes = std::fs::read(&path).unwrap();
+    let doc = lopdf::Document::load_mem(&bytes).unwrap();
+    let perms = doc.catalog().unwrap().get(b"Perms").unwrap().as_dict().unwrap();
+    let sig = doc.get_dictionary(perms.get(b"DocMDP").unwrap().as_reference().unwrap()).unwrap();
+    assert_eq!(sig.get(b"SubFilter").unwrap().as_name().unwrap(), b"ETSI.CAdES.detached");
+
+    let r = report(&path).unwrap();
+    let s = &r.signatures[0];
+    assert_eq!(s.status, "untrusted", "{:?}", s.messages);
+    assert!(s.pades);
+    assert_eq!(s.certified, Some(2));
+    assert!(s.date.is_some(), "date tirée de /M en l'absence de signing-time");
+
+    // Une seconde signature ne peut pas certifier.
+    assert!(sign(&path, &req, &Job::silent()).unwrap_err().contains("première signature"));
+    // Mais une signature d'approbation est possible.
+    let mut approve = req.clone();
+    approve.cert.as_mut().unwrap().certify = None;
+    approve.rect.y = 720.0;
+    sign(&path, &approve, &Job::silent()).unwrap();
+    let r = report(&path).unwrap();
+    assert_eq!(r.signatures.len(), 2);
+    assert!(r.signatures.iter().all(|s| s.status == "untrusted"), "{:?}", r.signatures);
+    for p in [cert, path] {
+        let _ = std::fs::remove_file(p);
+    }
 }

@@ -88,7 +88,13 @@ pub async fn list_printers() -> Vec<serde_json::Value> {
         .await
         .unwrap_or_default()
     }
-    #[cfg(not(windows))]
+    #[cfg(unix)]
+    {
+        tauri::async_runtime::spawn_blocking(|| crate::print::cups::list_printers().into_iter().map(|p| serde_json::to_value(p).unwrap_or_default()).collect())
+            .await
+            .unwrap_or_default()
+    }
+    #[cfg(not(any(windows, unix)))]
     {
         Vec::new()
     }
@@ -280,9 +286,15 @@ pub async fn sign_report(path: String) -> AppResult<crate::sign::verify::Report>
     blocking(move || crate::sign::verify::report(std::path::Path::new(&path))).await
 }
 
+/// Certificats personnels du magasin Windows (cartes à puce comprises).
+#[tauri::command]
+pub async fn cert_store_list() -> AppResult<Vec<crate::sign::store::StoreCert>> {
+    blocking(crate::sign::store::list).await
+}
+
 #[tauri::command]
 pub async fn cert_inspect(path: String, password: String) -> AppResult<crate::sign::crypto::CertInfo> {
-    blocking(move || crate::sign::crypto::load_p12(std::path::Path::new(&path), &password).map(|s| crate::sign::crypto::cert_info(&s.chain[0]))).await
+    blocking(move || crate::sign::crypto::load(&path, &password).map(|s| crate::sign::crypto::cert_info(&s.chain[0]))).await
 }
 
 #[tauri::command]
@@ -437,6 +449,8 @@ pub struct ConvertInfo {
     pub word: bool,
     pub excel: bool,
     pub powerpoint: bool,
+    /// Suite utilisée : « Microsoft Office », « LibreOffice » ou aucune.
+    pub engine: Option<&'static str>,
 }
 
 /// Applications Office disponibles pour la conversion.
@@ -446,9 +460,10 @@ pub async fn convert_info() -> ConvertInfo {
         word: crate::convert::office_available("Word"),
         excel: crate::convert::office_available("Excel"),
         powerpoint: crate::convert::office_available("PowerPoint"),
+        engine: crate::convert::office_engine("Word"),
     })
     .await
-    .unwrap_or(ConvertInfo { word: false, excel: false, powerpoint: false })
+    .unwrap_or(ConvertInfo { word: false, excel: false, powerpoint: false, engine: None })
 }
 
 /// Convertit des fichiers (tâche annulable, progression par fichier et par page).

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use super::tests::{block, engine, fixture, have_fixtures};
+use super::tests::{block, engine, fixture, have_fixtures, wait_print_done, PRINT_LOCK};
 use super::*;
 
 fn all_text(e: &Engine, doc: u32, pages: u32) -> String {
@@ -330,4 +330,29 @@ fn compression_rendu_fidele() {
     e.close(info.id).unwrap();
     let _ = std::fs::remove_file(src);
     let _ = std::fs::remove_file(out);
+}
+
+/// L'impression respecte les calques affichés (copie avec visibilité appliquée).
+#[test]
+fn impression_selon_les_calques() {
+    if !fixture("Plan avec calques.pdf").exists() {
+        return;
+    }
+    let _guard = PRINT_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+    let (e, events) = engine();
+    let info = block(e.open(fixture("Plan avec calques.pdf"), None)).unwrap();
+    let layers = block(e.layers(info.id)).unwrap();
+    // Cotes masquées, Mobilier affiché.
+    block(e.layers_set(info.id, vec![layers[0].id.clone()])).unwrap();
+    let out = std::env::temp_dir().join(format!("aura-calques-impr-{}.pdf", std::process::id()));
+    let _ = std::fs::remove_file(&out);
+    let settings = crate::print::layout::PrintSettings::default();
+    block(e.print_start(info.id, 903, settings, 0.0, crate::print::PrintTarget::Pdf { path: out.to_string_lossy().into() })).unwrap();
+    let done = wait_print_done(&events, 903);
+    assert_eq!(done["ok"], true, "{done}");
+    let printed = block(e.open(out, None)).unwrap();
+    let green = |p: [u8; 4]| p[1] > 180 && p[0] < 120;
+    let red = |p: [u8; 4]| p[0] > 180 && p[1] < 120;
+    assert!(green(pixel(&e, printed.id, (180, 445))), "Mobilier imprimé");
+    assert!(!red(pixel(&e, printed.id, (300, 535))), "Cotes non imprimées");
 }

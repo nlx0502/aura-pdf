@@ -9,17 +9,20 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { convertApi, runJob, type ConvertInfo } from "../../lib/convert";
 import { localImageUrl } from "../../lib/render";
 import "./create.css";
+import { IS_MAC } from "../../lib/platform";
 
 type Source = "blank" | "image" | "doc" | "scan" | "clip";
 type Style = "blank" | "lines" | "grid" | "dots";
 
-const SOURCES: { id: Source; icon: keyof typeof Icons }[] = [
+const ALL_SOURCES: { id: Source; icon: keyof typeof Icons }[] = [
   { id: "blank", icon: "plus" },
   { id: "image", icon: "image" },
   { id: "doc", icon: "fileText" },
   { id: "scan", icon: "scan" },
   { id: "clip", icon: "clipboard" },
 ];
+// Numérisation par la boîte de dialogue de Windows (WIA) : absente sur Mac.
+const SOURCES = ALL_SOURCES.filter((s) => !(IS_MAC && s.id === "scan"));
 
 const FORMATS: { id: PaperFormat; label: string; r: number }[] = [
   { id: "a4", label: "A4", r: 1.414 },
@@ -181,7 +184,7 @@ export function CreateDialog() {
           {SOURCES.map((s) => {
             const I = Icons[s.icon];
             return (
-              <button key={s.id} type="button" className="src" role="radio" aria-checked={source === s.id} aria-pressed={source === s.id} onClick={() => pick(s.id)}>
+              <button key={s.id} type="button" className="src" role="radio" aria-checked={source === s.id} onClick={() => pick(s.id)}>
                 <span className="src__tile">
                   <I />
                 </span>
@@ -297,7 +300,7 @@ export function CreateDialog() {
               </Button>
               <p className="cdlg__later">
                 <Icons.info />
-                {office?.word || office?.excel || office?.powerpoint ? t("createDlg.officeOn") : t("createDlg.officeOff")}
+                {office?.word || office?.excel || office?.powerpoint ? t("createDlg.officeOn", { engine: office?.engine ?? "Office" }) : t("createDlg.officeOff")}
               </p>
             </div>
           )}

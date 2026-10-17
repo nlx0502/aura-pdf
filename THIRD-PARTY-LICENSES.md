@@ -39,7 +39,8 @@ dans `src-tauri/resources/pdfium/licenses/`.
 | tauri, tauri-build, tauri-plugin-dialog, tauri-plugin-opener, tauri-plugin-single-instance | MIT OU Apache-2.0 |
 | pdfium-render | MIT OU Apache-2.0 |
 | lopdf (annotations, organisation des pages, caviardage, formulaires, chiffrement AES-128 / AES-256) | MIT |
-| windows (API Windows : impression) | MIT OU Apache-2.0 |
+| windows (API Windows : impression, magasin de certificats et CNG) | MIT OU Apache-2.0 |
+| security-framework (macOS : trousseau et signature) | MIT OU Apache-2.0 |
 | regex (recherche des données à caviarder) | MIT OU Apache-2.0 |
 | ttf-parser (polices installées : mesure, sous-ensembles) | MIT OU Apache-2.0 |
 | RustCrypto : cms, x509-cert, der, spki, rsa, p256, p384, ecdsa, sha1, sha2, signature, const-oid (signature numérique) | MIT OU Apache-2.0 |
@@ -80,6 +81,7 @@ cargo install cargo-license && cd src-tauri && cargo license
 | TypeScript | Apache-2.0 |
 | @tauri-apps/cli | MIT OU Apache-2.0 |
 | playwright-core (captures d'écran) | Apache-2.0 |
+| axe-core (audit d'accessibilité) | MPL-2.0 |
 | NSIS (générateur d'installateur) | zlib/libpng |
 
 ## Polices des signatures manuscrites

@@ -5,7 +5,7 @@
 //! à la fois : l'affichage reste fluide pendant une conversion. Les pages sans
 //! texte peuvent être reconnues par l'OCR.
 
-mod docx;
+pub(crate) mod docx;
 pub mod model;
 mod office;
 mod render_docx;
@@ -24,10 +24,10 @@ use crate::tools::{Job, Output};
 use model::{Line, PageData, PageImage};
 
 /// Reconnaissance de texte d'une image de page (dpi, langues) → lignes en points.
-pub use office::available as office_available;
+pub use office::{available as office_available, engine as office_engine};
 pub use render_docx::text_to_pdf;
 
-pub type OcrFn<'a> = &'a (dyn Fn(&PageImage, f32, &[String]) -> Result<Vec<Line>, String> + Sync);
+pub type OcrFn<'a> = &'a (dyn Fn(&PageImage, f32, &[String]) -> Result<(Vec<Line>, u16), String> + Sync);
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -51,14 +51,14 @@ fn default_dpi() -> u32 {
 }
 
 /// Archive zip (documents Office).
-pub(crate) fn zipfile(files: &[(&str, String)]) -> Result<Vec<u8>, String> {
+pub(crate) fn zipfile<T: AsRef<[u8]>>(files: &[(&str, T)]) -> Result<Vec<u8>, String> {
     let mut buf = std::io::Cursor::new(Vec::new());
     {
         let mut z = zip::ZipWriter::new(&mut buf);
         let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         for (name, content) in files {
             z.start_file(*name, opts).map_err(|e| e.to_string())?;
-            z.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+            z.write_all(content.as_ref()).map_err(|e| e.to_string())?;
         }
         z.finish().map_err(|e| e.to_string())?;
     }
@@ -132,13 +132,22 @@ fn from_pdf(engine: &Engine, path: &Path, spec: &ConvertSpec, ocr: Option<OcrFn>
             job.check()?;
             job.progress(step, p as usize, n as usize, &name);
             let dpi = if image_target { Some(spec.dpi.clamp(36, 1200) as f32) } else { None };
-            let mut data = block(engine.extract(doc, p, dpi, !image_target)).map_err(|e| e.message)?;
+            let mut data = if spec.target == "docx" {
+                block(engine.extract_with_figures(doc, p)).map_err(|e| e.message)?
+            } else {
+                block(engine.extract(doc, p, dpi, !image_target)).map_err(|e| e.message)?
+            };
             if !image_target && spec.auto_ocr && !data.has_text() {
                 if let Some(ocr) = ocr {
                     let img = block(engine.extract(doc, p, Some(ocr_dpi), false)).map_err(|e| e.message)?;
                     if let Some(im) = &img.image {
                         // Résolution effective de l'image rendue (pixels par pouce de page).
-                        data.lines = ocr(im, im.width as f32 / img.w * 72.0, &spec.langs)?;
+                        let (lines, quarter) = ocr(im, im.width as f32 / img.w * 72.0, &spec.langs)?;
+                        data.lines = lines;
+                        // Page lue de travers : ses dimensions suivent le sens de lecture.
+                        if quarter % 2 == 1 {
+                            std::mem::swap(&mut data.w, &mut data.h);
+                        }
                     }
                 }
             }

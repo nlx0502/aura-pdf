@@ -1,11 +1,13 @@
-//! Sources de création : scanner (WIA, boîte de dialogue de Windows) et
-//! presse-papiers (image ou texte).
+//! Sources de création : scanner (WIA, boîte de dialogue de Windows ; non
+//! disponible sur Mac) et presse-papiers (image ou texte).
 
+#[cfg(windows)]
 use std::process::{Command, Stdio};
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 
+#[cfg(windows)]
 const SCRIPT: &str = r#"
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -25,7 +27,14 @@ try {
 }
 "#;
 
+/// Numérisation : boîte de dialogue WIA de Windows uniquement.
+#[cfg(not(windows))]
+pub fn acquire() -> Result<Option<String>, String> {
+    Err("La numérisation directe n’est disponible que sous Windows. Sur Mac, numérisez avec Transfert d’images ou Aperçu (Fichier › Importer depuis le scanner), puis créez le PDF à partir des images.".into())
+}
+
 /// Numérise une page ; `None` si l'utilisateur annule.
+#[cfg(windows)]
 pub fn acquire() -> Result<Option<String>, String> {
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     let out = std::env::temp_dir().join(format!("aura-scan-{nanos}.png"));

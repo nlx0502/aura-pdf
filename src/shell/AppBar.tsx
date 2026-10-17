@@ -8,6 +8,8 @@ import { useActiveTab, useApp, type ModuleId } from "../stores/app";
 import { shortcut } from "../lib/platform";
 import { asAppError } from "../lib/api";
 import { WindowControls } from "./WindowControls";
+import { useConvert } from "../stores/convert";
+import type { FormatId } from "../lib/convert";
 
 const MODULES: { id: ModuleId; icon: keyof typeof Icons }[] = [
   { id: "lire", icon: "read" },
@@ -68,6 +70,13 @@ export function AppBar() {
     } catch (e) {
       toast.error(asAppError(e).message);
     }
+  };
+
+  // Export en images ou en Word : outil Convertir, réglé sur ce format.
+  const exportAs = (fmt: FormatId) => {
+    setExportOpen(false);
+    useConvert.getState().set({ tab: "conv", dir: "from", fmt });
+    setModule("convert");
   };
 
   return (
@@ -144,8 +153,8 @@ export function AppBar() {
             desc={t("exportMenu.revealDesc")}
             onSelect={() => tab && void revealItemInDir(tab.info.path)}
           />
-          <MenuItem compact icon={<Icons.image />} tileBg="var(--pink-soft)" tileFg="var(--pink-text)" label={t("exportMenu.images")} desc={t("common.milestone", { n: 8 })} disabled onSelect={() => {}} />
-          <MenuItem compact icon={<Icons.convert />} tileBg="var(--info-soft)" tileFg="var(--info-text)" label={t("exportMenu.word")} desc={t("common.milestone", { n: 8 })} disabled onSelect={() => {}} />
+          <MenuItem compact icon={<Icons.image />} tileBg="var(--pink-soft)" tileFg="var(--pink-text)" label={t("exportMenu.images")} desc={t("exportMenu.imagesDesc")} onSelect={() => exportAs("img")} />
+          <MenuItem compact icon={<Icons.convert />} tileBg="var(--info-soft)" tileFg="var(--info-text)" label={t("exportMenu.word")} desc={t("exportMenu.wordDesc")} onSelect={() => exportAs("word")} />
         </Menu>
         <WindowControls />
       </div>

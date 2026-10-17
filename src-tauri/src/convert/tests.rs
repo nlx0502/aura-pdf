@@ -18,6 +18,7 @@ fn page() -> PageData {
             Line { spans: vec![span("Sud", 72.0, 190.0, 11.0, false), span("987", 250.0, 190.0, 11.0, false), span("8 %", 400.0, 190.0, 11.0, false)] },
         ],
         image: None,
+        figures: Vec::new(),
     }
 }
 

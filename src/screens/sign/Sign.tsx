@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { Button, ColorDots, Icons, Modal, ModalHeader, Segmented, StepList, Switch, TextField, type StepItem } from "../../components";
+import { Button, ColorDots, Icons, Menu, MenuItem, Modal, ModalHeader, Segmented, StepList, Switch, TextField, type StepItem } from "../../components";
 import type { Rect } from "../../lib/api";
 import { pickImage } from "../../lib/files";
 import { localImageUrl } from "../../lib/render";
-import { INKS, SIG_FONTS, signApi, strokePath, strokesBounds, summary, type SigReport, type Visual } from "../../lib/sign";
+import { INKS, isStoreCert, SIG_FONTS, signApi, strokePath, strokesBounds, summary, type SigReport, type StoreCert, type Visual } from "../../lib/sign";
 import { useActiveTab, useApp, type DocTab } from "../../stores/app";
-import { useSign, type Placement, type SigMode } from "../../stores/sign";
+import { useSign, type Certify, type Placement, type SigMode } from "../../stores/sign";
 import { Viewer } from "../reader/Viewer";
 import "./sign.css";
+import { IS_MAC } from "../../lib/platform";
 
 const D_OK = "M3.5 8.5l3 3 6-7";
 const D_PEN = "M2 11.5c2-3 3.5-7 5-7s-1 7 1 7 2.5-3 3.5-3 1 2 2.5 2";
@@ -297,6 +298,8 @@ function SignSide({ tab }: { tab: DocTab }) {
   const { t } = useTranslation();
   const st = useSign();
   const report = st.reports[tab.key] ?? null;
+  // Seule la première signature numérique d'un document peut le certifier.
+  const certBlocked = !!report?.signatures.some((s) => s.kind === "digital");
   const jumpTo = useApp((s) => s.jumpTo);
   const [creating, setCreating] = useState(false);
   const busy = st.step >= 0 && st.step < 4;
@@ -317,7 +320,25 @@ function SignSide({ tab }: { tab: DocTab }) {
     return list.map((s) => ({ label: s.label, state: st.step > s.id || st.step === 4 ? "done" : st.step === s.id ? "active" : "pending" }));
   }, [st.certOn, st.tsa, st.step, t]);
 
+  // Choix du certificat : fichier PKCS #12 ou magasin Windows (cartes à puce comprises).
+  const certAnchor = useRef<HTMLButtonElement>(null);
+  const [certMenu, setCertMenu] = useState(false);
+  const [storeCerts, setStoreCerts] = useState<StoreCert[] | null>(null);
+  const openCertMenu = () => {
+    setCertMenu(true);
+    setStoreCerts(null);
+    signApi
+      .storeList()
+      .then(setStoreCerts)
+      .catch(() => setStoreCerts([]));
+  };
+  const pickStore = (c: StoreCert) => {
+    setCertMenu(false);
+    st.set({ certPath: c.id, cert: null, certError: null, certPassword: "" });
+    void st.checkCert();
+  };
   const pickCert = async () => {
+    setCertMenu(false);
     const p = await open({ multiple: false, directory: false, title: t("sign.pickCert"), filters: [{ name: t("sign.certFilter"), extensions: ["pfx", "p12"] }] });
     if (typeof p === "string") {
       st.set({ certPath: p, cert: null, certError: null, certPassword: "" });
@@ -394,22 +415,43 @@ function SignSide({ tab }: { tab: DocTab }) {
                   <span className="muted">
                     {st.cert
                       ? `${st.cert.selfSigned ? t("sign.selfSigned") : t("sign.authority", { name: st.cert.issuer })} · ${t("sign.validUntil", { year: new Date(st.cert.notAfter * 1000).getFullYear() })}`
-                      : t("sign.enterPassword")}
+                      : isStoreCert(st.certPath)
+                        ? t("sign.storeReading")
+                        : t("sign.enterPassword")}
                   </span>
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => void pickCert()} disabled={busy}>
+                <Button ref={certAnchor} variant="ghost" size="sm" onClick={openCertMenu} disabled={busy} aria-haspopup="menu" aria-expanded={certMenu}>
                   {t("sign.change")}
                 </Button>
               </div>
             ) : (
               <div className="scert-actions">
-                <Button onClick={() => void pickCert()}>{t("sign.pickCertBtn")}</Button>
+                <Button ref={certAnchor} onClick={openCertMenu} aria-haspopup="menu" aria-expanded={certMenu}>
+                  {t("sign.pickCertAny")}
+                </Button>
                 <Button variant="ghost" onClick={() => setCreating(true)}>
                   {t("sign.createCert")}
                 </Button>
               </div>
             )}
-            {st.certPath && (
+            <Menu anchor={certAnchor} open={certMenu} onClose={() => setCertMenu(false)} label={t("sign.pickCert")} width={340} align="end">
+              <MenuItem compact label={t("sign.pickCertBtn")} desc={t("sign.pickCertFileDesc")} onSelect={() => void pickCert()} />
+              {storeCerts === null && <MenuItem compact disabled label={t(IS_MAC ? "sign.storeLoadingMac" : "sign.storeLoading")} onSelect={() => {}} />}
+              {storeCerts?.length === 0 && <MenuItem compact disabled label={t(IS_MAC ? "sign.storeEmptyMac" : "sign.storeEmpty")} onSelect={() => {}} />}
+              {storeCerts?.map((c, i) => (
+                <MenuItem
+                  key={c.id}
+                  compact
+                  delay={i * 20}
+                  current={c.id === st.certPath}
+                  disabled={c.expired}
+                  label={c.name}
+                  desc={[c.selfSigned ? t("sign.selfSigned") : c.issuer, /smart ?card/i.test(c.provider) ? t("sign.smartCard") : t(IS_MAC ? "sign.keychain" : "sign.windowsStore"), c.expired ? t("sign.expired") : t("sign.validUntil", { year: new Date(c.notAfter * 1000).getFullYear() })].join(" · ")}
+                  onSelect={() => pickStore(c)}
+                />
+              ))}
+            </Menu>
+            {st.certPath && !isStoreCert(st.certPath) && (
               <TextField
                 type="password"
                 value={st.certPassword}
@@ -428,6 +470,31 @@ function SignSide({ tab }: { tab: DocTab }) {
               <Switch label={t("sign.tsa")} checked={st.tsa} onChange={(v) => st.set({ tsa: v })} />
             </div>
             {st.tsa && <p className="muted sp">{t("sign.tsaHint", { url: st.tsaUrl })}</p>}
+            <div className="srow">
+              <span className="slabel">{t("sign.certify")}</span>
+              <Switch label={t("sign.certify")} checked={st.certify !== "0"} disabled={certBlocked} onChange={(v) => st.set({ certify: v ? "2" : "0" })} />
+            </div>
+            {certBlocked ? (
+              <p className="muted sp">{t("sign.certifyBlocked")}</p>
+            ) : (
+              st.certify !== "0" && (
+                <>
+                  <Segmented<Certify>
+                    block
+                    size="sm"
+                    label={t("sign.certifyAllow")}
+                    value={st.certify}
+                    onChange={(certify) => st.set({ certify })}
+                    options={[
+                      { value: "1", label: t("sign.certify1") },
+                      { value: "2", label: t("sign.certify2") },
+                      { value: "3", label: t("sign.certify3") },
+                    ]}
+                  />
+                  <p className="muted sp">{t(`sign.certifyHint${st.certify}`)}</p>
+                </>
+              )
+            )}
           </div>
         )}
       </section>
@@ -471,7 +538,7 @@ function SignSide({ tab }: { tab: DocTab }) {
                   {s.field && <span className="sitem__field"> · {s.field}</span>}
                 </span>
                 <span className="muted">
-                  {[s.kind === "visual" ? t("sign.handwritten") : s.issuer, when ? formatWhen(when) : null, s.timestamp ? t("sign.timestamped") : null].filter(Boolean).join(" · ")}
+                  {[s.kind === "visual" ? t("sign.handwritten") : s.issuer, when ? formatWhen(when) : null, s.timestamp ? t("sign.timestamped") : null, s.certified ? t("sign.certified") : null].filter(Boolean).join(" · ")}
                 </span>
                 {s.status === "invalid" && s.messages.length > 0 && <span className="sitem__msg">{s.messages[s.messages.length - 1]}</span>}
               </span>

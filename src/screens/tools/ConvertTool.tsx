@@ -77,7 +77,7 @@ function ConvertPane() {
   const s = useConvert();
   const list = s.dir === "from" ? FROM : TO.filter((f) => f.id !== "office" || s.info?.excel || s.info?.powerpoint);
   const cur = list.find((f) => f.id === s.fmt) ?? list[0];
-  const pdf = { text: "PDF", bg: "#F2F1ED", fg: "#D2453D" };
+  const pdf = { text: "PDF", bg: "#F2F1ED", fg: "#B83A33" };
   const curShort = cur.id === "img" && s.dir === "from" ? (s.imgFmt === "png" ? "PNG" : "JPG") : cur.short;
   const from = s.dir === "from" ? pdf : { text: curShort, bg: cur.bg, fg: cur.fg };
   const to = s.dir === "from" ? { text: curShort, bg: cur.bg, fg: cur.fg } : pdf;
@@ -370,7 +370,7 @@ function Side() {
             )}
             {s.dir === "to" && (
               <div className="cvt__note">
-                <span className="cvt__note-t">{s.info?.word ? t("convert.officeOn") : t("convert.officeOff")}</span>
+                <span className="cvt__note-t">{s.info?.word ? t("convert.officeOn", { engine: s.info?.engine ?? "Office" }) : t("convert.officeOff")}</span>
                 <span className="muted">{s.info?.word ? t("convert.officeOnSub") : t("convert.officeOffSub")}</span>
               </div>
             )}

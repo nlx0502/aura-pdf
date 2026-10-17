@@ -209,7 +209,6 @@ const PageCard = memo(function PageCard(c: CardProps) {
         className="ecard__pg"
         role="option"
         aria-selected={c.selected}
-        aria-pressed={c.selected}
         aria-label={t("edit.pageLabel", { n: c.index + 1 })}
         onClick={(e) => c.onToggle(p.key, e.shiftKey)}
         onDoubleClick={() => c.onOpen(p)}

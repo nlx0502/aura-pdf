@@ -1,5 +1,6 @@
 //! Impression : imposition (`layout`), composition du PDF imposé (`compose`)
-//! et envoi à une imprimante Windows (`windows`).
+//! et envoi à l'imprimante : Windows (`windows`, GDI) ou macOS et Linux
+//! (`cups`).
 //!
 //! Une tâche d'impression avance par petites étapes exécutées par le thread
 //! moteur entre deux rendus de page : l'interface reste fluide, la progression
@@ -7,6 +8,8 @@
 
 pub mod compose;
 pub mod layout;
+#[cfg(unix)]
+pub mod cups;
 #[cfg(windows)]
 pub mod windows;
 
@@ -281,9 +284,27 @@ impl PrintJob {
         Ok(StepResult::Continue)
     }
 
-    #[cfg(not(windows))]
+    /// CUPS : le PDF imposé est remis tel quel au service d'impression.
+    #[cfg(unix)]
+    fn send_step(&mut self, printer: &str, file: Option<&str>) -> AppResult<StepResult> {
+        let tmp = std::env::temp_dir().join(format!("aura-impression-{}.pdf", self.id));
+        let target = file.map(PathBuf::from).unwrap_or_else(|| tmp.clone());
+        self.composer.out.save_to_file(&target).map_err(|e| AppError::new("print", format!("Impossible de préparer l’impression ({e}).")))?;
+        if file.is_some() {
+            return Ok(StepResult::Done(json!({ "job": self.id, "ok": true })));
+        }
+        let s = &self.settings;
+        let opts = cups::JobOptions { title: &self.doc_name, copies: s.copies, collate: s.collate, duplex: s.duplex, short_edge: s.short_edge, gray: s.gray, paper: s.paper };
+        let res = cups::print_file(printer, &target.to_string_lossy(), &opts);
+        // CUPS a copié le fichier dans sa file : la copie temporaire n'est plus utile.
+        let _ = std::fs::remove_file(&tmp);
+        res?;
+        Ok(StepResult::Done(json!({ "job": self.id, "ok": true })))
+    }
+
+    #[cfg(not(any(windows, unix)))]
     fn send_step(&mut self, _printer: &str, _file: Option<&str>) -> AppResult<StepResult> {
-        Err(AppError::new("printer", "L’impression directe n’est pas encore disponible sur ce système."))
+        Err(AppError::new("printer", "L’impression directe n’est pas disponible sur ce système."))
     }
 }
 

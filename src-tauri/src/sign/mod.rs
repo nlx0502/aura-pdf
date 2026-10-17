@@ -11,6 +11,7 @@
 pub mod appearance;
 pub mod cms;
 pub mod crypto;
+pub mod store;
 pub mod verify;
 
 use std::path::{Path, PathBuf};
@@ -35,6 +36,17 @@ pub struct CertRequest {
     pub reason: String,
     #[serde(default)]
     pub location: String,
+    /// Profil PAdES (ETSI.CAdES.detached) ; sinon PKCS #7 détaché (adbe).
+    #[serde(default = "yes")]
+    pub pades: bool,
+    /// Certification (DocMDP) : 1 aucune modification, 2 remplissage et
+    /// signatures, 3 avec en plus les annotations.
+    #[serde(default)]
+    pub certify: Option<u8>,
+}
+
+fn yes() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -98,7 +110,7 @@ pub fn sign(path: &Path, req: &SignRequest, job: &Job) -> Result<Output, String>
         return Err("Les documents protégés par mot de passe ne peuvent pas encore être signés.".into());
     }
     let signer = match &req.cert {
-        Some(c) => Some(crypto::load_p12(Path::new(&c.path), &c.password)?),
+        Some(c) => Some(crypto::load(&c.path, &c.password)?),
         None => None,
     };
     if let Some(s) = &signer {
@@ -126,7 +138,7 @@ pub fn sign(path: &Path, req: &SignRequest, job: &Job) -> Result<Output, String>
         let mut sig = dictionary! {
             "Type" => "Sig",
             "Filter" => "Adobe.PPKLite",
-            "SubFilter" => "adbe.pkcs7.detached",
+            "SubFilter" => if c.pades { "ETSI.CAdES.detached" } else { "adbe.pkcs7.detached" },
             "ByteRange" => vec![0.into(), BR_PLACEHOLDER[0].into(), BR_PLACEHOLDER[1].into(), BR_PLACEHOLDER[2].into()],
             "Contents" => Object::String(vec![0u8; size], StringFormat::Hexadecimal),
             "M" => Object::string_literal(date.clone()),
@@ -139,7 +151,27 @@ pub fn sign(path: &Path, req: &SignRequest, job: &Job) -> Result<Output, String>
         if !c.location.trim().is_empty() {
             sig.set("Location", text_object(c.location.trim()));
         }
+        if let Some(p) = c.certify {
+            // Certification : seule la première signature d'un document peut certifier.
+            let prev = inc.get_prev_documents();
+            let signed = prev.objects.values().any(|o| o.as_dict().map(|d| d.has_type(b"Sig") && d.has(b"ByteRange")).unwrap_or(false));
+            if signed {
+                return Err("Ce document est déjà signé : seule la première signature peut le certifier.".into());
+            }
+            sig.set(
+                "Reference",
+                vec![Object::Dictionary(dictionary! {
+                    "Type" => "SigRef",
+                    "TransformMethod" => "DocMDP",
+                    "TransformParams" => dictionary! { "Type" => "TransformParams", "P" => p.clamp(1, 3) as i64, "V" => "1.2" },
+                })],
+            );
+        }
         let sig_id = inc.new_document.add_object(sig);
+        if c.certify.is_some() {
+            inc.opt_clone_object_to_new_document(root_id).map_err(|e| e.to_string())?;
+            inc.new_document.get_dictionary_mut(root_id).map_err(|e| e.to_string())?.set("Perms", dictionary! { "DocMDP" => sig_id });
+        }
         match field_id {
             Some(fid) => {
                 // Champ existant : la valeur et l'apparence sont posées sur son widget.
@@ -211,7 +243,7 @@ pub fn sign(path: &Path, req: &SignRequest, job: &Job) -> Result<Output, String>
         if c.tsa.is_some() {
             job.progress(2, 0, 1, "");
         }
-        let container = cms::build(s, &digest, c.tsa.as_deref())?;
+        let container = cms::build(s, &digest, c.tsa.as_deref(), c.pades)?;
         job.progress(3, 0, 1, "");
         let hex: Vec<u8> = container.iter().flat_map(|b| format!("{b:02X}").into_bytes()).collect();
         if hex.len() > ce - cs - 2 {

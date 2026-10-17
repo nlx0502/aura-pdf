@@ -162,9 +162,9 @@ fn rendu_page_et_tuile() {
 }
 
 /// Une seule impression à la fois dans le moteur : les tests d'impression sont sérialisés.
-static PRINT_LOCK: Mutex<()> = Mutex::new(());
+pub(super) static PRINT_LOCK: Mutex<()> = Mutex::new(());
 
-fn wait_print_done(events: &Events, job: u64) -> serde_json::Value {
+pub(super) fn wait_print_done(events: &Events, job: u64) -> serde_json::Value {
     let t0 = Instant::now();
     loop {
         if let Some((_, p)) = events.lock().unwrap().iter().find(|(n, p)| n == "print:done" && p["job"] == job) {
@@ -513,4 +513,121 @@ fn ocr_page_numerisee() {
     let res = crate::convert::run(&e, &[path.to_string_lossy().to_string()], &spec, Some(&crate::ocr::convert_ocr), &crate::tools::Job::silent()).unwrap();
     let txt = std::fs::read_to_string(&res[0].path).unwrap();
     assert!(txt.contains("Atelier Nord"), "{txt}");
+}
+
+/// Page numérisée de travers (affichée tournée d'un quart de tour) : l'OCR
+/// trouve le bon sens de lecture et la page est remise à l'endroit.
+#[test]
+fn ocr_orientation() {
+    let src = fixture("Scan contrat.pdf");
+    if !src.exists() {
+        return;
+    }
+    let (e, _) = engine();
+    let dir = std::env::temp_dir().join(format!("aura-ocr-rot-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for rot in [90, 180, 270] {
+        let path = dir.join(format!("Scan tourné {rot}.pdf"));
+        let mut d = lopdf::Document::load(&src).unwrap();
+        let pid = *d.get_pages().values().next().unwrap();
+        d.get_dictionary_mut(pid).unwrap().set("Rotate", rot);
+        d.save(&path).unwrap();
+        let info = block(e.open(path.clone(), None)).unwrap();
+        let spec = crate::ocr::job::OcrSpec { langs: vec!["fra".into()], searchable: true, deskew: false, all_pages: true, in_place: false };
+        let out = crate::ocr::job::run(&e, info.id, &spec, &crate::tools::Job::silent()).unwrap();
+        let res = lopdf::Document::load(&out.path).unwrap();
+        let pid = *res.get_pages().values().next().unwrap();
+        assert_eq!(res.get_dictionary(pid).unwrap().get(b"Rotate").unwrap().as_i64().unwrap() % 360, 0, "page à {rot}° remise à l'endroit");
+        let ocr = block(e.open(out.path.clone().into(), None)).unwrap();
+        let text: String = block(e.page_text(ocr.id, 0)).unwrap().iter().map(|w| w.t.clone()).collect::<Vec<_>>().join(" ");
+        for w in ["Contrat", "prestation", "Bruxelles"] {
+            assert!(text.contains(w), "{rot}° : « {w} » absent de : {text}");
+        }
+        // Conversion avec OCR automatique de la page tournée.
+        let spec = crate::convert::ConvertSpec { target: "txt".into(), dpi: 300, keep_layout: false, auto_ocr: true, per_page: false, langs: vec!["fra".into()] };
+        let r = crate::convert::run(&e, &[path.to_string_lossy().to_string()], &spec, Some(&crate::ocr::convert_ocr), &crate::tools::Job::silent()).unwrap();
+        assert!(std::fs::read_to_string(&r[0].path).unwrap().contains("Atelier Nord"), "{rot}°");
+        e.close(info.id).ok();
+        e.close(ocr.id).ok();
+    }
+}
+
+/// Mesure (manuelle) : recherche dans les 600 pages du gros document.
+/// `cargo test --release --lib mesure_recherche -- --ignored --nocapture`
+#[test]
+#[ignore]
+fn mesure_recherche_600_pages() {
+    let (e, events) = engine();
+    let info = block(e.open(fixture("Gros document.pdf"), None)).unwrap();
+    let t0 = Instant::now();
+    e.search(info.id, "latence".into(), 99).unwrap();
+    loop {
+        if events.lock().unwrap().iter().any(|(n, p)| n == "search:done" && p["token"] == 99) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    println!("recherche 600 pages : {} ms", t0.elapsed().as_millis());
+}
+
+/// Export Word : le graphique vectoriel de la première page du rapport devient
+/// une illustration ; le texte courant reste du texte.
+#[test]
+fn illustrations_pour_word() {
+    if !have_fixtures() {
+        return;
+    }
+    let (e, _) = engine();
+    let info = block(e.open(fixture("Rapport Q1 2025.pdf"), None)).unwrap();
+    let plain = block(e.extract(info.id, 0, None, true)).unwrap();
+    let d = block(e.extract_with_figures(info.id, 0)).unwrap();
+    assert!(plain.figures.is_empty());
+    assert!(!d.figures.is_empty(), "graphique détecté");
+    let f = &d.figures[0];
+    assert!(f.w > 200.0 && f.h > 60.0, "zone du graphique : {}×{}", f.w, f.h);
+    assert!(f.png.starts_with(b"\x89PNG"));
+    let text: String = d.lines.iter().map(|l| l.text()).collect::<Vec<_>>().join("\n");
+    assert!(text.contains("Q1 2025") && text.contains("architectures documentaires"), "{text}");
+    // Exports Word des deux modes : illustration incluse et référencée.
+    let out = std::env::temp_dir().join(format!("aura-fig-{}.docx", std::process::id()));
+    for keep in [true, false] {
+        crate::convert::docx::write(std::slice::from_ref(&d), keep, "Rapport", &out).unwrap();
+        let mut z = zip::ZipArchive::new(std::fs::File::open(&out).unwrap()).unwrap();
+        assert!(z.by_name("word/media/image1.png").is_ok());
+        let mut xml = String::new();
+        std::io::Read::read_to_string(&mut z.by_name("word/document.xml").unwrap(), &mut xml).unwrap();
+        assert!(xml.contains("r:embed=\"rIdImg1\""));
+        roxmltree::Document::parse(&xml).unwrap();
+    }
+    match std::env::var("AURA_DOCX_OUT") {
+        Ok(keep) => std::fs::copy(&out, keep).map(|_| ()).unwrap(),
+        Err(_) => drop(std::fs::remove_file(&out)),
+    }
+    e.close(info.id).ok();
+}
+
+/// Inventaire des illustrations détectées dans les documents d'essai
+/// (`cargo test --lib inventaire_illustrations -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn inventaire_illustrations() {
+    let (e, _) = engine();
+    for f in std::fs::read_dir(fixture("")).unwrap().flatten() {
+        let p = f.path();
+        if p.extension().and_then(|x| x.to_str()) != Some("pdf") {
+            continue;
+        }
+        let Ok(info) = block(e.open(p.clone(), None)) else { continue };
+        for pg in 0..info.page_count.min(20) {
+            let d = block(e.extract_with_figures(info.id, pg)).unwrap();
+            for fig in &d.figures {
+                println!("{} p{} : {:.0},{:.0} {:.0}×{:.0}", p.file_name().unwrap().to_string_lossy(), pg + 1, fig.x, fig.y, fig.w, fig.h);
+                if let Ok(dir) = std::env::var("AURA_FIG_OUT") {
+                    let _ = std::fs::write(PathBuf::from(dir).join(format!("{}-p{}.png", p.file_stem().unwrap().to_string_lossy(), pg + 1)), &fig.png);
+                }
+            }
+        }
+        e.close(info.id).ok();
+    }
 }

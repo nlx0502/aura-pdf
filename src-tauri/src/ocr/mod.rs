@@ -58,6 +58,9 @@ pub struct PageResult {
     pub skew: f32,
     /// Confiance moyenne (0 à 100).
     pub conf: f32,
+    /// Orientation du texte selon Tesseract (0 droit, 1 haut vers la droite,
+    /// 2 tête en bas, 3 haut vers la gauche).
+    pub orientation: i32,
 }
 
 /// Moteur Tesseract initialisé pour un jeu de langues (à réutiliser page après page).
@@ -104,6 +107,7 @@ impl Tess {
             let it = ffi::TessBaseAPIGetIterator(self.api);
             let mut words = Vec::new();
             let mut skew = 0.0f32;
+            let mut orientation = 0;
             let mut line = 0u32;
             let mut first = true;
             if !it.is_null() {
@@ -112,6 +116,7 @@ impl Tess {
                 let (mut o, mut wd, mut tlo, mut deskew) = (0i32, 0i32, 0i32, 0f32);
                 ffi::TessPageIteratorOrientation(pit, &mut o, &mut wd, &mut tlo, &mut deskew);
                 skew = deskew.to_degrees();
+                orientation = o;
                 loop {
                     if !first && ffi::TessPageIteratorIsAtBeginningOf(pit, ffi::RIL_TEXTLINE) != 0 {
                         line += 1;
@@ -135,8 +140,74 @@ impl Tess {
             }
             ffi::TessBaseAPIClear(self.api);
             let conf = if words.is_empty() { 0.0 } else { words.iter().map(|w| w.conf).sum::<f32>() / words.len() as f32 };
-            Ok(PageResult { words, skew, conf })
+            Ok(PageResult { words, skew, conf, orientation })
         }
+    }
+}
+
+/// Image tournée de `quarter` quarts de tour dans le sens horaire.
+pub fn rotate_image(img: &PageImage, quarter: u16) -> PageImage {
+    let (w, h) = (img.width as usize, img.height as usize);
+    let q = quarter % 4;
+    if q == 0 {
+        return img.clone();
+    }
+    let (nw, nh) = if q % 2 == 1 { (h, w) } else { (w, h) };
+    let mut out = vec![0u8; nw * nh * 4];
+    for y in 0..h {
+        for x in 0..w {
+            let (nx, ny) = match q {
+                1 => (h - 1 - y, x),
+                2 => (w - 1 - x, h - 1 - y),
+                _ => (y, w - 1 - x),
+            };
+            let s = (y * w + x) * 4;
+            let d = (ny * nw + nx) * 4;
+            out[d..d + 4].copy_from_slice(&img.rgba[s..s + 4]);
+        }
+    }
+    PageImage { width: nw as u32, height: nh as u32, rgba: out }
+}
+
+/// Qualité d'une lecture : confiance moyenne pondérée par la quantité de texte
+/// lu avec assurance (une page tournée donne peu de mots, et peu sûrs).
+fn score(r: &PageResult) -> f32 {
+    let sure: usize = r.words.iter().filter(|w| w.conf >= 60.0).map(|w| w.text.chars().filter(|c| c.is_alphanumeric()).count()).sum();
+    r.conf * sure as f32
+}
+
+impl Tess {
+    /// Reconnaissance avec détection de l'orientation : si la lecture est
+    /// médiocre, la page est essayée tournée d'un quart, d'un demi et de trois
+    /// quarts de tour. Renvoie le résultat, la rotation retenue (quarts de tour
+    /// horaires) et l'image correspondante.
+    pub fn recognize_oriented(&mut self, img: &PageImage, dpi: f32) -> Result<(PageResult, u16, Option<PageImage>), String> {
+        let first = self.recognize(img, dpi)?;
+        // Texte couché : Tesseract le lit mais signale son orientation ; la page
+        // est relue redressée (le sens exact est vérifié par la qualité de lecture).
+        // Mots couchés : boîtes plus hautes que larges pour la plupart des mots longs.
+        let long: Vec<&Word> = first.words.iter().filter(|w| w.text.chars().count() >= 4).collect();
+        let vertical = long.len() >= 3 && long.iter().filter(|w| w.h > w.w * 1.2).count() * 2 > long.len();
+        let candidates: Vec<u16> = match first.orientation {
+            1 => vec![3, 1],
+            3 => vec![1, 3],
+            2 => vec![2],
+            _ if vertical => vec![1, 3],
+            _ if first.conf >= 75.0 && first.words.len() >= 8 => return Ok((first, 0, None)),
+            _ => vec![2, 1, 3],
+        };
+        let lying = vertical || first.orientation == 1 || first.orientation == 3;
+        let mut best = (if lying { 0.0 } else { score(&first) }, first, 0u16, None);
+        for q in candidates {
+            let turned = rotate_image(img, q);
+            let r = self.recognize(&turned, dpi)?;
+            let s = score(&r);
+            // Une autre orientation doit être nettement meilleure.
+            if s > best.0 * if best.2 == 0 && !lying { 1.5 } else { 1.0 } && s > 0.0 {
+                best = (s, r, q, Some(turned));
+            }
+        }
+        Ok((best.1, best.2, best.3))
     }
 }
 
@@ -189,9 +260,10 @@ pub fn to_lines(res: &PageResult, scale: f32) -> Vec<Line> {
     lines
 }
 
-/// Fonction OCR pour la conversion (pages sans texte).
-pub fn convert_ocr(img: &PageImage, dpi: f32, langs: &[String]) -> Result<Vec<Line>, String> {
+/// Fonction OCR pour la conversion (pages sans texte) : lignes, et rotation
+/// appliquée pour lire la page (quarts de tour horaires).
+pub fn convert_ocr(img: &PageImage, dpi: f32, langs: &[String]) -> Result<(Vec<Line>, u16), String> {
     let mut e = Tess::new(langs)?;
-    let res = e.recognize(img, dpi)?;
-    Ok(to_lines(&res, dpi / 72.0))
+    let (res, q, _) = e.recognize_oriented(img, dpi)?;
+    Ok((to_lines(&res, dpi / 72.0), q))
 }

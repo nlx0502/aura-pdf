@@ -18,26 +18,52 @@ interface ProgressPayload {
   total: number;
 }
 
+/** Résultats reçus en attente d'affichage (regroupés par image : un seul rendu par trame). */
+let pending: ProgressPayload[] = [];
+let frame = 0;
+
+function flush() {
+  frame = 0;
+  const batch = pending;
+  pending = [];
+  const byTab = new Map<string, { hits: SearchHit[]; scanned: number }>();
+  const { tabs, updateTab } = useApp.getState();
+  for (const p of batch) {
+    const tab = tabs.find((t) => t.info.id === p.doc && t.search.token === p.token);
+    if (!tab) continue;
+    const cur = byTab.get(tab.key) ?? { hits: [], scanned: 0 };
+    cur.hits.push(...p.hits);
+    cur.scanned = Math.max(cur.scanned, p.scanned);
+    byTab.set(tab.key, cur);
+  }
+  for (const [key, add] of byTab) {
+    const before = useApp.getState().tabs.find((t) => t.key === key);
+    updateTab(key, (t) => {
+      const hits = add.hits.length ? [...t.search.hits, ...add.hits] : t.search.hits;
+      // Premier résultat : le sélectionner et y aller.
+      let active = t.search.active;
+      if (active < 0 && hits.length) active = 0;
+      return { search: { ...t.search, hits, scanned: Math.max(t.search.scanned, add.scanned), active } };
+    });
+    const after = useApp.getState().tabs.find((t) => t.key === key);
+    if (before && after && before.search.active < 0 && after.search.active === 0) gotoHit(key, 0);
+  }
+}
+
 /** Abonnement unique aux événements de recherche. */
 export function initSearchEvents() {
   if (listening) return;
   listening = true;
   void listen<ProgressPayload>("search:progress", (e) => {
-    const p = e.payload;
-    const { tabs, updateTab } = useApp.getState();
-    const tab = tabs.find((t) => t.info.id === p.doc && t.search.token === p.token);
-    if (!tab) return;
-    updateTab(tab.key, (t) => {
-      const hits = p.hits.length ? [...t.search.hits, ...p.hits] : t.search.hits;
-      // Premier résultat : le sélectionner et y aller.
-      let active = t.search.active;
-      if (active < 0 && hits.length) active = 0;
-      return { search: { ...t.search, hits, scanned: p.scanned, active } };
-    });
-    const after = useApp.getState().tabs.find((t) => t.key === tab.key);
-    if (after && tab.search.active < 0 && after.search.active === 0) gotoHit(tab.key, 0);
+    pending.push(e.payload);
+    if (!frame) frame = requestAnimationFrame(flush);
   });
   void listen<{ doc: number; token: number }>("search:done", (e) => {
+    // Les derniers résultats sont affichés avant de marquer la fin.
+    if (frame) {
+      cancelAnimationFrame(frame);
+      flush();
+    }
     const { tabs, updateTab } = useApp.getState();
     const tab = tabs.find((t) => t.info.id === e.payload.doc && t.search.token === e.payload.token);
     if (tab) updateTab(tab.key, (t) => ({ search: { ...t.search, done: true, scanned: t.info.pageCount } }));

@@ -61,7 +61,8 @@ pub fn run(engine: &Engine, doc: u32, spec: &OcrSpec, job: &Job) -> Result<Outpu
         }
         let img = data.image.as_ref().ok_or("rendu impossible")?;
         job.progress(0, p as usize, pages as usize, &json!({ "page": p, "start": true }).to_string());
-        let res = tess.recognize(img, img.width as f32 / data.w * 72.0)?;
+        let (res, quarter, turned) = tess.recognize_oriented(img, img.width as f32 / data.w * 72.0)?;
+        let img = turned.as_ref().unwrap_or(img);
         // Aperçu : lignes (texte, boîte relative à la page) dans l'ordre de lecture.
         let mut lines: Vec<(String, [f32; 4], f32)> = Vec::new();
         for w in &res.words {
@@ -91,9 +92,19 @@ pub fn run(engine: &Engine, doc: u32, spec: &OcrSpec, job: &Job) -> Result<Outpu
             text.push('\n');
         }
         text.push('\n');
-        let preview: Vec<_> = lines.iter().map(|(t, b, c)| json!({ "t": t, "b": b, "c": c })).collect();
-        job.progress(1, p as usize + 1, pages as usize, &json!({ "page": p, "lines": preview, "conf": res.conf, "skew": res.skew }).to_string());
-        results.push(PageOcr { page: p, words: res.words, img_w: img.width, img_h: img.height, skew: res.skew });
+        // Aperçu affiché sur la page telle qu'elle était : boîtes ramenées dans son sens.
+        let unturn = |b: &[f32; 4]| -> [f32; 4] {
+            let [x, y, w, h] = *b;
+            match quarter % 4 {
+                1 => [y, 1.0 - x - w, h, w],
+                2 => [1.0 - x - w, 1.0 - y - h, w, h],
+                3 => [1.0 - y - h, x, h, w],
+                _ => *b,
+            }
+        };
+        let preview: Vec<_> = lines.iter().map(|(t, b, c)| json!({ "t": t, "b": unturn(b), "c": c })).collect();
+        job.progress(1, p as usize + 1, pages as usize, &json!({ "page": p, "lines": preview, "conf": res.conf, "skew": res.skew, "rotate": quarter as u32 * 90 }).to_string());
+        results.push(PageOcr { page: p, words: res.words, img_w: img.width, img_h: img.height, skew: res.skew, quarter });
     }
     job.check()?;
     job.progress(2, pages as usize, pages as usize, &json!({ "writing": true, "skipped": skipped }).to_string());

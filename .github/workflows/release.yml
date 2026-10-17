@@ -1,0 +1,99 @@
+# Publication d'une version : étiquette « v1.2.3 » poussée sur GitHub.
+#  1. compilation et tests sur Windows et macOS (build.yml) ;
+#  2. signature de l'installateur Windows par SignPath Foundation (certificat
+#     de signature de code offert aux projets libres) ;
+#  3. brouillon de version GitHub avec l'installateur signé et le DMG macOS,
+#     à relire puis publier à la main.
+#
+# Secrets et variables du dépôt (Settings › Secrets and variables › Actions) :
+#   secret   SIGNPATH_API_TOKEN       jeton de l'utilisateur CI de SignPath
+#   variable SIGNPATH_ORGANIZATION_ID identifiant de l'organisation SignPath
+# Sans eux, la version est publiée avec un installateur non signé.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  sign-windows:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    outputs:
+      signed: ${{ steps.done.outputs.signed }}
+    steps:
+      - name: Artefact à signer
+        id: artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRunArtifacts({ owner: context.repo.owner, repo: context.repo.repo, run_id: context.runId });
+            const a = data.artifacts.find((x) => x.name === "aura-pdf-windows");
+            if (!a) core.setFailed("artefact Windows introuvable");
+            core.setOutput("id", a.id);
+
+      - name: Signature SignPath
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: aura-pdf
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installateur
+          github-artifact-id: ${{ steps.artifact.outputs.id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aura-pdf-windows-signe
+          path: signed/
+
+      - id: done
+        run: echo "signed=true" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: [build, sign-windows]
+    if: ${{ always() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Fichiers de la version
+        run: |
+          mkdir -p release
+          if [ -d dist/aura-pdf-windows-signe ]; then
+            find dist/aura-pdf-windows-signe -name '*.exe' -exec cp {} release/ \;
+          else
+            echo "::warning::Installateur Windows non signé (SignPath non configuré ou en échec)."
+            find dist/aura-pdf-windows -name '*.exe' -exec cp {} release/ \;
+          fi
+          find dist/aura-pdf-macos-arm64 -name '*.dmg' -exec cp {} release/ \;
+          ls -la release
+          (cd release && sha256sum * > SHA256SUMS.txt)
+
+      - name: Brouillon de version
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: Aura PDF ${{ github.ref_name }}
+          files: release/*
+          body: |
+            ## Installation
+
+            - **Windows** : `Aura PDF_…_x64-setup.exe`.
+            - **macOS (puces Apple)** : `Aura PDF_…_aarch64.dmg`. L’application n’est pas
+              notariée par Apple : au premier lancement, clic droit sur Aura PDF › **Ouvrir**,
+              puis **Ouvrir** (voir le README).
+
+            Empreintes SHA-256 : `SHA256SUMS.txt`.

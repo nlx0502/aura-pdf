@@ -44,7 +44,7 @@ export type RenderResult = { kind: "ok"; bitmap: ImageBitmap } | { kind: "stale"
 
 // ---------------------------------------------------------------- cache LRU
 
-const MAX_BYTES = 384 * 1024 * 1024;
+const MAX_BYTES = 192 * 1024 * 1024;
 let cacheBytes = 0;
 const cache = new Map<string, { bmp: ImageBitmap; bytes: number }>();
 

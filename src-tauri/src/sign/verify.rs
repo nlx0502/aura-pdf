@@ -13,7 +13,7 @@ use der::Encode;
 use lopdf::{Document, Object, ObjectId};
 use serde::Serialize;
 
-use super::cms::{parse, token_time, OID_MESSAGE_DIGEST, OID_SIGNING_TIME, OID_TIMESTAMP_TOKEN};
+use super::cms::{parse, signing_certificate_hash, token_time, OID_MESSAGE_DIGEST, OID_SIGNING_CERT_V2, OID_SIGNING_TIME, OID_TIMESTAMP_TOKEN};
 use super::crypto::{cert_info, chain_status, spki_der, verify, Hash};
 use crate::annot::geom::Rect;
 use crate::annot::pdf::{deref, get, num, page_geom, text};
@@ -37,6 +37,10 @@ pub struct SigReport {
     pub location: Option<String>,
     /// Le document a été modifié après cette signature.
     pub modified_after: bool,
+    /// Signature de certification (DocMDP) : modifications permises (1 à 3).
+    pub certified: Option<u8>,
+    /// Profil PAdES (ETSI.CAdES.detached).
+    pub pades: bool,
     pub page: Option<u32>,
     pub rect: Option<Rect>,
 }
@@ -183,6 +187,8 @@ pub fn report(path: &Path) -> Result<Report, String> {
             reason: None,
             location: None,
             modified_after: false,
+            certified: None,
+            pades: false,
             page: Some(*page),
             rect: pd.and_then(|pd| rect_of(&doc, d).map(|r| page_geom(&doc, pd).rect_to_display(&r))),
         });
@@ -229,10 +235,18 @@ fn check(doc: &Document, v: &lopdf::Dictionary, file: &[u8]) -> SigReport {
         reason: v.get(b"Reason").ok().map(|x| text(deref(doc, x))).filter(|s| !s.is_empty()),
         location: v.get(b"Location").ok().map(|x| text(deref(doc, x))).filter(|s| !s.is_empty()),
         modified_after: false,
+        certified: None,
+        pades: false,
         page: None,
         rect: None,
     };
     let sub = v.get(b"SubFilter").and_then(|s| s.as_name()).unwrap_or(b"").to_vec();
+    r.pades = sub == b"ETSI.CAdES.detached";
+    r.certified = get(doc, v, b"Reference").and_then(|a| a.as_array().ok()).and_then(|refs| {
+        refs.iter().filter_map(|x| deref(doc, x).as_dict().ok()).find(|d| matches!(d.get(b"TransformMethod"), Ok(Object::Name(n)) if n == b"DocMDP")).map(|d| {
+            get(doc, d, b"TransformParams").and_then(|t| t.as_dict().ok()).and_then(|t| t.get(b"P").ok()).and_then(|p| p.as_i64().ok()).unwrap_or(2).clamp(1, 3) as u8
+        })
+    });
     let br: Vec<usize> = get(doc, v, b"ByteRange").and_then(|a| a.as_array().ok()).map(|a| a.iter().filter_map(|x| num(deref(doc, x)).map(|f| f as usize)).collect()).unwrap_or_default();
     let contents = match get(doc, v, b"Contents") {
         Some(Object::String(b, _)) => b.clone(),
@@ -292,7 +306,14 @@ fn check(doc: &Document, v: &lopdf::Dictionary, file: &[u8]) -> SigReport {
                     r.date = Some(dt.to_rfc3339());
                 }
             }
+            // PAdES : le certificat déclaré (signing-certificate-v2) doit être celui du signataire.
+            let declared = attrs.iter().find(|a| a.oid == OID_SIGNING_CERT_V2).and_then(|a| a.values.iter().next()).and_then(signing_certificate_hash);
+            let cert_ok = declared.map(|h| {
+                use sha2::Digest;
+                cert.to_der().map(|d| sha2::Sha256::digest(d).as_slice() == h.as_slice()).unwrap_or(false)
+            });
             match md {
+                _ if cert_ok == Some(false) => Err("le certificat déclaré dans la signature ne correspond pas à celui du signataire".into()),
                 Some(md) if md.as_bytes() == digest.as_slice() => {
                     let data = attrs.to_der().unwrap_or_default();
                     verify(&spki_der(cert), &si.signature_algorithm.oid, Some(hash), &data, sig_bytes).map_err(|e| e.to_string())
@@ -326,8 +347,18 @@ fn check(doc: &Document, v: &lopdf::Dictionary, file: &[u8]) -> SigReport {
         r.messages.push(if info.self_signed {
             "Certificat personnel (auto-signé) : l’intégrité est garantie, l’identité n’est pas certifiée par une autorité.".to_string()
         } else {
-            format!("Autorité « {root} » inconnue de Windows : l’identité n’est pas vérifiée.")
+            format!("Autorité « {root} » inconnue du système : l’identité n’est pas vérifiée.")
         });
+    }
+    if let Some(p) = r.certified {
+        r.messages.push(
+            match p {
+                1 => "Document certifié : aucune modification n’est autorisée.",
+                2 => "Document certifié : seuls le remplissage des formulaires et les signatures sont autorisés.",
+                _ => "Document certifié : formulaires, signatures et annotations autorisés.",
+            }
+            .into(),
+        );
     }
     // Validité du certificat à la date de signature.
     let at = r.timestamp.as_ref().or(r.date.as_ref()).and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok()).map(|d| d.timestamp()).unwrap_or_else(|| chrono::Utc::now().timestamp());

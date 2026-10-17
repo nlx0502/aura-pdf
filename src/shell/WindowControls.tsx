@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
 import { Icons } from "../components";
+import { IS_MAC } from "../lib/platform";
 
-/** Boutons Réduire / Agrandir / Fermer (la fenêtre n'a pas de barre de titre système). */
+/** Boutons Réduire / Agrandir / Fermer (la fenêtre n'a pas de barre de titre
+ * système). Sur Mac, ce sont les boutons natifs de la fenêtre (feux tricolores). */
 export function WindowControls() {
+  return IS_MAC ? null : <WinButtons />;
+}
+
+function WinButtons() {
   const { t } = useTranslation();
   const [maximized, setMaximized] = useState(false);
 

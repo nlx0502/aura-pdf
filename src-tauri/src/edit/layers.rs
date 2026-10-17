@@ -126,3 +126,180 @@ pub fn with_visibility(bytes: Vec<u8>, password: Option<&str>, hidden: &[String]
     inc.save_to(&mut out).map_err(|e| format!("écriture du PDF : {e}"))?;
     Ok(out)
 }
+
+/// Copie pour l'impression : le contenu des calques masqués est retiré des
+/// pages (sections de contenu marqué /OC, objets de formulaire et annotations
+/// rattachés à ces calques) et la notion de calque disparaît, si bien que le
+/// résultat ne dépend plus d'aucune configuration de visibilité.
+pub fn print_copy(bytes: &[u8], password: Option<&str>, hidden: Option<&[String]>) -> Result<Vec<u8>, String> {
+    let mut doc = match password {
+        Some(p) => Document::load_mem_with_options(bytes, lopdf::LoadOptions::with_password(p)),
+        None => Document::load_mem(bytes),
+    }
+    .map_err(|e| format!("lecture du PDF : {e}"))?;
+    doc.encryption_state = None;
+    crate::security::strip_xref_streams(&mut doc);
+    let layers = list(&doc);
+    let off: HashSet<String> = match hidden {
+        Some(h) => h.iter().cloned().collect(),
+        None => layers.iter().filter(|l| !l.visible).map(|l| l.id.clone()).collect(),
+    };
+    let hidden_ids: HashSet<ObjectId> = layers
+        .iter()
+        .filter(|l| off.contains(&l.id))
+        .filter_map(|l| {
+            let mut it = l.id.split('-');
+            Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
+        })
+        .collect();
+    let mut streams: Vec<(ObjectId, Option<ObjectId>)> = Vec::new();
+    for (_, pid) in doc.get_pages() {
+        let page = doc.get_dictionary(pid).map_err(|e| e.to_string())?;
+        let contents: Vec<ObjectId> = match page.get(b"Contents") {
+            Ok(Object::Reference(r)) => vec![*r],
+            Ok(Object::Array(a)) => a.iter().filter_map(|o| o.as_reference().ok()).collect(),
+            _ => Vec::new(),
+        };
+        if contents.len() > 1 {
+            // Plusieurs flux : réunis pour que les sections marquées restent entières.
+            let mut all = Vec::new();
+            for c in &contents {
+                if let Ok(s) = doc.get_object(*c).and_then(|o| o.as_stream()) {
+                    all.extend(s.decompressed_content().unwrap_or_else(|_| s.content.clone()));
+                    all.push(b'\n');
+                }
+            }
+            let id = doc.add_object(lopdf::Stream::new(lopdf::Dictionary::new(), all));
+            doc.get_dictionary_mut(pid).map_err(|e| e.to_string())?.set("Contents", id);
+            streams.push((id, Some(pid)));
+        } else if let Some(c) = contents.first() {
+            streams.push((*c, Some(pid)));
+        }
+    }
+    let forms: Vec<ObjectId> = doc
+        .objects
+        .iter()
+        .filter(|(_, o)| o.as_stream().map(|s| matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Form")).unwrap_or(false))
+        .map(|(id, _)| *id)
+        .collect();
+    streams.extend(forms.into_iter().map(|f| (f, None)));
+    for (sid, page) in streams {
+        let res = match page {
+            Some(pid) => doc.get_dictionary(pid).ok().and_then(|p| crate::annot::pdf::inherited(&doc, p, b"Resources")).and_then(|r| r.as_dict().ok()).cloned(),
+            None => doc.get_object(sid).ok().and_then(|o| o.as_stream().ok()).and_then(|s| get(&doc, &s.dict, b"Resources")).and_then(|r| r.as_dict().ok()).cloned(),
+        }
+        .unwrap_or_default();
+        let props = get(&doc, &res, b"Properties").and_then(|p| p.as_dict().ok()).cloned().unwrap_or_default();
+        let xobjects = get(&doc, &res, b"XObject").and_then(|p| p.as_dict().ok()).cloned().unwrap_or_default();
+        let Ok(stream) = doc.get_object(sid).and_then(|o| o.as_stream()) else { continue };
+        let data = stream.decompressed_content().unwrap_or_else(|_| stream.content.clone());
+        let Ok(content) = lopdf::content::Content::decode(&data) else { continue };
+        let mut out = Vec::new();
+        let mut stack: Vec<bool> = Vec::new();
+        let mut changed = false;
+        for op in content.operations {
+            let skipping = stack.iter().any(|h| *h);
+            match op.operator.as_str() {
+                "BDC" => {
+                    let hid = matches!(op.operands.first(), Some(Object::Name(n)) if n == b"OC")
+                        && match op.operands.get(1) {
+                            Some(Object::Name(n)) => props.get(n).map(|o| oc_hidden(&doc, &hidden_ids, o)).unwrap_or(false),
+                            Some(o) => oc_hidden(&doc, &hidden_ids, o),
+                            None => false,
+                        };
+                    stack.push(hid);
+                    if skipping || hid {
+                        changed = true;
+                        continue;
+                    }
+                }
+                "BMC" => {
+                    stack.push(false);
+                    if skipping {
+                        continue;
+                    }
+                }
+                "EMC" => {
+                    let was = stack.pop().unwrap_or(false);
+                    if skipping || was {
+                        continue;
+                    }
+                }
+                "Do" if !skipping => {
+                    let hid = match op.operands.first() {
+                        Some(Object::Name(n)) => xobjects
+                            .get(n)
+                            .ok()
+                            .and_then(|x| x.as_reference().ok())
+                            .and_then(|x| doc.get_object(x).ok())
+                            .and_then(|o| o.as_stream().ok())
+                            .and_then(|s| s.dict.get(b"OC").ok())
+                            .map(|oc| oc_hidden(&doc, &hidden_ids, oc))
+                            .unwrap_or(false),
+                        _ => false,
+                    };
+                    if hid {
+                        changed = true;
+                        continue;
+                    }
+                }
+                _ if skipping => {
+                    changed = true;
+                    continue;
+                }
+                _ => {}
+            }
+            out.push(op);
+        }
+        if changed {
+            let bytes = lopdf::content::Content { operations: out }.encode().map_err(|e| e.to_string())?;
+            if let Ok(s) = doc.get_object_mut(sid).and_then(|o| o.as_stream_mut()) {
+                s.set_plain_content(bytes);
+            }
+        }
+    }
+    // Annotations rattachées à un calque masqué.
+    let pages: Vec<ObjectId> = doc.get_pages().values().copied().collect();
+    for pid in pages {
+        let annots: Vec<Object> = doc.get_dictionary(pid).ok().and_then(|p| get(&doc, p, b"Annots")).and_then(|a| a.as_array().ok()).cloned().unwrap_or_default();
+        let keep: Vec<Object> = annots
+            .iter()
+            .filter(|a| !deref(&doc, a).as_dict().ok().and_then(|d| d.get(b"OC").ok()).map(|oc| oc_hidden(&doc, &hidden_ids, oc)).unwrap_or(false))
+            .cloned()
+            .collect();
+        if keep.len() != annots.len() {
+            doc.get_dictionary_mut(pid).map_err(|e| e.to_string())?.set("Annots", keep);
+        }
+    }
+    // Plus de calques : tout ce qui reste est visible.
+    let root = doc.trailer.get(b"Root").and_then(|o| o.as_reference()).map_err(|e| e.to_string())?;
+    if let Ok(c) = doc.get_dictionary_mut(root) {
+        c.remove(b"OCProperties");
+    }
+    for o in doc.objects.values_mut() {
+        if let Object::Stream(s) = o {
+            s.dict.remove(b"OC");
+        }
+    }
+    let mut out = Vec::new();
+    doc.save_to(&mut out).map_err(|e| format!("écriture du PDF : {e}"))?;
+    Ok(out)
+}
+
+/// Groupe (OCG) masqué, ou appartenance (OCMD, « au moins un visible ») dont tous les groupes le sont.
+fn oc_hidden(doc: &Document, hidden: &HashSet<ObjectId>, o: &Object) -> bool {
+    let Ok(id) = o.as_reference() else { return false };
+    if hidden.contains(&id) {
+        return true;
+    }
+    let Ok(d) = doc.get_dictionary(id) else { return false };
+    if !d.has_type(b"OCMD") {
+        return false;
+    }
+    let groups: Vec<ObjectId> = match d.get(b"OCGs") {
+        Ok(Object::Array(a)) => a.iter().filter_map(|x| x.as_reference().ok()).collect(),
+        Ok(Object::Reference(r)) => vec![*r],
+        _ => Vec::new(),
+    };
+    !groups.is_empty() && groups.iter().all(|g| hidden.contains(g))
+}

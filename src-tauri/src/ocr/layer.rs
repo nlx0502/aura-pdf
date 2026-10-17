@@ -1,7 +1,8 @@
 //! PDF recherchable : le texte reconnu est ajouté sous forme de texte
 //! invisible (mode de rendu 3) exactement sur les mots de l'image, ce qui
 //! permet la recherche, la sélection et la copie. Option : redresser les pages
-//! inclinées (rotation du contenu de la page, texte compris).
+//! inclinées (rotation du contenu de la page, texte compris). Les pages
+//! numérisées de travers (quart ou demi-tour) sont remises à l'endroit.
 
 use lopdf::{dictionary, Document, Object, ObjectId, Stream};
 
@@ -18,6 +19,8 @@ pub struct PageOcr {
     pub img_h: u32,
     /// Inclinaison détectée (degrés).
     pub skew: f32,
+    /// Page lue après rotation (quarts de tour horaires) : elle est remise à l'endroit.
+    pub quarter: u16,
 }
 
 /// Seuil de redressement (degrés).
@@ -56,6 +59,12 @@ pub fn apply(doc: &mut Document, pages: &[PageOcr], deskew: bool) -> Result<(), 
     let ids: Vec<ObjectId> = doc.get_pages().values().copied().collect();
     for p in pages {
         let Some(&pid) = ids.get(p.page as usize) else { continue };
+        if p.quarter % 4 != 0 {
+            // Orientation corrigée par /Rotate : l'affichage devient celui de l'image lue.
+            let cur = doc.get_dictionary(pid).ok().and_then(|d| crate::annot::pdf::inherited(doc, d, b"Rotate")).and_then(|r| r.as_i64().ok()).unwrap_or(0);
+            let rot = (cur + p.quarter as i64 * 90).rem_euclid(360);
+            doc.get_dictionary_mut(pid).map_err(|e| e.to_string())?.set("Rotate", rot);
+        }
         let (g, mut res, contents) = {
             let d = doc.get_dictionary(pid).map_err(|e| e.to_string())?;
             let res = crate::annot::pdf::inherited(doc, d, b"Resources").and_then(|r| r.as_dict().ok()).cloned().unwrap_or_default();

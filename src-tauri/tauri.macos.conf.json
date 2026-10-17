@@ -1,0 +1,52 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Aura PDF",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 600,
+        "center": true,
+        "decorations": true,
+        "backgroundColor": "#0E0F12",
+        "theme": "Dark",
+        "dragDropEnabled": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 24
+        }
+      }
+    ]
+  },
+  "bundle": {
+    "targets": [
+      "app",
+      "dmg"
+    ],
+    "resources": {
+      "resources/pdfium/libpdfium.dylib": "resources/pdfium/libpdfium.dylib"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-",
+      "dmg": {
+        "windowSize": {
+          "width": 540,
+          "height": 380
+        },
+        "appPosition": {
+          "x": 140,
+          "y": 180
+        },
+        "applicationFolderPosition": {
+          "x": 400,
+          "y": 180
+        }
+      }
+    }
+  }
+}

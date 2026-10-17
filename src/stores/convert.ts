@@ -98,7 +98,7 @@ export const useConvert = create<ConvertStore>((set, get) => ({
     try {
       set({ info: await convertApi.info() });
     } catch {
-      set({ info: { word: false, excel: false, powerpoint: false } });
+      set({ info: { word: false, excel: false, powerpoint: false, engine: null } });
     }
   },
 

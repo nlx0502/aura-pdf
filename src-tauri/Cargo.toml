@@ -1,6 +1,6 @@
 [package]
 name = "aura-pdf"
-version = "0.1.0"
+version = "1.0.0"
 description = "Aura PDF — lecteur et éditeur PDF libre"
 authors = ["Aura PDF contributors"]
 license = "MIT"
@@ -55,8 +55,11 @@ chrono = { version = "0.4", features = ["serde"] }
 tokio = { version = "1", features = ["sync"] }
 whoami = "1"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
+
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Graphics_Printing", "Win32_Storage_Xps", "Win32_Security"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Graphics_Printing", "Win32_Storage_Xps", "Win32_Security", "Win32_Security_Cryptography"] }
 
 [profile.release]
 opt-level = 3

@@ -20,7 +20,7 @@ export interface FormatCard {
 export const FROM: FormatCard[] = [
   { id: "img", short: "PNG", bg: "#E8E7FF", fg: "#4B47D6" },
   { id: "word", short: "DOCX", bg: "#DCEBFF", fg: "#2563C9" },
-  { id: "excel", short: "XLSX", bg: "#D9F5E6", fg: "#178A55" },
+  { id: "excel", short: "XLSX", bg: "#D9F5E6", fg: "#11703F" },
   { id: "txt", short: "TXT", bg: "#ECEBE6", fg: "#55534D" },
 ];
 
@@ -28,7 +28,7 @@ export const FROM: FormatCard[] = [
 export const TO: FormatCard[] = [
   { id: "img", short: "JPG", bg: "#E8E7FF", fg: "#4B47D6", ext: ["jpg", "jpeg", "png", "tif", "tiff", "bmp", "gif", "webp"] },
   { id: "word", short: "DOCX", bg: "#DCEBFF", fg: "#2563C9", ext: ["docx", "doc", "rtf", "odt"] },
-  { id: "office", short: "XLSX", bg: "#D9F5E6", fg: "#178A55", ext: ["xlsx", "xls", "ods", "csv", "pptx", "ppt", "odp"] },
+  { id: "office", short: "XLSX", bg: "#D9F5E6", fg: "#11703F", ext: ["xlsx", "xls", "ods", "csv", "pptx", "ppt", "odp"] },
 ];
 
 export const LANGS = ["fra", "eng", "deu", "nld"] as const;
@@ -54,6 +54,8 @@ export interface ConvertInfo {
   word: boolean;
   excel: boolean;
   powerpoint: boolean;
+  /** Suite qui produit le PDF : « Microsoft Office », « LibreOffice » ou aucune. */
+  engine: string | null;
 }
 
 export const convertApi = {
@@ -77,10 +79,10 @@ export const extOf = (path: string) => (path.match(/\.([^.\\/]+)$/)?.[1] ?? "").
 /** Couleur de la pastille d'un fichier selon son extension. */
 export function badgeOf(path: string): { ext: string; c: string } {
   const e = extOf(path);
-  if (e === "pdf") return { ext: "PDF", c: "#D2453D" };
+  if (e === "pdf") return { ext: "PDF", c: "#B83A33" };
   if (["doc", "docx", "rtf", "odt"].includes(e)) return { ext: e.toUpperCase(), c: "#2563C9" };
-  if (["xls", "xlsx", "ods", "csv"].includes(e)) return { ext: e.toUpperCase(), c: "#178A55" };
-  if (["ppt", "pptx", "odp"].includes(e)) return { ext: e.toUpperCase(), c: "#C4522B" };
+  if (["xls", "xlsx", "ods", "csv"].includes(e)) return { ext: e.toUpperCase(), c: "#11703F" };
+  if (["ppt", "pptx", "odp"].includes(e)) return { ext: e.toUpperCase(), c: "#A8431F" };
   return { ext: e.toUpperCase().slice(0, 4) || "?", c: "#4B47D6" };
 }
 
@@ -99,6 +101,8 @@ export interface OcrDetail {
   lines?: OcrLine[];
   conf?: number;
   skew?: number;
+  /** Rotation appliquée pour lire la page (degrés, sens horaire). */
+  rotate?: number;
   writing?: boolean;
 }
 

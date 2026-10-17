@@ -137,7 +137,7 @@
   background: var(--bg-card-hover);
   transform: translateY(-3px);
 }
-.ecard__pg[aria-pressed="true"] {
+.ecard__pg[aria-selected="true"] {
   background: rgba(110, 106, 246, 0.14);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
@@ -172,12 +172,12 @@
 .ecard__pg:hover .ecard__box {
   opacity: 1;
 }
-.ecard__pg[aria-pressed="true"] .ecard__box {
+.ecard__pg[aria-selected="true"] .ecard__box {
   background: var(--accent);
   box-shadow: none;
   opacity: 1;
 }
-.ecard__pg[aria-pressed="true"] .ecard__box .i {
+.ecard__pg[aria-selected="true"] .ecard__box .i {
   transform: scale(1);
 }
 .ecard__sheet,

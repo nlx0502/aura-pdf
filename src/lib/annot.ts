@@ -226,6 +226,49 @@ export function translate(a: Annot, dx: number, dy: number): Partial<Annot> {
   };
 }
 
+/** Poignées : 0 à 7 = coins et milieux (nw, n, ne, e, se, s, sw, w) ; 8 et 9 = extrémités d'une ligne. */
+export type Handle = number;
+
+/** Annotations redimensionnables (les marquages de texte et les notes suivent le texte ou ont une taille fixe). */
+export const resizable = (a: Annot) => ["rect", "ellipse", "text", "stamp", "ink", "arrow", "line"].includes(a.kind);
+
+/** Nouveau rectangle après déplacement d'une poignée (taille minimale 4 pt ; `keep` : proportions). */
+export function dragHandle(r: Rect, h: Handle, dx: number, dy: number, keep = false): Rect {
+  let x0 = r.x;
+  let y0 = r.y;
+  let x1 = r.x + r.w;
+  let y1 = r.y + r.h;
+  if (h === 0 || h === 6 || h === 7) x0 += dx;
+  if (h === 2 || h === 3 || h === 4) x1 += dx;
+  if (h === 0 || h === 1 || h === 2) y0 += dy;
+  if (h === 4 || h === 5 || h === 6) y1 += dy;
+  if (keep && r.w > 0 && r.h > 0 && [0, 2, 4, 6].includes(h)) {
+    const sc = Math.max(Math.abs(x1 - x0) / r.w, Math.abs(y1 - y0) / r.h);
+    const w = r.w * sc;
+    const hh = r.h * sc;
+    if (h === 0 || h === 6) x0 = x1 - w;
+    else x1 = x0 + w;
+    if (h === 0 || h === 2) y0 = y1 - hh;
+    else y1 = y0 + hh;
+  }
+  const x = Math.min(x0, x1);
+  const y = Math.min(y0, y1);
+  return { x, y, w: Math.max(4, Math.abs(x1 - x0)), h: Math.max(4, Math.abs(y1 - y0)) };
+}
+
+/** Géométrie d'une annotation mise à l'échelle de `from` vers `to`. */
+export function resize(a: Annot, from: Rect, to: Rect): Partial<Annot> {
+  const sx = from.w > 0 ? to.w / from.w : 1;
+  const sy = from.h > 0 ? to.h / from.h : 1;
+  const px = (x: number) => to.x + (x - from.x) * sx;
+  const py = (y: number) => to.y + (y - from.y) * sy;
+  return {
+    rect: a.rect ? { x: px(a.rect.x), y: py(a.rect.y), w: a.rect.w * sx, h: a.rect.h * sy } : null,
+    ink: a.ink.map((s) => s.map(([x, y]) => [px(x), py(y)] as [number, number])),
+    line: a.line ? [px(a.line[0]), py(a.line[1]), px(a.line[2]), py(a.line[3])] : null,
+  };
+}
+
 /** Index du mot le plus proche d'un point (ou -1). */
 export function nearestWord(words: TextWord[], x: number, y: number): number {
   let best = -1;

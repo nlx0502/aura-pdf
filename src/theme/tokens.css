@@ -45,6 +45,9 @@
   /* ---- Accent (couleur unique) ---- */
   --accent: #6e6af6;
   --accent-hover: #7e7af8;
+  /* Fond des boutons principaux : texte blanc à 4,6:1 (WCAG AA). */
+  --accent-btn: #6662f0;
+  --accent-btn-hover: #5e5aec;
   --accent-text: #a9a6ff;
   --accent-text-strong: #d2d0ff;
   --accent-soft: rgba(110, 106, 246, 0.18);

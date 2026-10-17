@@ -29,6 +29,8 @@ struct OpenDoc {
     hidden: HashMap<u32, std::collections::HashSet<u32>>,
     /// Copie affichée à la place du fichier (visibilité des calques modifiée).
     render_path: Option<PathBuf>,
+    /// Calques masqués par l'utilisateur (sinon : configuration du document).
+    hidden_layers: Option<Vec<String>>,
     /// Le contenu a été modifié en mémoire (module Éditer).
     content_dirty: bool,
 }
@@ -46,6 +48,10 @@ struct SearchState {
     next_page: u32,
     page_count: u32,
     total: u32,
+    /// Résultats pas encore envoyés : regroupés pour limiter le nombre
+    /// d'événements (chaque envoi vers l'interface a un coût fixe).
+    pending: Vec<SearchHit>,
+    last_emit: std::time::Instant,
 }
 
 /// Élément de la file de priorité (priorité croissante, puis plus récent d'abord).
@@ -261,8 +267,8 @@ impl Worker {
             Msg::Reload { doc, password, reply } => {
                 let _ = reply.send(self.reload(doc, password));
             }
-            Msg::Extract { doc, page, dpi, text, reply } => {
-                let r = self.get(doc).and_then(|d| extract::extract_page(d, page, dpi, text));
+            Msg::Extract { doc, page, dpi, text, figures, reply } => {
+                let r = self.get(doc).and_then(|d| extract::extract_page(d, page, dpi, text, figures));
                 let _ = reply.send(r);
             }
             Msg::Credentials { doc, reply } => {
@@ -334,7 +340,7 @@ impl Worker {
             .load_pdf_from_file(&path, password.as_deref())
             .map_err(|e| load_error(e, password.is_some()))?;
         let info = build_info(doc, &path, meta.len(), &pdf)?;
-        self.docs.insert(doc, OpenDoc { doc: pdf, gen, path: path.clone(), password: password.clone(), hidden: HashMap::new(), render_path: None, content_dirty: false });
+        self.docs.insert(doc, OpenDoc { doc: pdf, gen, path: path.clone(), password: password.clone(), hidden: HashMap::new(), render_path: None, hidden_layers: None, content_dirty: false });
         let fresh = crate::annot::load(&path, password.as_deref())?;
         Ok((info, fresh))
     }
@@ -354,7 +360,7 @@ impl Worker {
                 let _ = std::fs::remove_file(r);
             }
         }
-        self.docs.insert(doc, OpenDoc { doc: pdf, gen, path, password, hidden: HashMap::new(), render_path: None, content_dirty: false });
+        self.docs.insert(doc, OpenDoc { doc: pdf, gen, path, password, hidden: HashMap::new(), render_path: None, hidden_layers: None, content_dirty: false });
         Ok(info)
     }
 
@@ -382,8 +388,23 @@ impl Worker {
             .collect();
         let layout = crate::print::layout::compute(&settings, &sizes, margin);
         let name = open.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        let path = open.path.clone();
-        let password = open.password.clone();
+        // Document à calques : copie d'impression sans le contenu des calques masqués.
+        let mut path = open.path.clone();
+        let mut password = open.password.clone();
+        if let Ok(bytes) = std::fs::read(&path) {
+            if bytes.windows(13).any(|w| w == b"/OCProperties") {
+                match crate::edit::layers::print_copy(&bytes, password.as_deref(), open.hidden_layers.as_deref()) {
+                    Ok(copy) => {
+                        let tmp = std::env::temp_dir().join(format!("aura-impression-{doc}.pdf"));
+                        if std::fs::write(&tmp, copy).is_ok() {
+                            path = tmp;
+                            password = None;
+                        }
+                    }
+                    Err(e) => eprintln!("copie d'impression : {e}"),
+                }
+            }
+        }
         self.print = Some(crate::print::PrintJob::new(job, doc, self.pdfium, &path, password.as_deref(), name, settings, layout, target)?);
         Ok(())
     }
@@ -426,7 +447,7 @@ impl Worker {
 
         let gen = Arc::new(AtomicU64::new(0));
         self.gens.write().insert(id, gen.clone());
-        self.docs.insert(id, OpenDoc { doc, gen, path: path.to_path_buf(), password: password.map(str::to_string), hidden: HashMap::new(), render_path: None, content_dirty: false });
+        self.docs.insert(id, OpenDoc { doc, gen, path: path.to_path_buf(), password: password.map(str::to_string), hidden: HashMap::new(), render_path: None, hidden_layers: None, content_dirty: false });
         Ok(info)
     }
 
@@ -458,7 +479,9 @@ impl Worker {
             self.search = None;
             return;
         }
-        self.search = Some(SearchState { doc, token, needle, next_page: 0, page_count, total: 0 });
+        // Premier envoi rapide (premier résultat visible au plus tôt), puis regroupement.
+        let last_emit = std::time::Instant::now() - std::time::Duration::from_secs(1);
+        self.search = Some(SearchState { doc, token, needle, next_page: 0, page_count, total: 0, pending: Vec::new(), last_emit });
     }
 
     fn search_step(&mut self) {
@@ -468,15 +491,17 @@ impl Worker {
         let hits = search_page(&open.doc, page_index, &s.needle).unwrap_or_default();
         s.total += hits.len() as u32;
         s.next_page += 1;
+        s.pending.extend(hits);
 
         let done = s.next_page >= s.page_count;
-        if !hits.is_empty() || s.next_page % 16 == 0 || done {
+        if done || s.last_emit.elapsed() >= std::time::Duration::from_millis(80) {
+            s.last_emit = std::time::Instant::now();
             (self.emit)(
                 "search:progress",
                 json!({
                     "doc": s.doc,
                     "token": s.token,
-                    "hits": hits,
+                    "hits": std::mem::take(&mut s.pending),
                     "scanned": s.next_page,
                     "pageCount": s.page_count,
                     "total": s.total,
@@ -679,15 +704,26 @@ fn merge_line_rects(rects: impl Iterator<Item = Rect>) -> Vec<Rect> {
 
 fn search_page(doc: &PdfDocument, index: u32, needle: &[char]) -> Result<Vec<SearchHit>, PdfiumError> {
     let page = doc.pages().get(index as PdfPageIndex)?;
-    let (chars, rects) = page_chars(&page);
+    // Caractères seulement : les boîtes (coûteuses) ne sont calculées que pour les résultats.
+    let Ok(text) = page.text() else { return Ok(Vec::new()) };
+    let all = text.chars();
+    let chars: Vec<char> = all.iter().map(|ch| ch.unicode_char().unwrap_or('\u{FFFD}')).collect();
     let folded: Vec<char> = chars.iter().map(|&c| fold_char(c)).collect();
+    let cfg = coord_config();
     let hits = find_all(&folded, needle)
         .into_iter()
         .map(|(s, e)| {
             let (before, matched, after) = snippet(&chars, s, e, 48);
+            let rects = (s..e).filter(|i| !chars[*i].is_whitespace()).filter_map(|i| {
+                all.get(i as PdfPageTextCharIndex)
+                    .ok()
+                    .and_then(|ch| ch.loose_bounds().ok())
+                    .map(|r| to_display_rect(&page, &cfg, r))
+                    .filter(|r| r.w > 0.0 && r.h > 0.0)
+            });
             SearchHit {
                 page: index,
-                rects: merge_line_rects(rects[s..e].iter().flatten().copied()),
+                rects: merge_line_rects(rects),
                 before,
                 matched,
                 after,

@@ -1,0 +1,35 @@
+Aura PDF est un logiciel libre et gratuit, distribué sous licence MIT.
+Vous pouvez l'utiliser, le copier, le modifier et le redistribuer librement,
+y compris à des fins commerciales.
+
+Aura PDF fonctionne entièrement hors ligne : vos documents ne quittent pas
+votre ordinateur (seul l'horodatage qualifié, s'il est activé, envoie
+l'empreinte d'un document à l'autorité choisie).
+
+Composants tiers : PDFium (BSD-3), Tesseract (Apache 2.0), données tessdata
+(Apache 2.0), polices et bibliothèques listées dans le fichier
+THIRD-PARTY-LICENSES.md installé avec l'application.
+
+Texte de la licence (en anglais, seul texte faisant foi) :
+
+MIT License
+
+Copyright (c) 2026 Aura PDF contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
