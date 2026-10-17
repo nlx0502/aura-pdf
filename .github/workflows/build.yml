@@ -81,9 +81,18 @@ jobs:
       - name: Tests de l'interface
         run: npx tsc --noEmit -p . && npx vitest run
 
+      # Les tests en échec sont aussi signalés en annotations (visibles sans
+      # connexion sur la page de l'exécution).
       - name: Tests du cœur
         working-directory: src-tauri
-        run: cargo test --lib
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! cargo test --lib 2>&1 | tee tests.log; then
+            grep -E "^test .* FAILED$" tests.log | sed 's/^/::error title=Test en échec::/' || true
+            grep -E -A3 "panicked at" tests.log | head -60 | while IFS= read -r l; do echo "::error title=Détail::$l"; done
+            exit 1
+          fi
 
       - name: Paquet d'installation
         run: npx tauri build --bundles ${{ matrix.bundle }}
