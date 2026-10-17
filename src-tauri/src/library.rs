@@ -280,13 +280,18 @@ fn collect_pdfs(dir: &Path, depth: u32, out: &mut Vec<FileEntry>) {
 mod tests {
     use super::*;
 
+    /// Bibliothèque dans un dossier propre à chaque test (les tests tournent en parallèle).
     fn tmp_lib() -> Library {
-        let dir = std::env::temp_dir().join(format!("aura-test-{}", std::process::id() as u64 * 1000 + rand_suffix()));
+        static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let n = N.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("aura-test-{}-{n}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
         Library::load(dir)
     }
 
-    fn rand_suffix() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() as u64 % 1000
+    /// Chemin d'un document fictif, au format du système.
+    fn p(name: &str) -> String {
+        if cfg!(windows) { format!("C:\\{name}") } else { format!("/tmp/{name}") }
     }
 
     fn info(path: &str, pages: u32) -> TouchInfo {
@@ -296,20 +301,20 @@ mod tests {
     #[test]
     fn reprise_a_la_derniere_page() {
         let lib = tmp_lib();
-        assert_eq!(lib.touch(info("C:\\a.pdf", 10)).unwrap(), 0);
-        lib.update("c:/a.pdf", |e| e.last_page = 6).unwrap();
-        assert_eq!(lib.touch(info("C:\\A.pdf", 10)).unwrap(), 6);
+        assert_eq!(lib.touch(info(&p("a.pdf"), 10)).unwrap(), 0);
+        lib.update(&p("a.pdf").replace('\\', "/"), |e| e.last_page = 6).unwrap();
+        assert_eq!(lib.touch(info(&p("A.pdf"), 10)).unwrap(), 6);
         // Le document a été raccourci : on repart du début.
-        assert_eq!(lib.touch(info("C:\\a.pdf", 4)).unwrap(), 0);
+        assert_eq!(lib.touch(info(&p("a.pdf"), 4)).unwrap(), 0);
         assert_eq!(lib.recents().len(), 1);
     }
 
     #[test]
     fn retrait_de_la_liste() {
         let lib = tmp_lib();
-        lib.touch(info("C:\\a.pdf", 1)).unwrap();
-        lib.touch(info("C:\\b.pdf", 1)).unwrap();
-        lib.remove("C:\\a.pdf").unwrap();
+        lib.touch(info(&p("a.pdf"), 1)).unwrap();
+        lib.touch(info(&p("b.pdf"), 1)).unwrap();
+        lib.remove(&p("a.pdf")).unwrap();
         let r = lib.recents();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].entry.name, "b.pdf");
@@ -317,7 +322,8 @@ mod tests {
 
     #[test]
     fn libelle_de_dossier_hors_emplacements() {
-        let (label, place) = describe_folder(Path::new("Z:\\Projets\\Clients\\x.pdf"));
+        let path = if cfg!(windows) { "Z:\\Projets\\Clients\\x.pdf" } else { "/Volumes/Projets/Clients/x.pdf" };
+        let (label, place) = describe_folder(Path::new(path));
         assert_eq!(label, "Clients");
         assert!(place.is_none());
     }
