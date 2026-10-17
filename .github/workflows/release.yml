@@ -2,8 +2,8 @@
 #  1. compilation et tests sur Windows et macOS (build.yml) ;
 #  2. signature de l'installateur Windows par SignPath Foundation (certificat
 #     de signature de code offert aux projets libres) ;
-#  3. brouillon de version GitHub avec l'installateur signé et le DMG macOS,
-#     à relire puis publier à la main.
+#  3. publication de la version sur GitHub (Releases) avec l'installateur
+#     Windows, le DMG macOS et les empreintes SHA-256.
 #
 # Secrets et variables du dépôt (Settings › Secrets and variables › Actions) :
 #   secret   SIGNPATH_API_TOKEN       jeton de l'utilisateur CI de SignPath
@@ -82,18 +82,20 @@ jobs:
           ls -la release
           (cd release && sha256sum * > SHA256SUMS.txt)
 
-      - name: Brouillon de version
+      - name: Version GitHub
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
+          make_latest: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           name: Aura PDF ${{ github.ref_name }}
           files: release/*
           body: |
             ## Installation
 
             - **Windows** : `Aura PDF_…_x64-setup.exe`.
-            - **macOS (puces Apple)** : `Aura PDF_…_aarch64.dmg`. L’application n’est pas
-              notariée par Apple : au premier lancement, clic droit sur Aura PDF › **Ouvrir**,
-              puis **Ouvrir** (voir le README).
+            - **macOS 11+ (puces Apple)** : `Aura PDF_…_aarch64.dmg`. L’application n’est pas
+              notariée par Apple : au premier lancement, Réglages Système › Confidentialité et
+              sécurité › **Ouvrir quand même** (voir le README).
 
             Empreintes SHA-256 : `SHA256SUMS.txt`.

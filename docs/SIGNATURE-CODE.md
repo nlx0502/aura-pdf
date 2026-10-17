@@ -39,9 +39,9 @@ git push origin v1.0.0
 ```
 
 La CI compile et teste Windows et macOS, soumet l'installateur à SignPath
-(approbation à donner dans SignPath.io), puis crée un **brouillon** de version
-GitHub avec l'installateur signé, le DMG et les empreintes SHA-256. Il reste à
-relire le brouillon et à le publier.
+(approbation à donner dans SignPath.io), puis **publie la version** sur GitHub
+(Releases) avec l'installateur, le DMG et les empreintes SHA-256. Une étiquette
+avec tiret (`v1.1.0-beta.1`) est publiée comme préversion.
 
 Tant que SignPath n'est pas configuré, la version est créée avec un
 installateur non signé (avertissement dans le journal de la CI).

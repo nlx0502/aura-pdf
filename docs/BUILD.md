@@ -130,5 +130,5 @@ tests tournent sur les machines Mac de GitHub Actions.
 - `.github/workflows/build.yml` : à chaque envoi sur `main` et à chaque
   demande de fusion, tests et paquets Windows (NSIS) et macOS (DMG) ;
 - `.github/workflows/release.yml` : sur une étiquette `v*`, signature de
-  l'installateur Windows par SignPath et brouillon de version GitHub (voir
+  l'installateur Windows par SignPath et publication de la version GitHub (voir
   [SIGNATURE-CODE.md](SIGNATURE-CODE.md)).
